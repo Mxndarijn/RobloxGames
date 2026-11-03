@@ -5,7 +5,7 @@
 	The lane splits into roads you can study from the fork: a short, hard road (route "fast", on the right, z > 0)
 	and a long, safe one (the main path, on the left, z < 0), with a see-through divider between them where they run
 	side by side. Some variants stack the roads (a miss on the high road lands on the low one), add a third road
-	("top" / "bottom"), a hidden one ("secret") or a crossing plank ("bail"). A picture sign (`pic:` marker: lightning,
+	("top" / "bottom"), a hidden one ("secret") or a crossing plank ("bail"). A picture sign (`pic:` marker: speed pad,
 	shield, a terrace, ...) on each road's first pad says which is which.
 
 	Walk-forward rule (contract §9, §11): every walking line needs a same-height hole of 4.4 or more, a ledge over 2
@@ -305,7 +305,7 @@ M.variants = {
 				parts,
 				slab(12.5, 20.5, 0, RIGHT, ROAD, "spring", {
 					route = "fast",
-					motion = { kind = "bounce", power = 70, throw = { 14, 0, 0 } },
+					motion = { kind = "bounce", power = Kit.bounce(70), throw = { 14, 0, 0 } },
 					marker = "rings2",
 				})
 			)
@@ -314,7 +314,7 @@ M.variants = {
 			table.insert(parts, blob(44, RIGHT, 0, ROAD, SWEEP.easy, 0.5))
 			divider(parts, x0, x1, -1, 22) -- over a jump from the hilltop
 			exit(parts, length, 0)
-			return Kit.section(length, 0, parts)
+			return Kit.signed(Kit.section(length, 0, parts), "fork,bounce")
 		end,
 	},
 	{
@@ -445,7 +445,8 @@ M.variants = {
 			for i, p in lay(8, 72, 7, 3, 3, 0) do
 				local extra: { [string]: any } = { route = "bottom", tone = 1 }
 				if i == 1 then
-					extra.marker = "pic:safe"
+					-- terraces like Three Roads: no road here is safe (the bottom has a sweeper, the top a blink)
+					extra.marker = "pic:low"
 				end
 				local top = if i % 2 == 1 then 2 else 0
 				table.insert(parts, slab(p[1], p[2], top, -8, PAD, "jelly", extra))
@@ -454,7 +455,7 @@ M.variants = {
 				end
 			end
 			-- top, z 4..12: a stair, then two 6-stud gaps
-			table.insert(parts, slab(8, 13, 3.5, 8, PAD, "jelly", { route = "top", tone = 3, marker = FAST.marker }))
+			table.insert(parts, slab(8, 13, 3.5, 8, PAD, "jelly", { route = "top", tone = 3, marker = "pic:high" }))
 			table.insert(parts, slab(13, 29, 7, 8, PAD, "jelly", { route = "top", tone = 3 }))
 			table.insert(
 				parts,
@@ -665,7 +666,7 @@ M.variants = {
 			table.insert(parts, slab(43, x1, 0, RIGHT, ROAD, "goo", { route = "fast", marker = FAST.marker }))
 			divider(parts, x0, x1, -1, 12)
 			exit(parts, length, 0)
-			return Kit.section(length, 0, parts)
+			return Kit.signed(Kit.section(length, 0, parts), "fork,speed")
 		end,
 	},
 	{
@@ -836,7 +837,7 @@ M.variants = {
 				)
 			end
 			exit(parts, length, 0)
-			return Kit.section(length, 0, parts)
+			return Kit.signed(Kit.section(length, 0, parts), "fork,melt")
 		end,
 	},
 	{

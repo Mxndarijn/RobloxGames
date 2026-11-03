@@ -81,6 +81,7 @@ Remotes.ACTIONS = table.freeze({
 	AimGift = table.freeze({ args = { "string", "number" } }), -- cosmetic product key (Seat_* / Trail_* / BatSkin_*), target userId: who the next Gift_<key> purchase is for
 	SendGift = table.freeze({ args = { "string", "number" } }), -- product key of an unsent gift, target userId: sends it
 	SetHotbar = table.freeze({ args = { "hotbar" } }), -- order: up to 9 slot keys joined by "," ("" = empty slot) (HotbarOrder, CONTRACT.md §3)
+	ObbyVine = table.freeze({ args = { "code" } }), -- the obby vine rope part id (ObbyId) the runner holds now, "" = let go (contract/obby.md §5)
 	RequestKits = table.freeze({ args = { "kits" } }), -- species: up to KitRequest.MAX species ids joined by ","; their kit meshes replicate to this player only (KitRequest, CONTRACT.md §3)
 	Admin = table.freeze({ args = { "string", "string?", "number?" } }), -- AdminCommands id, an id argument, a number argument (contract/admin-menu.md)
 	Sync = table.freeze({ args = {} }), -- server re-sends State

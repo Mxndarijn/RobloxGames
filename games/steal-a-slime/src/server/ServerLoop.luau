@@ -173,6 +173,7 @@ local function stepPlayers(loop: Loop, t: number)
 			end
 			PlayerAttributes.syncOpenShop(world, player)
 			PlayerAttributes.syncCosmetics(world, player)
+			PlayerAttributes.syncObbyVine(world, player) -- a run that ended lets go of its rope for everyone
 			LeaderboardView.updateStats(player, session)
 		end
 	end

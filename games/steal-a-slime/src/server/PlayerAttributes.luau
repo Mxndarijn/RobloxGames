@@ -7,6 +7,7 @@
 	  * `OpenShop`: the session's open world shop, nil = closed;
 	  * `CarryTrail` / `BatSkin`: the equipped carry trail and Bat skin (Purchases.worn);
 	  * `Member`: "vip" / "club" for the name and chat tag (Purchases.member).
+	  * `ObbyVine`: the obby vine rope part id the player hangs on (ObbyService.heldVine), so other clients draw it.
 ]]
 
 local Players = game:GetService("Players")
@@ -15,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local ObbyService = require(script.Parent.ObbyService)
 local Purchases = require(script.Parent.Purchases)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
@@ -58,6 +60,14 @@ function PlayerAttributes.syncCosmetics(world: World.World, player: Player)
 	local member = if session then Purchases.member(session) else nil
 	if player:GetAttribute(Constants.MEMBER_ATTRIBUTE) ~= member then
 		player:SetAttribute(Constants.MEMBER_ATTRIBUTE, member)
+	end
+end
+
+function PlayerAttributes.syncObbyVine(world: World.World, player: Player)
+	local session = World.session(world, player.UserId)
+	local value = if session then ObbyService.heldVine(world, session) else nil
+	if player:GetAttribute(Constants.OBBY_VINE_ATTRIBUTE) ~= value then
+		player:SetAttribute(Constants.OBBY_VINE_ATTRIBUTE, value)
 	end
 end
 

@@ -685,7 +685,7 @@
           "name": "Spring Ride",
           "tier": "medium",
           "does": "A tilted orange spring pad rides on the disk's rim; its yellow arrow turns with the disk, and you step on it only when the arrow points at the far ledge.",
-          "numbers": "1 disk of 20 studs, spin 8 s, 1 tilted pad (normal bounce, 14 stud throw) on the rim, ledge 12 studs past the rim and 4 higher, about 48 studs",
+          "numbers": "1 disk of 20 studs, spin 8 s, 1 tilted pad (normal bounce, 14 stud throw) on the rim, ledge 8 studs past the pad and 4 higher, about 48 studs",
           "view": "top",
           "sketch": [
             [

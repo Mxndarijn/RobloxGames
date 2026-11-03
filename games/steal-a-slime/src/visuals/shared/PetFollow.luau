@@ -17,9 +17,16 @@
 	    at rest it keeps facing where it faced (the owner turning doesn't turn it);
 	  * bob: a small sine added to the height only (not part of the spring state);
 	  * snap: the first step, or an owner further than SNAP_DISTANCE (teleport, respawn), puts it straight at the
-	    owner's back-right offset (OFFSET_X right, OFFSET_Z behind, turned by the owner's heading).
+	    owner's back-right offset (OFFSET_X right, OFFSET_Z behind, turned by the owner's heading);
+	  * drawn: your own pet always; another player's only while its owner is within DRAW_DISTANCE of the camera.
+	    `hide` marks a pet that stopped being drawn (or lost its owner's character), so the step that shows it again
+	    snaps it next to the owner instead of it hanging where it was last drawn or flying in from there.
 	Yaw 0 faces -Z (Roblox default); CFrame.Angles(0, yaw, 0) turns the pet by `yaw`.
 ]]
+
+local Config = if script
+	then require((game:GetService("ReplicatedStorage") :: any).Shared.Config)
+	else require("../../shared/Config")
 
 export type State = {
 	x: number,
@@ -63,7 +70,8 @@ PetFollow.OMEGA_Y = 5 -- height spring stiffness (1/s): softer, so steps and ram
 PetFollow.YAW_RATE = 8 -- 1/s
 PetFollow.YAW_MAX_RATE = math.rad(200) -- the pet never turns faster than this (rad/s)
 PetFollow.TURN_SPEED = 1.5 -- studs/s of own flat speed above which the pet turns toward its travel direction
-PetFollow.SNAP_DISTANCE = 60
+PetFollow.SNAP_DISTANCE = Config.PET_FOLLOW.SNAP_DISTANCE
+PetFollow.DRAW_DISTANCE = Config.PET_FOLLOW.DRAW_DISTANCE
 PetFollow.MAX_DT = 0.25 -- a hitch longer than this is treated as 0.25 s
 PetFollow.BOB_AMPLITUDE = 0.14
 PetFollow.BOB_RATE = 3.2 -- rad/s
@@ -105,6 +113,21 @@ function PetFollow.yawOf(lookX: number, lookZ: number): number
 		return 0
 	end
 	return math.atan2(-lookX, -lookZ)
+end
+
+-- Whether a pet is drawn this frame: `own` (the local player's pet) always, else while its owner's root (rx, ry, rz)
+-- is within DRAW_DISTANCE of the camera (ex, ey, ez).
+function PetFollow.drawn(own: boolean, rx: number, ry: number, rz: number, ex: number, ey: number, ez: number): boolean
+	if own then
+		return true
+	end
+	local dx, dy, dz = rx - ex, ry - ey, rz - ez
+	return dx * dx + dy * dy + dz * dz < PetFollow.DRAW_DISTANCE * PetFollow.DRAW_DISTANCE
+end
+
+-- The pet stopped being drawn: its next step snaps it next to its owner.
+function PetFollow.hide(s: State)
+	s.ready = false
 end
 
 local function snap(s: State, rx: number, ry: number, rz: number, ownerYaw: number)

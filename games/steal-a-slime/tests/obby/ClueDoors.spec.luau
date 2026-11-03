@@ -94,8 +94,7 @@ local function fits(room: Room): { number }
 end
 
 local function isTrap(p: Kit.Part): boolean
-	local m = p.motion
-	return m ~= nil and m.kind == "melt" and (m.away or 0) < 0
+	return Kit.isTrap(p.motion)
 end
 
 -- The corridor floor of `room` at z (step or trapdoor).
@@ -410,9 +409,9 @@ describe("Clue Doors", function()
 		expect(table.concat(bad, "\n")).toBe("")
 	end)
 
-	it("keeps a wrong corridor too long to run and jump across before its trapdoor drops", function()
-		-- the furthest a runner gets from the door wall over a trapdoor: a jump in (taken at the wall), 0.25 s of
-		-- running, a jump out
+	it("keeps a wrong corridor too long to jump across: its trapdoor never holds you", function()
+		-- the furthest a runner gets from the door wall over a trapdoor: one jump in (taken at the wall); it gives
+		-- way at once, so there is no running on it and no jump out
 		local jump = Kit.WALK * 2 * Kit.JUMP_SPEED / Kit.GRAVITY
 		local bad = {}
 		eachCase(function(name, index, tier)
@@ -426,7 +425,7 @@ describe("Clue Doors", function()
 							nextX = math.min(nextX, x0)
 						end
 					end
-					local reach = (room.x0 - 1) + jump + Kit.WALK * 0.25 + jump
+					local reach = (room.x0 - 1) + jump
 					if reach > nextX - 1 then
 						table.insert(
 							bad,

@@ -10,8 +10,9 @@
 	  * spin    turns round its vertical axis and shoves what it hits (angular velocity)
 	  * melt    the local player standing on it (`on = "land"`) or leaving it (`on = "leave"`): cracks and darkens over
 	            `delay`, drops away for `away` s (-1: until the next reset); `spread` s after it is gone the tiles in
-	            `next` (part ids) start melting too
-	  * flip    solid in its `duty` share of the period, blinks just before it goes, see-through and not solid
+	            `next` (part ids) start melting too. A trapdoor (Kit.trap, `delay = 0`) has no collision at all: the
+	            root over it starts its crack and fade (TRAP_FADE) as you fall through
+	  * flip   solid in its `duty` share of the period, blinks just before it goes, see-through and not solid
 	            otherwise; with `solid = true` only its glow blinks on and off and it stays solid
 	  * shrink  its width and depth (a cylinder: its round face) breathe between full size and `min`
 	  * bounce  the local player landing on it is thrown up at `power` plus `throw` (course-local); with `duty` it
@@ -20,7 +21,8 @@
 	            above the column's bottom they hover; with `duty` it runs only while `cycle < duty` and fades 0.8 s
 	            before it stops
 	  * swing   a pendulum swinging across the course (axis "x": along it), `arm` studs below its pivot (shoves what
-	            it hits); a vine rope the local player holds swings at ObbyMoves' angle instead (Vine.HELD_ANGLE)
+	            it hits); a vine rope the local player holds swings at ObbyMoves' angle instead (Vine.HELD_ANGLE), one
+	            another player holds at the angle ObbyVineSync reads from their root (Vine.OTHER_ANGLE)
 	  * rock    a seesaw plank tipping forward and back round its centre
 	  * roll    a log rolling round its own length; its turn carries a player standing on it sideways
 	  * punch   shoots out along its axis, holds, slides back and rests; always a hazard (touching it resets you)
@@ -48,6 +50,9 @@ Per-player parts (contract §5, the clocks and keys in ObbyClock): a `trigger` p
 	(ObbyFall.onReset) clears the clocks, keys, melted tiles and collapsed pieces and puts every part back at rest.
 	Warnings are the part's own Color and Transparency (no extra parts). Decor parts parented under a part (its
 	markers) move and fade with it. A part's `beat` snaps its period to the beat clock, and it pulses on the beat.
+	Hazards keep the one hazard look (ObbyParts.HAZARD) whenever they can hurt you: their tells and beat pulses go
+	toward HAZARD.hot, never white; an off hazard is see-through with its outline hidden. A ball, log or disc hazard's
+	outline follows its round shape: its camera-facing pieces are turned here each frame (ObbyParts.faceEdge).
 	It also turns the Goo Rings' swirls (the portal's and the ring home's: the "Mesh" swapped into a slot with
 	Constants.GOO_SPIN, round its GOO_PIVOT's Z axis; the invisible slot itself stays put).
 	Every change is local: each player collides with their own copy, so platforms move smoothly at frame rate.
@@ -65,6 +70,7 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local ObbyClock = require(script.Parent:WaitForChild("ObbyClock"))
 local ObbyFall = require(script.Parent:WaitForChild("ObbyFall"))
 local ObbyLook = require(Visuals:WaitForChild("ObbyLook"))
+local ObbyParts = require(Visuals:WaitForChild("ObbyParts"))
 local ObbyZone = require(Visuals:WaitForChild("ObbyZone"))
 -- The one source of motion timing (contract §11): the checks sample the same functions.
 local Kit = require(Shared:WaitForChild("ObbySections"):WaitForChild("Kit"))
@@ -91,6 +97,8 @@ ObbyFx.WIND_HOLD = 0.5
 ObbyFx.FLOOR_SIDE = 0.8 -- studs off the root's centre the extra floor rays look (standing on a pad's edge)
 ObbyFx.MELT_DARKEN = 0.55 -- share of the way to black a melting tile darkens by the time it drops
 ObbyFx.MELT_FADE = 0.35 -- share of the way to GONE a melting tile fades by the time it drops
+ObbyFx.TRAP_FADE = 0.3 -- seconds a trapdoor (Kit.trap) takes to crack and fade once you fall through it
+ObbyFx.TRAP_HIGH = 3.5 -- studs over a trapdoor's top the root counts as on it (a standing root is 3 up)
 ObbyFx.CRACK_SLOW = 0.35 -- seconds between crack ticks when the warning starts
 ObbyFx.CRACK_FAST = 0.08 -- ... and just before it drops
 ObbyFx.DROP_WARN = 0.8 -- seconds a collapsing piece cracks before it falls (contract §4)
@@ -180,6 +188,9 @@ type Mover = {
 	openedAt: number?, -- gate
 	fade: number, -- 0 at rest .. 1 hidden: what its decor shows
 	live: boolean, -- hazard: dangerous this frame
+	hazard: boolean, -- a `hazard` part: its tells go toward HAZARD.hot, never white
+	edges: { Instance }, -- a hazard's outline (ObbyParts "HazardEdge*"): shown only while it has the hazard look
+	round: boolean, -- a ball, log or disc hazard: its outline faces the camera (ObbyParts.faceEdge)
 	paint: Color3, -- the colour this frame
 }
 
@@ -198,6 +209,7 @@ type Now = {
 
 local TAU = 2 * math.pi
 local WHITE = Color3.new(1, 1, 1)
+local HAZARD = ObbyParts.HAZARD
 local BLACK = Color3.new(0, 0, 0)
 local UP = Vector3.yAxis
 
@@ -337,6 +349,13 @@ local function mover(part: BasePart, frame: CFrame): Mover?
 		axis = -axis -- the axis points the way it blows
 	end
 	local restCf = if typeof(base) == "CFrame" then base else part.CFrame
+	local edges: { Instance } = {}
+	for _, c in part:GetChildren() do
+		if string.sub(c.Name, 1, 10) == "HazardEdge" and (c:IsA("SelectionBox") or c:IsA("HandleAdornment")) then
+			table.insert(edges, c)
+		end
+	end
+	local shape = if part:IsA("Part") then (part :: Part).Shape else Enum.PartType.Block
 	local decor: { Decor } = {}
 	local lights: { Instance } = {}
 	for _, d in part:GetDescendants() do
@@ -393,6 +412,9 @@ local function mover(part: BasePart, frame: CFrame): Mover?
 		openedAt = nil,
 		fade = 0,
 		live = true,
+		hazard = spec.hazard == true,
+		edges = edges,
+		round = spec.hazard == true and shape ~= Enum.PartType.Block,
 		paint = part.Color,
 	}
 end
@@ -424,6 +446,13 @@ local function look(m: Mover, solid: boolean, transparency: number)
 	if part.Transparency ~= transparency then
 		part.Transparency = transparency
 	end
+	-- the outline only with the full hazard look: an off (see-through) hazard shows none
+	local outlined = transparency <= m.transparency
+	for _, edge in m.edges do
+		if (edge :: any).Visible ~= outlined then
+			(edge :: any).Visible = outlined
+		end
+	end
 	local span = 1 - m.transparency
 	local fade = if span <= 0 then 0 else math.clamp((transparency - m.transparency) / span, 0, 1)
 	if fade ~= m.fade then
@@ -434,8 +463,10 @@ local function look(m: Mover, solid: boolean, transparency: number)
 	end
 end
 
+-- A tell: toward white by GLOW at `k` = 1; a hazard goes all the way to its brighter red instead (white reads pink).
 local function glow(m: Mover, k: number)
-	m.paint = m.paint:Lerp(WHITE, ObbyFx.GLOW * math.clamp(k, 0, 1))
+	local share = math.clamp(k, 0, 1)
+	m.paint = if m.hazard then m.paint:Lerp(HAZARD.hot, share) else m.paint:Lerp(WHITE, ObbyFx.GLOW * share)
 end
 
 local function blinkOn(clock: number): boolean
@@ -623,10 +654,16 @@ function PLAY.swing(m, now)
 		angle = if along then math.atan2(o.X / arm, 1 - o.Y / arm) else math.atan2(-o.Z / arm, 1 - o.Y / arm)
 	end
 	local vel = m.vel0 + velAt(m, now.t, off)
-	-- a rope the local player holds (ObbyMoves' vine): its angle from the player's swing, faded in over its own
+	-- a rope the local player holds (ObbyMoves' vine): its angle from the player's swing, faded in over its own;
+	-- else one another player holds (ObbyVineSync: the angle their replicated root hangs at)
 	local held = m.part:GetAttribute(Vine.HELD_ANGLE)
+	local fadeName = Vine.HELD_FADE
+	if type(held) ~= "number" then
+		held = m.part:GetAttribute(Vine.OTHER_ANGLE)
+		fadeName = Vine.OTHER_FADE
+	end
 	if type(held) == "number" then
-		local fade = m.part:GetAttribute(Vine.HELD_FADE)
+		local fade = m.part:GetAttribute(fadeName)
 		angle += (held - angle) * (if type(fade) == "number" then math.clamp(fade, 0, 1) else 1)
 		local side = if along then Vector3.new(math.sin(angle), 0, 0) else Vector3.new(0, 0, -math.sin(angle))
 		off = m.frame:VectorToWorldSpace((side + Vector3.new(0, 1 - math.cos(angle), 0)) * arm)
@@ -806,6 +843,10 @@ function PLAY.flip(m, now)
 	if not on then
 		look(m, false, ObbyFx.GONE_TRANSPARENCY)
 		m.live = false
+	elseif warning and m.hazard then
+		-- still dangerous: the full hazard look, blinking its brighter red
+		look(m, true, m.transparency)
+		glow(m, 1)
 	elseif warning then
 		look(m, true, 0.5)
 	else
@@ -825,11 +866,24 @@ end
 
 local byId: { [string]: Mover } = {}
 
+-- True when the local root is over a trapdoor's footprint, on or in it: it has no collision, so no ground ray stands
+-- on it. Only the root's own footprint counts, so standing on the edge of the safe tile beside it does not drop it.
+local function onTrap(part: BasePart, me: Local): boolean
+	local root = me.root
+	if not root then
+		return false
+	end
+	local q = part.CFrame:PointToObjectSpace(root.Position)
+	local h = part.Size / 2
+	return math.abs(q.X) <= h.X and math.abs(q.Z) <= h.Z and q.Y >= -h.Y - 1 and q.Y <= h.Y + ObbyFx.TRAP_HIGH
+end
+
 function PLAY.melt(m, now)
 	local motion = m.motion
 	local delay = num(motion, "delay", 0.7)
 	local away = num(motion, "away", 2.5)
-	local standing = now.me.standingOn == m.part
+	local trap = Kit.isTrap(motion)
+	local standing = now.me.standingOn == m.part or (trap and onTrap(m.part, now.me))
 	if m.meltAt == nil then
 		if motion.on == "leave" then
 			if standing then
@@ -844,6 +898,15 @@ function PLAY.melt(m, now)
 	local since = if m.meltAt then now.clock - m.meltAt else -1
 	if since < 0 then
 		look(m, true, m.transparency)
+	elseif trap and since < ObbyFx.TRAP_FADE then
+		-- already gone under you: the crack and the fade are only the tell
+		if not m.spreadDone then
+			m.spreadDone = true
+			hear(now, "drop")
+		end
+		crack(m, now, 1)
+		local k = since / ObbyFx.TRAP_FADE
+		look(m, false, m.transparency + (ObbyFx.GONE_TRANSPARENCY - m.transparency) * k)
 	elseif since < delay then
 		local k = since / delay
 		crack(m, now, k)
@@ -1069,6 +1132,20 @@ function ObbyFx.start(): Controller
 	local nextSwirlFind = 0
 	local character: Model? = nil
 	local limbs: { BasePart } = {}
+	-- Round hazards (ball, log, disc): their outline faces the camera (ObbyParts.faceEdge), turned every frame.
+	local round: { Mover } = {}
+	local function faceRound(camPos: Vector3?)
+		if not camPos then
+			return
+		end
+		local far = ObbyFx.MAX_DISTANCE * ObbyFx.MAX_DISTANCE
+		for _, m in round do
+			local d = m.part.Position - camPos
+			if m.part.Parent ~= nil and d:Dot(d) <= far then
+				ObbyParts.faceEdge(m.part, camPos)
+			end
+		end
+	end
 
 	-- Turns every Goo Ring swirl near the camera; looks for new rings (portal, a rebuilt course) every FIND_EVERY.
 	local function spinSwirls(clock: number, camPos: Vector3?)
@@ -1153,6 +1230,7 @@ function ObbyFx.start(): Controller
 	local function scan(model: Instance)
 		ObbyClock.clear()
 		all, movers, hazards, triggers, keys, gates = {}, {}, {}, {}, {}, {}
+		round = {}
 		lockIcons = {}
 		table.clear(byId)
 		hasBeat = false
@@ -1182,6 +1260,9 @@ function ObbyFx.start(): Controller
 						lockIcons[m] = locks(m)
 					end
 					hasBeat = hasBeat or m.beat
+					if m.round then
+						table.insert(round, m)
+					end
 				end
 			end
 		end
@@ -1273,6 +1354,7 @@ function ObbyFx.start(): Controller
 			local found = folder and folder:FindFirstChild(Constants.OBBY_COURSE)
 			if not found then
 				all, movers, hazards, triggers, keys, gates = {}, {}, {}, {}, {}, {}
+				round = {}
 				course = nil
 				return
 			end
@@ -1321,7 +1403,9 @@ function ObbyFx.start(): Controller
 			m.paint = m.color
 			PLAY[m.kind](m, now)
 			if m.beat then
-				m.paint = m.paint:Lerp(WHITE, beatPulse)
+				m.paint = if m.hazard
+					then m.paint:Lerp(HAZARD.hot, beatPulse / ObbyFx.BEAT_PULSE)
+					else m.paint:Lerp(WHITE, beatPulse)
 				beatHeard = beatHeard or now.near
 			end
 			if part.Color ~= m.paint then
@@ -1334,6 +1418,7 @@ function ObbyFx.start(): Controller
 			end
 			lastBeat = beatIndex
 		end
+		faceRound(camPos)
 		if not root or not ObbyLook.isInside() then
 			return
 		end
@@ -1353,6 +1438,7 @@ function ObbyFx.start(): Controller
 		stop = function()
 			stopListening()
 			all, movers, hazards, triggers, keys, gates = {}, {}, {}, {}, {}, {}
+			round = {}
 			table.clear(byId)
 			course = nil
 			swirls = {}

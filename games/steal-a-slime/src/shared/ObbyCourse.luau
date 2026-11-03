@@ -10,7 +10,7 @@
 	that tier (an idea's generator counts as one more variant, `variant = 0`) and a seed. An idea with no variant of a
 	tier is skipped for that slot. `build(slot)` lays the course out: a start pad (the Goo Ring home standing on its
 	back edge), then the sections joined by short jelly connectors in line with the path, then the finish pad. Every
-	part gets a unique `id` ("<section>.<index>", start "s", home catch pad "h", connectors "l<n>", sign posts
+	part gets a unique `id` ("<section>.<index>", start "s", connectors "l<n>", sign posts
 	"p<section>-<n>", finish "f") and a melt's `next` indices become those ids. Picture signs (`signs`): an idea's
 	entry sign (ObbySections.entrySign) and a banner over every group of `pic:` marked parts, each a ghost `banner`
 	spanning the lane overhead, its `pic:` marker the pictures (visuals/shared/ObbySigns, visuals/shared/ObbyParts). There are no checkpoints: the server tracks which section a runner is
@@ -93,9 +93,9 @@ ObbyCourse.FALL_REACH = 10 -- studs along the course a falling runner can still 
 ObbyCourse.FINISH_LENGTH = 12
 ObbyCourse.HOME_AT = 6 -- studs behind the start pad where the Goo Ring home stands: a full-width apron, so it sits
 -- on the back edge well clear of where a runner appears
-ObbyCourse.HOME_LENGTH = 7 -- the catch pad behind the apron, under the far side of the Goo Ring home
-ObbyCourse.HOME_BACK = 2 -- studs behind the ring (on the apron's back edge) that the walk-in circle sits
-ObbyCourse.HOME_WIDTH = 8
+ObbyCourse.HOME_DEPTH = 2 -- the Goo Ring home's half depth (ObbyParts.GOO.ringSize.Z x HOME.scale / 2, 1.96): the
+-- start pad ends flush with the ring's back, so the floor stops where the ring does
+ObbyCourse.HOME_BACK = 0.5 -- studs behind the ring's middle that the walk-in circle sits, on the pad's last stretch
 ObbyCourse.HOME_RADIUS = 2.5 -- studs: stepping inside the Goo Ring ends the run
 ObbyCourse.WIDTH = Kit.WIDTH -- pad and lane width across the course
 ObbyCourse.STAND_HEIGHT = 9 -- studs above the finish pad's top that count as standing on it
@@ -106,7 +106,13 @@ ObbyCourse.SEED_MAX = 999999 -- a pick's seed is 1..this
 ObbyCourse.SIGN = table.freeze({
 	lift = 12, -- the banner's bottom over the floor at its spot: well clear of a jumping head
 	width = Kit.WIDTH, -- left lane edge to right lane edge
-	slot = 5.4, -- one picture (square); four fit across the lane
+	-- One picture is a square slot. A board of up to three pictures draws them `slot` big (three fit across the
+	-- lane); where that banner finds no clear spot (a low ceiling, a shaft) it falls back to `small`. A board of four
+	-- (the cannon's steps) draws them `four` big, `step` apart, with an arrow in each gap: one step, then the next.
+	slot = 7.2,
+	small = 5.4,
+	four = 5,
+	step = 1,
 	pad = 0.4, -- the banner's margin round its slots and the least gap between two
 	thick = 0.4, -- the banner's depth
 	hang = 1.9, -- how far the boosters reach under the banner (their flames are particles and don't count)
@@ -291,12 +297,12 @@ function ObbyCourse.slotsOf(marker: string?): { Slot }?
 	if not marker or string.sub(marker, 1, 4) ~= "pic:" then
 		return nil
 	end
-	local S = ObbyCourse.SIGN
 	local items = string.split(string.sub(marker, 5), ",")
+	local size, gap = ObbyCourse.slotSize(#items)
 	local out: { Slot } = {}
 	for i, item in items do
 		local id, at = string.match(item, "^([^@]+)@(.+)$")
-		local even = (i - (#items + 1) / 2) * (S.slot + S.pad)
+		local even = (i - (#items + 1) / 2) * (size + gap)
 		table.insert(out, { id = id or item, z = if at then tonumber(at) or even else even })
 	end
 	return out
@@ -315,10 +321,20 @@ function ObbyCourse.picsOf(marker: string?): { string }?
 	return out
 end
 
--- The banner's height (every banner is the lane's width, `SIGN.width`).
-function ObbyCourse.bannerHeight(): number
+-- The slot size of a board of `n` pictures and the least gap between two slots; `small`: the fallback size.
+function ObbyCourse.slotSize(n: number, small: boolean?): (number, number)
 	local S = ObbyCourse.SIGN
-	return S.slot + 2 * S.pad
+	if n >= 4 then
+		return S.four, S.step
+	end
+	return if small then S.small else S.slot, S.pad
+end
+
+-- The height of a banner whose slots are `slot` big (default: a board of up to three); every banner is the lane's
+-- width, `SIGN.width`.
+function ObbyCourse.bannerHeight(slot: number?): number
+	local S = ObbyCourse.SIGN
+	return (slot or S.slot) + 2 * S.pad
 end
 
 type Box = { number } -- x0, x1, y0, y1, z0, z1
@@ -386,11 +402,11 @@ local function sweptBoxes(part: Part): { Box }
 	return out
 end
 
--- Spreads slot centres `zs` (sorted, the spots wanted) so neighbours keep `slot + pad` apart and all stay on the
+-- Spreads slot centres `zs` (sorted, the spots wanted) so neighbours keep `size + gap` apart and all stay on the
 -- banner.
-local function spread(zs: { number }): { number }
+local function spread(zs: { number }, size: number, between: number): { number }
 	local S = ObbyCourse.SIGN
-	local gap, edge = S.slot + S.pad, S.width / 2 - S.pad - S.slot / 2
+	local gap, edge = size + between, S.width / 2 - S.pad - size / 2
 	local out = table.clone(zs)
 	for i, z in out do
 		out[i] = math.clamp(z, -edge, edge)
@@ -411,7 +427,21 @@ local function round(z: number): number
 	return math.floor(z * 100 + 0.5) / 100
 end
 
-type Request = { x: number, top: number, slots: { Slot } } -- a sign's spot along the course and the floor top there
+-- A sign's spot along the course and the floor top there; `entry` (the entry sign) may also hang over the connector
+-- before the section when nothing in it leaves room (a shaft with walls up both sides); its pictures `ids` left to
+-- right and the spots across the lane they want (`zs`; nil: spaced evenly round the middle).
+type Request = { x: number, top: number, ids: { string }, zs: { number }?, entry: boolean? }
+
+-- The slots of `g` on a banner of `size` slots `between` apart.
+local function slotsFor(g: Request, size: number, between: number): { Slot }
+	local out: { Slot } = {}
+	local zs = if g.zs then spread(g.zs, size, between) else nil
+	for k, id in g.ids do
+		local z = if zs then zs[k] else (k - (#g.ids + 1) / 2) * (size + between)
+		table.insert(out, { id = id, z = round(z) })
+	end
+	return out
+end
 
 -- The signs of `section` (idea `idea`; nil reads only `section.sign`): the entry sign and one banner per group of
 -- `pic:` marked parts (each picture over the part it marks, across the lane). Each is a ghost `banner` part,
@@ -424,7 +454,7 @@ function ObbyCourse.signs(section: Section, idea: string?): ({ Part }, { string 
 	local entry = if idea then ObbySections.entrySign(idea, section) else section.sign
 	if entry then
 		local x0, _, _, y1 = Kit.bounds(firstStep(section))
-		table.insert(groups, { x = x0, top = y1, slots = ObbyCourse.slotsOf("pic:" .. entry) :: { Slot } })
+		table.insert(groups, { x = x0, top = y1, ids = string.split(entry, ","), entry = true })
 	end
 	local marked: { { x: number, z: number, top: number, ids: { string } } } = {}
 	for _, part in section.parts do
@@ -455,11 +485,7 @@ function ObbyCourse.signs(section: Section, idea: string?): ({ Part }, { string 
 				table.insert(zs, m.z)
 			end
 		end
-		local slots = {}
-		for k, z in spread(zs) do
-			table.insert(slots, { id = ids[k], z = round(z) })
-		end
-		table.insert(groups, { x = first.x, top = top, slots = slots })
+		table.insert(groups, { x = first.x, top = top, ids = ids, zs = zs })
 	end
 
 	local blocked: { Box } = {}
@@ -474,47 +500,73 @@ function ObbyCourse.signs(section: Section, idea: string?): ({ Part }, { string 
 		end
 	end
 
-	local h = ObbyCourse.bannerHeight()
 	local banners, missed = {}, {}
 	for _, g in groups do
 		local placed: Part? = nil
-		local items = {}
-		for _, slot in g.slots do
-			table.insert(items, `{slot.id}@{slot.z}`)
-		end
-		local marker = "pic:" .. table.concat(items, ",")
 		local bottom = g.top + S.lift
-		for _, dx in S.tries do
-			local x = g.x + dx
-			if x >= S.reach and x <= section.length - S.reach then
-				local box: Box =
-					{ x - S.reach, x + S.reach, bottom - S.hang - S.bob, bottom + h + S.bob, -S.width / 2, S.width / 2 }
-				local clear = true
-				for _, b in blocked do
-					if overlaps(box, b, S.clear) then
-						clear = false
-						break
+		-- the board's own size first; where that finds no clear spot, the small one (a board of four has one size)
+		local sizes = { { ObbyCourse.slotSize(#g.ids) } }
+		local small, smallGap = ObbyCourse.slotSize(#g.ids, true)
+		if small ~= sizes[1][1] then
+			table.insert(sizes, { small, smallGap })
+		end
+		for _, size in sizes do
+			if placed then
+				break
+			end
+			local h = ObbyCourse.bannerHeight(size[1])
+			local items = {}
+			for _, slot in slotsFor(g, size[1], size[2]) do
+				table.insert(items, `{slot.id}@{slot.z}`)
+			end
+			local marker = "pic:" .. table.concat(items, ",")
+			-- in the section first; an entry sign that finds no room there tries over the connector before it
+			local spots = {}
+			for _, dx in S.tries do
+				table.insert(spots, g.x + dx)
+			end
+			if g.entry then
+				for _, dx in S.tries do
+					local x = g.x + dx
+					if x < S.reach and x >= S.reach - ObbyCourse.LINK_LENGTH then
+						table.insert(spots, x)
 					end
 				end
-				if clear then
-					placed = Kit.prop({ S.thick, h, S.width }, { x, bottom + h / 2, 0 }, "banner", {
-						ghost = true,
-						marker = marker,
-						motion = { kind = "slide", axis = "y", amp = S.bob, period = S.bobPeriod },
-					})
-					table.insert(blocked, box)
-					break
+			end
+			for k, x in spots do
+				local from = if k > #S.tries then S.reach - ObbyCourse.LINK_LENGTH else S.reach
+				if x >= from and x <= section.length - S.reach then
+					local box: Box = {
+						x - S.reach,
+						x + S.reach,
+						bottom - S.hang - S.bob,
+						bottom + h + S.bob,
+						-S.width / 2,
+						S.width / 2,
+					}
+					local clear = true
+					for _, b in blocked do
+						if overlaps(box, b, S.clear) then
+							clear = false
+							break
+						end
+					end
+					if clear then
+						placed = Kit.prop({ S.thick, h, S.width }, { x, bottom + h / 2, 0 }, "banner", {
+							ghost = true,
+							marker = marker,
+							motion = { kind = "slide", axis = "y", amp = S.bob, period = S.bobPeriod },
+						})
+						table.insert(blocked, box)
+						break
+					end
 				end
 			end
 		end
 		if placed then
 			table.insert(banners, placed)
 		else
-			local ids = {}
-			for _, slot in g.slots do
-				table.insert(ids, slot.id)
-			end
-			table.insert(missed, table.concat(ids, ","))
+			table.insert(missed, table.concat(g.ids, ","))
 		end
 	end
 	return banners, missed
@@ -636,10 +688,10 @@ end
 function ObbyCourse.build(slot: number, picks: { Pick }?): Course
 	local chosen = picks or ObbyCourse.pick(slot)
 	local W, S = ObbyCourse.WIDTH, ObbyCourse.STAND_HEIGHT
-	local H, A = ObbyCourse.HOME_LENGTH, ObbyCourse.HOME_AT
+	local A = ObbyCourse.HOME_AT
+	local back = A + ObbyCourse.HOME_DEPTH -- the start pad runs back to the Goo Ring home's back face
 	local parts: { Part } = {
-		slab((ObbyCourse.START_LENGTH - A) / 2, 0, 0, ObbyCourse.START_LENGTH + A, W, "start", { id = "s" }),
-		slab(-A - H / 2, 0, 0, H, ObbyCourse.HOME_WIDTH, "start", { step = false, id = "h" }),
+		slab((ObbyCourse.START_LENGTH - back) / 2, 0, 0, ObbyCourse.START_LENGTH + back, W, "start", { id = "s" }),
 	}
 	local spans: { Span } = {}
 	local x, y = ObbyCourse.START_LENGTH, 0

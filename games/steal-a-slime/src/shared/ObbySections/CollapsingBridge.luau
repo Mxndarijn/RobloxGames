@@ -507,7 +507,7 @@ M.variants = {
 			})
 			x += 9
 			exit(parts, x, x + 8)
-			return Kit.section(x + 8, 0, parts)
+			return Kit.signed(Kit.section(x + 8, 0, parts), "collapse,speed")
 		end,
 	},
 	{
@@ -641,7 +641,7 @@ M.variants = {
 			wave(steps, { group = "bust", speed = steady(21), tier = "hard" })
 			x += 7
 			exit(parts, x, x + EXIT_LONG)
-			return Kit.section(x + EXIT_LONG, 0, parts)
+			return Kit.signed(Kit.section(x + EXIT_LONG, 0, parts), "collapse,speed")
 		end,
 	},
 }

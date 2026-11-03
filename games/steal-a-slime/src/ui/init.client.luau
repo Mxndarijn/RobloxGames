@@ -1310,6 +1310,7 @@ function applyLayout()
 		return math.max(hud.bannerHeight(), bossMeter.stackHeight())
 	end)
 	bossMeter.layout(s, hud.bannerHeight)
+	obbyHud.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)
 	if slimeMove then

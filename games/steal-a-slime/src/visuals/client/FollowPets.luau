@@ -16,7 +16,9 @@
 	server fills for every picked pet in the server), worn like the SlimeDex preview. Until the kit is there the pet is
 	the Auto slime above. A picked pet shows even when its owner has no slime.
 	The cloud + pet fly after the owner on PetFollow's leash (one RenderStepped connection for every pet); the owner's
-	Humanoid (FloorMaterial, Jumping / Freefall state) tells PetFollow when they are in the air, so a jump doesn't throw the cloud up. Pets live in a local workspace folder "ClientPets"; no remotes, nothing
+	Humanoid (FloorMaterial, Jumping / Freefall state) tells PetFollow when they are in the air, so a jump doesn't throw the cloud up. A teleport (the obby
+	portal and home ring, a respawn) snaps the pet next to its owner; a pet PetFollow.drawn says not to draw is taken out
+	of the world until it is drawn again. Pets live in a local workspace folder "ClientPets"; no remotes, nothing
 	replicates.
 ]]
 
@@ -38,14 +40,21 @@ local PetRig = require(script.Parent:WaitForChild("PetRig"))
 local FollowPets = {}
 
 FollowPets.POLL = 0.5
-FollowPets.MAX_DISTANCE = 200
--- Follow motion (leash, springs, jump hold, bob) lives in PetFollow.
+-- Follow motion (leash, springs, jump hold, bob, snap and draw distance) lives in PetFollow.
 
 -- `key`: what rides ("slime:<SlimeId>" or "species:<id>"); a new key builds the pet again.
 -- `shown`: the template the pet rides (its mesh name), nil on a Mount.
 -- `source`: the replicated model or kit mesh it was cloned from; a hatch or kit rebuild destroys it, so the pet is
 -- cloned again.
-type Pet = { model: Model, key: string, source: Instance, shown: string?, follow: PetFollow.State }
+-- `parked`: taken out of the folder (PetFollow.drawn false, or no character); put back and snapped when drawn again.
+type Pet = {
+	model: Model,
+	key: string,
+	source: Instance,
+	shown: string?,
+	follow: PetFollow.State,
+	parked: boolean,
+}
 
 local IMPORT_TURN = CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
 local KIT_PREFIX = "slime_"
@@ -186,7 +195,13 @@ function FollowPets.start()
 			local shown = if template then template.Name else nil
 			if key == nil then
 				remove(player)
-			elseif not pet or pet.key ~= key or not pet.model.Parent or not pet.source.Parent or pet.shown ~= shown then
+			elseif
+				not pet
+				or pet.key ~= key
+				or (not pet.parked and not pet.model.Parent)
+				or not pet.source.Parent
+				or pet.shown ~= shown
+			then
 				-- A new pet or seat keeps where it flies, so it doesn't jump.
 				local follow = if pet then pet.follow else nil
 				remove(player)
@@ -207,6 +222,7 @@ function FollowPets.start()
 						source = source,
 						shown = shown,
 						follow = follow or PetFollow.new(math.random() * math.pi * 2),
+						parked = false,
 					}
 				elseif slime then
 					slime:Destroy()
@@ -225,35 +241,47 @@ function FollowPets.start()
 		end
 	end)
 
-	-- One connection drives every pet. Per pet: plain-number PetFollow step, one CFrame build for PivotTo.
-	local maxSq = FollowPets.MAX_DISTANCE * FollowPets.MAX_DISTANCE
+	-- One connection drives every pet. Per pet: plain-number PetFollow step, one CFrame build for PivotTo. A pet that
+	-- is not drawn (another player's far from the camera, or one whose owner has no character) leaves the folder, so
+	-- it never hangs where it was last drawn (the obby portal, a death spot); drawn again, it snaps next to its owner.
+	local function park(pet: Pet)
+		if not pet.parked then
+			pet.parked = true
+			pet.model.Parent = nil
+			PetFollow.hide(pet.follow)
+		end
+	end
 	RunService.RenderStepped:Connect(function(dt: number)
 		local camera = workspace.CurrentCamera
 		if not camera then
 			return
 		end
 		local eye = camera.CFrame.Position
+		local me = Players.LocalPlayer
 		for player, pet in pets do
 			local root = rootOf(player)
-			if root then
-				local pos = root.Position
-				local off = pos - eye
-				if off:Dot(off) < maxSq then
-					local yaw = math.rad(root.Orientation.Y)
-					local f = pet.follow
-					local humanoid = (root.Parent :: Instance):FindFirstChildOfClass("Humanoid")
-					local state = humanoid and humanoid:GetState()
-					local grounded = humanoid == nil
-						or (
-							humanoid.FloorMaterial ~= Enum.Material.Air
-							and state ~= Enum.HumanoidStateType.Jumping
-							and state ~= Enum.HumanoidStateType.Freefall
-						)
-					PetFollow.step(f, dt, pos.X, pos.Y, pos.Z, yaw, grounded)
-					local half = f.yaw * 0.5
-					pet.model:PivotTo(CFrame.new(f.x, f.y + f.bob, f.z, 0, math.sin(half), 0, math.cos(half)))
-				end
+			local pos = root and root.Position
+			if not root or not pos or not PetFollow.drawn(player == me, pos.X, pos.Y, pos.Z, eye.X, eye.Y, eye.Z) then
+				park(pet)
+				continue
 			end
+			if pet.parked then
+				pet.parked = false
+				pet.model.Parent = folder
+			end
+			local yaw = math.rad(root.Orientation.Y)
+			local f = pet.follow
+			local humanoid = (root.Parent :: Instance):FindFirstChildOfClass("Humanoid")
+			local state = humanoid and humanoid:GetState()
+			local grounded = humanoid == nil
+				or (
+					humanoid.FloorMaterial ~= Enum.Material.Air
+					and state ~= Enum.HumanoidStateType.Jumping
+					and state ~= Enum.HumanoidStateType.Freefall
+				)
+			PetFollow.step(f, dt, pos.X, pos.Y, pos.Z, yaw, grounded)
+			local half = f.yaw * 0.5
+			pet.model:PivotTo(CFrame.new(f.x, f.y + f.bob, f.z, 0, math.sin(half), 0, math.cos(half)))
 		end
 	end)
 end

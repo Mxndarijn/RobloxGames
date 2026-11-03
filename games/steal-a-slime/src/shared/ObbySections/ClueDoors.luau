@@ -4,8 +4,8 @@
 
 	A clue room: a framed board shows a clue, then a wall of 2 or 3 framed curtains each wears one symbol of the same
 	kind. Walk through the door that fits the clue. Behind every door is a 16-stud corridor that looks the same from
-	outside; behind a wrong door its floor is a trapdoor (`melt`, 0.25 s, gone until you are reset) over red goo, so a
-	wrong guess sends you back to the start pad (too long to run and jump across before it drops). The right corridor's
+	outside; behind a wrong door its floor is a trapdoor (`Kit.trap`: it gives way the moment you touch it, gone until you
+	are reset) over red goo, so a wrong guess sends you back to the start pad. The right corridor's
 	floor is the walking path (`step`); it ends at a 6-stud hole before the exit pad, and the jump in to the door floor
 	is a hole too, so holding forward never clears a room.
 
@@ -53,12 +53,10 @@ type Rng = typeof(Kit.rng(1))
 
 local WALL_H = Kit.WALL_HEIGHT -- door wall and dividers: over a jump plus a head
 local FACE = 0.2 -- thickness of a board, a curtain symbol layer
--- studs behind a door: a wrong trapdoor holds you 0.25 s (4 studs of running), so a jump in from the door wall
--- (8.7), 4 studs of running and a jump out (8.7) still end over the exit hole: 21.4 < 1 + CORRIDOR + EXIT_GAP - 1
+-- studs behind a door: a wrong trapdoor never holds you, so a jump in from the door wall (8.7) ends over it
 local CORRIDOR = 16
 local EXIT_GAP = 6 -- the hole after the corridors: over the 3.6 a walker crosses, the longest jump allowed
 local EXIT_LONG = 6
-local TRAP_DELAY = 0.25 -- seconds a trapdoor holds you: its crack is the only tell
 local PIT_DROP = 4 -- the goo pit's top under the corridor floors
 local DOOR_SYM = 2.6 -- symbol size on a curtain
 local SYM_Y = 6 -- curtain symbol centre over the floor: over a head, still eye level
@@ -541,10 +539,6 @@ end
 -- Floors and the room
 ---------------------------------------------------------------------------
 
-local function trap(): Kit.Motion
-	return { kind = "melt", on = "land", delay = TRAP_DELAY, away = -1 }
-end
-
 -- A walking-path floor from x0 to x1, top `top`, `wide` across centred on z.
 local function floor(
 	parts: { Part },
@@ -604,7 +598,7 @@ local function room(parts: { Part }, D: number, top: number, clue: Clue, o: Room
 					{ long, Kit.THICK, wide },
 					{ cx, top - Kit.THICK / 2, z },
 					"jelly",
-					{ tone = 2, motion = trap() }
+					{ tone = 2, motion = Kit.trap() }
 				)
 			)
 		end

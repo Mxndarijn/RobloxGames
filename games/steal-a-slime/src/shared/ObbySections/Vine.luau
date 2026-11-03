@@ -41,6 +41,11 @@ Vine.STEP = 1 / 120 -- the longest physics step
 -- (radians) and how much of it to show over the server-time swing (0..1, faded back after a let go).
 Vine.HELD_ANGLE = "ObbyHeldAngle"
 Vine.HELD_FADE = "ObbyHeldFade"
+-- The same for a rope another player holds (visuals/client/ObbyVineSync, from their replicated root); the local
+-- player's own hold (HELD_*) wins when both are set.
+Vine.OTHER_ANGLE = "ObbyOtherAngle"
+Vine.OTHER_FADE = "ObbyOtherFade"
+Vine.HOLD_SLACK = 6 -- studs past the rope's length a holder's root may be from its pivot and still be drawn on it
 
 local AMP = math.rad(Vine.AMP_MAX)
 
@@ -130,6 +135,21 @@ function Vine.grab(arm: number, s: number, y: number, vs: number, vy: number, ro
 	-- never more than the cap allows at that angle
 	local most = Vine.speedAt(arm, th, AMP)
 	return th, math.clamp(w, -most, most)
+end
+
+-- The rope angle that hangs a root at (s, y) from the pivot (rootAt turned back, lean included), within AMP_MAX;
+-- nil when the root is further than the rope's length plus HOLD_SLACK from the pivot (not hanging on it).
+function Vine.angleAt(arm: number, s: number, y: number): number?
+	if s * s + y * y > (Vine.length(arm) + Vine.HOLD_SLACK) ^ 2 then
+		return nil
+	end
+	local phi = math.atan2(s, -y)
+	local th = phi
+	for _ = 1, 6 do
+		local rs, ry = Vine.rootAt(arm, th)
+		th += phi - math.atan2(rs, -ry)
+	end
+	return math.clamp(th, -AMP, AMP)
 end
 
 -- Whether a knob centre at (kx, ky, kz) is within `reach` of a body whose root is at (x, y, z) (feet to head).

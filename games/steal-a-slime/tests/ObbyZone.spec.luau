@@ -1,9 +1,8 @@
 --!strict
--- The obby's "am I in this zone?" maths (src/visuals/shared/ObbyZone.luau; ObbyMoves' moon, dark and sticky walls,
+-- The obby's "am I in this zone?" maths (src/visuals/shared/ObbyZone.luau; ObbyMoves' moon and dark zones,
 -- ObbyFx's lifts and gusts): the body line counts, not just the root's centre; turned parts (yaw, pitch, roll and a
 -- disc laid on its side) are tested in their own frame; a moving zone is tested where Kit's clock puts it now; the
--- side pad grows a column across, never taller; a moon bubble is the ellipsoid its dome draws, not its box; and a
--- sticky face is found from the shins to the shoulders.
+-- side pad grows a column across, never taller; and a moon bubble is the ellipsoid its dome draws, not its box.
 local Kit = require("../src/shared/ObbySections/Kit")
 local StaticWorld = require("../scripts/StaticWorld")
 local TestRunner = require("./TestRunner")
@@ -191,47 +190,5 @@ describe("ObbyZone ellipsoid (a moon bubble: the dome a Sphere mesh draws in its
 		expect(ObbyZone.lineInEllipsoid(1, 1, 1, 1, 1, 1, 2, 2, 2)).toBe(true)
 		expect(ObbyZone.lineInEllipsoid(2, 2, 0, 2, 2, 0, 2, 2, 2)).toBe(false)
 		expect(ObbyZone.lineInEllipsoid(0, 0, 0, 0, 0, 0, 0, 2, 2)).toBe(false)
-	end)
-end)
-
-describe("ObbyZone.nearestFace", function()
-	-- A sticky wall along x: 40 long, 10 tall (y 0..10), 1 thick (z -0.5..0.5).
-	local wall = CFrame.new(0, 5, 0)
-	local size = Vector3.new(40, 10, 1)
-
-	it("finds the side face from the shins to the shoulders, also with the root over the top", function()
-		local root = Vector3.new(0, 12, -1.5) -- 2 over the top, 1 off the face
-		-- the root alone is off the top face (Y sticks out most): no grip
-		local _, rootNormal = ObbyZone.nearestFace(wall, size, root, root)
-		expect(math.abs(rootNormal.Y) > 0.5).toBe(true)
-		local a, b = ObbyZone.body(root, 2.5, 1.5)
-		local distance, normal = ObbyZone.nearestFace(wall, size, a, b)
-		expect(distance).toBeCloseTo(1, EPS)
-		expect(normal.Z).toBeCloseTo(-1, EPS)
-		expect(math.abs(normal.Y) < 0.5).toBe(true)
-	end)
-
-	it("finds it with the root under the wall's bottom", function()
-		local root = Vector3.new(5, -1.5, 1.2)
-		local a, b = ObbyZone.body(root, 2.5, 1.5)
-		local distance, normal = ObbyZone.nearestFace(wall, size, a, b)
-		expect(distance).toBeCloseTo(0.7, EPS)
-		expect(normal.Z).toBeCloseTo(1, EPS)
-	end)
-
-	it("measures a turned wall in its own frame", function()
-		local cf = CFrame.new(0, 5, 0) * CFrame.Angles(0, math.rad(30), 0)
-		local root = cf:PointToWorldSpace(Vector3.new(3, 0, 1.5))
-		local a, b = ObbyZone.body(root, 2.5, 1.5)
-		local distance, normal = ObbyZone.nearestFace(cf, size, a, b)
-		expect(distance).toBeCloseTo(1, EPS)
-		expect((normal - cf.ZVector).Magnitude).toBeCloseTo(0, EPS)
-	end)
-
-	it("treats a body inside the box (a wall moved into you) as on its nearest face", function()
-		local root = Vector3.new(0, 5, -0.3)
-		local distance, normal = ObbyZone.nearestFace(wall, size, root, root)
-		expect(distance).toBe(0)
-		expect(normal.Z).toBeCloseTo(-1, EPS)
 	end)
 end)

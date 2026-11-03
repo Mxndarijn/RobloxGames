@@ -419,7 +419,7 @@ M.variants = {
 				)
 			)
 			pit(parts, 0, x, -PIT_DROP)
-			return Kit.section(x, top, parts)
+			return Kit.signed(Kit.section(x, top, parts), "moon,dark")
 		end,
 	},
 	{

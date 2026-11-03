@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obby Run Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Shared/GooPalette */
+  --ink: #08262a; --bg: #0c3436; --row: #1c4849; --bglight: #286060;
+  --mint: #6cf2c2; --minthi: #e6fff6; --mintlo: #2fbf92;
+  --text: #f1fff9; --muted: #bfebdd; --bad: #ee5476; --info: #387870;
+  --warn: #ffbe3c; --gold: #ffd23f;
+  --page: #f3f6f5; --pageInk: #12302f; --pageMuted: #4c6a66; --line: #d5e2df;
+  --sky: linear-gradient(#9fd8f2, #cdeefa 55%, #8fcf8a 56%, #6bb267);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --page: #0d1d1d; --pageInk: #e4f3ef; --pageMuted: #9dbbb5; --line: #24403e; }
+}
+:root[data-theme="dark"] { --page: #0d1d1d; --pageInk: #e4f3ef; --pageMuted: #9dbbb5; --line: #24403e; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--pageInk); font: 16px/1.5 Nunito, system-ui, sans-serif; }
+main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+h1, h2, h3 { font-family: Fredoka, system-ui, sans-serif; font-weight: 600; line-height: 1.2; }
+h1 { font-size: 30px; margin: 0 0 6px; }
+h2 { font-size: 22px; margin: 36px 0 8px; }
+p { margin: 6px 0; max-width: 70ch; }
+.muted { color: var(--pageMuted); }
+.ask { border: 2px solid var(--line); border-radius: 14px; padding: 12px 16px; margin: 16px 0; }
+.option { border-top: 2px solid var(--line); padding-top: 8px; }
+.tag { display: inline-block; font: 600 13px Fredoka, sans-serif; background: var(--mint); color: var(--ink); border-radius: 99px; padding: 2px 10px; margin-left: 8px; vertical-align: middle; }
+.frames { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; margin-top: 12px; }
+.frame { border: 6px solid #1b1b1b; border-radius: 26px; background: var(--sky); position: relative; overflow: hidden; flex: none; }
+.frame .lbl { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font: 600 12px Fredoka, sans-serif; color: #1b3b2a; }
+.phone { width: 234px; height: 506px; }          /* 390x844 at 0.6 */
+.desk  { width: 600px; height: 337px; border-radius: 14px; } /* 1366x768 at ~0.44 */
+.stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+/* jump button + hotbar ghosts so the free space shows */
+.ghost { position: absolute; border: 2px dashed rgba(8,38,42,.45); border-radius: 50%; }
+.ghostbar { position: absolute; border: 2px dashed rgba(8,38,42,.45); border-radius: 14px; }
+
+/* the card, drawn at design px; the stage scale shrinks it like the game's UIScale */
+.card { position: absolute; background: rgba(12,52,54,.85); border: 2px solid var(--ink); border-radius: 18px; color: var(--text); font-family: Fredoka, sans-serif; font-weight: 600; }
+.row { display: flex; align-items: center; justify-content: space-between; }
+.title { font-size: 20px; }
+.clock { font-size: 18px; color: var(--muted); }
+.pips { display: flex; gap: 6px; justify-content: center; }
+.pip { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ink); background: var(--ink); color: var(--muted); font-size: 14px; display: grid; place-items: center; }
+.pip.done { background: linear-gradient(var(--minthi), var(--mint) 45%, var(--mintlo)); color: var(--ink); }
+.pip.here { background: var(--bglight); border: 3px solid var(--mint); color: var(--text); }
+.chips { display: flex; gap: 6px; justify-content: center; }
+.chip { background: var(--ink); border-radius: 99px; height: 26px; padding: 0 10px; display: inline-flex; align-items: center; font-size: 16px; }
+.warn { color: var(--warn); } .mut { color: var(--muted); font-size: 15px; }
+.bar { display: flex; gap: 3px; height: 14px; }
+.seg { flex: 1; background: var(--ink); border-radius: 7px; }
+.seg.done { background: var(--mint); } .seg.here { background: var(--mintlo); outline: 2px solid var(--mint); }
+table { border-collapse: collapse; margin-top: 8px; }
+td, th { border-bottom: 1px solid var(--line); padding: 6px 12px 6px 0; text-align: left; vertical-align: top; }
+code { font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Obby run card</h1>
+<p class="muted">Steal a Slime · proposal for Merijn · 2 Nov 2026</p>
+<p>Your ask: show the base lock timer on screen, make "Section x/8" fancier, 6 sections, show your <b>furthest</b> section (a fall does not take it away), and say the lock runs 50% slower in the obby.</p>
+<div class="ask">
+<b>Pick one: A, B or C.</b> A is built in the branch so you can try it in Studio now; swapping to B or C is a small change.
+Colours are the real GooPalette ones: mint = progress, amber = timers, Ink wells for facts. No glow (the style guide bans glows on screen UI), so "furthest" is a mint ring, not a glow.
+</div>
+
+<h2>What every option shows</h2>
+<table>
+<tr><th>Part</th><th>Shows</th></tr>
+<tr><td>Section</td><td>Your furthest section this run, out of 6 ("Section 3/6"). On the start pad: "Start".</td></tr>
+<tr><td>Run clock</td><td>Time since you stepped in ("1:43.5"), as today.</td></tr>
+<tr><td>Lock</td><td>Your base lock's time left, in amber, with a note that it runs slower. It counts down smoothly at half speed on screen. No lock running: "🔓 Base open".</td></tr>
+</table>
+
+<!-- Option A -->
+<section class="option">
+<h2>A · Pip card <span class="tag">recommended, built</span></h2>
+<p>One card, three rows: section and clock, six round pips (done = mint check, furthest = mint ring, still to come = dark), then the lock row. 260 × 110 design px; 232 wide on phones.</p>
+<div class="frames">
+  <div class="frame phone"><div class="stage" style="transform:scale(.48)">
+    <div class="card" style="left:170px;top:12px;width:232px;height:110px;padding:10px">
+      <div class="row"><span class="title">Section 3/6</span><span class="clock">1:43.5</span></div>
+      <div class="pips" style="margin-top:6px"><span class="pip done">✓</span><span class="pip done">✓</span><span class="pip here">3</span><span class="pip">4</span><span class="pip">5</span><span class="pip">6</span></div>
+      <div class="chips" style="margin-top:6px"><span class="chip warn">🔒 1:42</span><span class="chip mut">50% slower</span></div>
+    </div>
+    <div class="ghost" style="left:368px;top:943px;width:87px;height:87px"></div>
+    <div class="ghostbar" style="left:148px;top:1000px;width:191px;height:50px"></div>
+  </div><span class="lbl">Phone 390×844</span></div>
+  <div class="frame desk"><div class="stage" style="transform:scale(.44)">
+    <div class="card" style="left:553px;top:12px;width:260px;height:110px;padding:10px">
+      <div class="row"><span class="title">Section 3/6</span><span class="clock">1:43.5</span></div>
+      <div class="pips" style="margin-top:6px"><span class="pip done">✓</span><span class="pip done">✓</span><span class="pip here">3</span><span class="pip">4</span><span class="pip">5</span><span class="pip">6</span></div>
+      <div class="chips" style="margin-top:6px"><span class="chip warn">🔒 1:42</span><span class="chip mut">50% slower</span></div>
+    </div>
+    <div class="ghostbar" style="left:404px;top:680px;width:558px;height:64px"></div>
+  </div><span class="lbl">Desktop 1366×768</span></div>
+</div>
+<p><b>Why A:</b> the pips make progress readable at a glance without words, the lock gets its own row so it never fights the clock for space, and it still fits a phone's top strip, far from the jump button and hotbar.</p>
+</section>
+
+<!-- Option B -->
+<section class="option">
+<h2>B · Goo bar</h2>
+<p>A slimmer card: big "3/6" with a segmented goo bar, clock on the right; one lock line under it. 260 × 78. Less to look at, but the 6 sections read less clearly than pips.</p>
+<div class="frames">
+  <div class="frame phone"><div class="stage" style="transform:scale(.48)">
+    <div class="card" style="left:170px;top:12px;width:232px;height:78px;padding:8px 10px">
+      <div class="row" style="gap:8px"><span class="title" style="font-size:22px">3/6</span><div class="bar" style="flex:1"><span class="seg done"></span><span class="seg done"></span><span class="seg here"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span></div><span class="clock">1:43.5</span></div>
+      <div class="row" style="justify-content:center;margin-top:8px"><span class="warn" style="font-size:16px">🔒 1:42</span>&nbsp;<span class="mut">· 50% slower</span></div>
+    </div>
+  </div><span class="lbl">Phone 390×844</span></div>
+  <div class="frame desk"><div class="stage" style="transform:scale(.44)">
+    <div class="card" style="left:553px;top:12px;width:260px;height:78px;padding:8px 10px">
+      <div class="row" style="gap:8px"><span class="title" style="font-size:22px">3/6</span><div class="bar" style="flex:1"><span class="seg done"></span><span class="seg done"></span><span class="seg here"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span></div><span class="clock">1:43.5</span></div>
+      <div class="row" style="justify-content:center;margin-top:8px"><span class="warn" style="font-size:16px">🔒 1:42</span>&nbsp;<span class="mut">· 50% slower</span></div>
+    </div>
+  </div><span class="lbl">Desktop 1366×768</span></div>
+</div>
+</section>
+
+<!-- Option C -->
+<section class="option">
+<h2>C · Two pills</h2>
+<p>The section card stays small (title, small dots, clock) and the lock becomes its own amber-ringed pill right under it. Each pill is simple, but it is two things on screen instead of one.</p>
+<div class="frames">
+  <div class="frame phone"><div class="stage" style="transform:scale(.48)">
+    <div class="card" style="left:186px;top:12px;width:200px;height:60px;padding:6px 10px;text-align:center">
+      <div class="row"><span class="title" style="font-size:18px">Section 3/6</span><span class="clock" style="font-size:16px">1:43.5</span></div>
+      <div class="pips" style="gap:5px;margin-top:4px"><span class="pip done" style="width:14px;height:14px;font-size:0"></span><span class="pip done" style="width:14px;height:14px;font-size:0"></span><span class="pip here" style="width:14px;height:14px;font-size:0"></span><span class="pip" style="width:14px;height:14px;font-size:0"></span><span class="pip" style="width:14px;height:14px;font-size:0"></span><span class="pip" style="width:14px;height:14px;font-size:0"></span></div>
+    </div>
+    <div class="card" style="left:206px;top:80px;width:160px;height:34px;border-radius:99px;border:3px solid var(--warn);display:flex;align-items:center;justify-content:center;gap:6px"><span class="warn" style="font-size:16px">🔒 1:42</span><span class="mut">½ speed</span></div>
+  </div><span class="lbl">Phone 390×844</span></div>
+  <div class="frame desk"><div class="stage" style="transform:scale(.44)">
+    <div class="card" style="left:583px;top:12px;width:200px;height:60px;padding:6px 10px;text-align:center">
+      <div class="row"><span class="title" style="font-size:18px">Section 3/6</span><span class="clock" style="font-size:16px">1:43.5</span></div>
+      <div class="pips" style="gap:5px;margin-top:4px"><span class="pip done" style="width:14px;height:14px;font-size:0"></span><span class="pip done" style="width:14px;height:14px;font-size:0"></span><span class="pip here" style="width:14px;height:14px;font-size:0"></span><span class="pip" style="width:14px;height:14px;font-size:0"></span><span class="pip" style="width:14px;height:14px;font-size:0"></span><span class="pip" style="width:14px;height:14px;font-size:0"></span></div>
+    </div>
+    <div class="card" style="left:603px;top:80px;width:160px;height:34px;border-radius:99px;border:3px solid var(--warn);display:flex;align-items:center;justify-content:center;gap:6px"><span class="warn" style="font-size:16px">🔒 1:42</span><span class="mut">½ speed</span></div>
+  </div><span class="lbl">Desktop 1366×768</span></div>
+</div>
+</section>
+
+<h2>Wording for the "slower" note</h2>
+<p>Player-facing, so your call. Any of these drops into any option.</p>
+<table>
+<tr><th>Option</th><th>Chip</th><th>Notes</th></tr>
+<tr><td>1 (built)</td><td><code>50% slower</code></td><td>Closest to your "50% delay"; the number comes from <code>Config.OBBY.LOCK_RATE</code>.</td></tr>
+<tr><td>2</td><td><code>Half speed</code></td><td>Plain words, no maths.</td></tr>
+<tr><td>3</td><td><code>x0.5</code></td><td>Shortest; matches the "x1.5 income" style, but less clear.</td></tr>
+</table>
+<p>No lock running shows <code>🔓 Base open</code> (alternative: <code>Unlocked</code>).</p>
+
+<h2>Left out on purpose</h2>
+<p>Tier colours (easy / medium / hard) on the pips: every GooPalette colour already has a job (amber = timers, pink = losing something), so colouring tiers would blur those. The section's name is left out too: fewer words, and the picture banners in the course already name it.</p>
+
+<h2>Decided</h2>
+<p class="muted">Waiting for Merijn's pick.</p>
+</main>
+</body>
+</html>

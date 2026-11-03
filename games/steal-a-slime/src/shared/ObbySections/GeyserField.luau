@@ -83,7 +83,7 @@ local function vent(x: number, top: number, z: number, high: number, o: VentOpts
 		start = o.start,
 		motion = {
 			kind = "bounce",
-			power = power(high),
+			power = Kit.bounce(power(high)),
 			period = o.period,
 			duty = o.blow / o.period,
 			phase = phaseFor(o.from or 0, o.period),
@@ -179,11 +179,11 @@ local function puff(x: number, ventTop: number, z: number, period: number, from:
 	})
 end
 
--- Rocks for vents under a red column: 14 across (z -7..7), the vent at z -3 under a 10-wide red column at z -2, so
--- the strip z 4..7 is always safe.
+-- Rocks for vents under a red column: 14 across (z -7..7), the vent at z -3 centred under a 10-wide red column (z
+-- -8..2), so its rings sit in the middle of the red disc and the strip z 4..7 is always safe.
 local STRIP_WIDE = 14
 local VENT_Z = -3
-local RED_Z = -2
+local RED_Z = VENT_Z
 local RED_D = 10
 
 -- Rocks for vents that switch sides from rock to rock (a straight line can only ever catch every other one): 20
@@ -215,7 +215,7 @@ M.variants = {
 			local parts = {}
 			entry(parts)
 			table.insert(parts, rock(FROM, 22, 0))
-			table.insert(parts, vent(30, 0, 0, 14, { period = 3.5, blow = 0.7, island = true }))
+			table.insert(parts, vent(30, 0, 0, 13, { period = 3.5, blow = 0.7, island = true }))
 			table.insert(parts, rock(38, 50, 12, 0, Kit.WIDTH, 2))
 			table.insert(parts, pit(22, 38, -PIT_DOWN))
 			return Kit.section(50, 12, parts)
@@ -249,10 +249,10 @@ M.variants = {
 			local parts = {}
 			entry(parts)
 			table.insert(parts, rock(FROM, 30, 0, 0, STRIP_WIDE))
-			table.insert(parts, vent(24, 0, VENT_Z, 12, { period = 4, blow = 0.6 }))
+			table.insert(parts, vent(24, 0, VENT_Z, 10, { period = 4, blow = 0.6 }))
 			table.insert(parts, red(24, VENT_UP, RED_Z, RED_D, 4, 0.85, 2.05))
 			table.insert(parts, rock(32, 48, 9, 0, STRIP_WIDE, 2))
-			table.insert(parts, vent(42, 9, VENT_Z, 12, { period = 4, from = 2, blow = 0.6 }))
+			table.insert(parts, vent(42, 9, VENT_Z, 10, { period = 4, from = 2, blow = 0.6 }))
 			table.insert(parts, red(42, 9 + VENT_UP, RED_Z, RED_D, 4, 2.85, 2.05))
 			table.insert(parts, rock(50, 60, 18))
 			return Kit.section(60, 18, parts)
@@ -371,7 +371,7 @@ M.variants = {
 				local a = FROM + i * 16
 				local side = if i % 2 == 0 then 1 else -1
 				table.insert(parts, rock(a, a + 12, top, 0, STRIP_WIDE, if i % 2 == 0 then 3 else 2))
-				table.insert(parts, vent(a + 7, top, side * VENT_Z, 11, { period = 1.8, blow = 0.4 }))
+				table.insert(parts, vent(a + 7, top, side * VENT_Z, 8.5, { period = 1.8, blow = 0.4 }))
 				table.insert(parts, red(a + 7, top + VENT_UP, side * RED_Z, RED_D, 1.8, 0.65, 0.4))
 				top += 7.5
 			end
@@ -402,7 +402,7 @@ M.variants = {
 				top += 10.5
 			end
 			table.insert(parts, rock(56, 66, top))
-			return Kit.section(66, top, parts)
+			return Kit.signed(Kit.section(66, top, parts), "geyser,updraft")
 		end,
 	},
 	{
@@ -421,7 +421,7 @@ M.variants = {
 			table.insert(parts, rock(63.5, 74, 20))
 			table.insert(parts, pit(24, 37.5, -PIT_DOWN))
 			table.insert(parts, pit(50, 63.5, 10 - PIT_DOWN))
-			return Kit.section(74, 20, parts)
+			return Kit.signed(Kit.section(74, 20, parts), "geyser,updraft")
 		end,
 	},
 	{
@@ -540,7 +540,7 @@ M.variants = {
 			table.insert(parts, column(54, -SWITCH_Z, bottom, 7.5, 3, 2, 1.6))
 			table.insert(parts, rock(59.5, 70, 6))
 			table.insert(parts, pit(24, 59.5, bottom))
-			return Kit.section(70, 6, parts)
+			return Kit.signed(Kit.section(70, 6, parts), "geyser,updraft")
 		end,
 	},
 }

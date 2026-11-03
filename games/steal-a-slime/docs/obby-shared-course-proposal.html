@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shared Obby Course</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #f2f5f9; --surface: #ffffff; --ink: #1c2230; --muted: #5a6478; --line: #dbe1ea;
+  --sky: #2f7fd8; --sky-soft: #dceafb; --goo: #1f9e83; --goo-soft: #d8f1ea;
+  --warn: #c0392b; --warn-soft: #fbe2df; --med: #b07510; --med-soft: #fbefd8;
+  --board: #2b1d3f; --board-ink: #f4eefc; --board-head: #683ea8; --board-me: #3f6d2a;
+  --f-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151c; --surface: #19202a; --ink: #e6eaf0; --muted: #9aa5b6; --line: #2a3340;
+    --sky: #6aa9f0; --sky-soft: #172b44; --goo: #45c9a8; --goo-soft: #173a33;
+    --warn: #f07a6e; --warn-soft: #3d1f1c; --med: #f0b24a; --med-soft: #3a2d14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151c; --surface: #19202a; --ink: #e6eaf0; --muted: #9aa5b6; --line: #2a3340;
+  --sky: #6aa9f0; --sky-soft: #172b44; --goo: #45c9a8; --goo-soft: #173a33;
+  --warn: #f07a6e; --warn-soft: #3d1f1c; --med: #f0b24a; --med-soft: #3a2d14;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6;
+  padding: 40px 16px 80px; }
+main { max-width: 1040px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.2; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; }
+h2 { font-size: 26px; font-weight: 600; }
+h3 { font-size: 20px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+section { display: grid; gap: 16px; }
+code { font-family: var(--f-mono); font-size: .86em; background: var(--sky-soft); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--sky); margin: 0; }
+.lede { font-size: 18px; color: var(--muted); }
+ul.plain, ol.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 72ch; }
+.note { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--sky); border-radius: 10px; padding: 14px 18px; display: grid; gap: 8px; }
+.note.alert { border-left-color: var(--med); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; }
+.card-head { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.pick { font-family: var(--f-display); font-weight: 700; font-size: 15px; background: var(--ink); color: var(--bg); padding: 4px 14px; border-radius: 999px; white-space: nowrap; }
+.why { color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-display); font-weight: 600; }
+tr.rec td { background: var(--goo-soft); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.risk { color: var(--warn); }
+.good { color: var(--goo); }
+.decided { border: 2px solid var(--goo); background: var(--surface); border-radius: 14px; padding: 18px; display: grid; gap: 10px; }
+.decided dl { margin: 0; display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 8px 16px; }
+.decided dt { font-weight: 700; }
+.decided dd { margin: 0; }
+.quote { font-family: var(--f-display); font-weight: 600; background: var(--goo-soft); color: var(--goo); padding: 1px 10px; border-radius: 999px; white-space: nowrap; }
+nav ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 32px; }
+.mocks { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.mock { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #d6ecff; }
+.mock .stage { padding: 18px; display: grid; justify-items: center; gap: 12px; }
+figcaption { font-size: 14px; color: var(--muted); padding: 8px 10px; background: var(--surface); border-top: 1px solid var(--line); }
+figcaption b { color: var(--ink); }
+.board { width: 100%; max-width: 360px; background: var(--board); color: var(--board-ink); border-radius: 8px; overflow: hidden;
+  font-family: var(--f-display); border: 6px solid #7a5530; }
+.board .head { background: var(--board-head); padding: 8px 12px; display: grid; gap: 0; text-align: center; }
+.board .head b { font-size: 20px; letter-spacing: .02em; }
+.board .head span { font-size: 14px; opacity: .9; }
+.board .row { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; padding: 3px 12px; font-size: 15px; }
+.board .row:nth-child(odd) { background: rgba(255,255,255,.05); }
+.board .row .t { font-family: var(--f-mono); font-size: 14px; }
+.board .me { background: var(--board-me) !important; }
+.board .last { font-size: 13px; padding: 6px 12px; border-top: 1px solid rgba(255,255,255,.15); opacity: .85; text-align: center; }
+.toast { background: #12331f; color: #e8fbef; border-radius: 12px; padding: 10px 16px; font-family: var(--f-display); font-size: 16px; text-align: center; max-width: 340px; }
+.runcard { background: #1d2433; color: #f1f4fa; border-radius: 12px; padding: 10px 14px; font-family: var(--f-display); font-size: 15px; display: grid; gap: 4px; width: 100%; max-width: 300px; }
+.runcard .r { display: flex; justify-content: space-between; gap: 12px; }
+.runcard .mono { font-family: var(--f-mono); font-size: 14px; }
+.chip { background: #2f7fd8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 13px; }
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; font-size: 14px; }
+.flow div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.flow b { display: block; font-family: var(--f-display); font-size: 15px; }
+.q { display: grid; gap: 8px; }
+.q ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+@media (max-width: 760px) {
+  .mocks, .flow { grid-template-columns: 1fr; }
+  .decided dl { grid-template-columns: 1fr; gap: 2px 0; }
+  .decided dd { margin-bottom: 8px; }
+  nav ol { columns: 1; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<header style="display:grid;gap:12px">
+  <p class="eyebrow">Steal a Slime · Obby · shared course and board · proposal · 2026-11-02</p>
+  <h1>One obby for every server, one board for everyone</h1>
+  <p class="lede">Every server already builds the same course from the clock. This page proposes how to name that course, keep one fastest-time board across all servers, keep it cheat-proof and cheap, and what changes in the obby rules. No game code changes yet.</p>
+</header>
+
+<section class="decided" id="decided">
+  <h2>Decided</h2>
+  <dl>
+    <dt>How long one course lasts</dt>
+    <dd><span class="quote">"30 mins"</span> — the same course on every server for 30 minutes. Merijn, 2026-11-02.</dd>
+    <dt>What the shared board ranks</dt>
+    <dd><span class="quote">"Fastest time"</span> — fastest finish on the current course. Retries are allowed to beat your time. Merijn, 2026-11-02.</dd>
+    <dt>Boost x1.5 (question 1)</dt>
+    <dd><span class="quote">"Same as before, but you can always enter it"</span> — the boost stays on its own timer (any counted finish when ready), and the portal never refuses a cleared course. Merijn, 2026-11-02.</dd>
+    <dt>Lock 50% slower (question 2)</dt>
+    <dd><span class="quote">"Every run"</span> — retries too. Merijn, 2026-11-02.</dd>
+    <dt>Speed Coil and PvP slows (question 3)</dt>
+    <dd><span class="quote">"Off during a run"</span> — everyone runs at the same speed. Merijn, 2026-11-02.</dd>
+    <dt>Permanent record (question 4)</dt>
+    <dd><span class="quote">"None in v1"</span> — only the live course board. Merijn, 2026-11-02.</dd>
+  </dl>
+  <p class="why">Still open: the course number on the sign (question 5; default A, "Course #1,204").</p>
+</section>
+
+<nav class="note">
+  <b>On this page</b>
+  <ol>
+    <li><a href="#today">What exists today</a></li>
+    <li><a href="#id">Course ID</a></li>
+    <li><a href="#storage">Where the board lives</a></li>
+    <li><a href="#cheat">When a time counts</a></li>
+    <li><a href="#show">Where it shows</a></li>
+    <li><a href="#rules">Rule changes</a></li>
+    <li><a href="#build">Build and rollout</a></li>
+    <li><a href="#edges">Edge cases</a></li>
+    <li><a href="#questions">Open questions</a></li>
+  </ol>
+</nav>
+
+<section id="today">
+  <h2>What exists today</h2>
+  <ul class="plain">
+    <li><b>Course is already the same everywhere.</b> <code>slot = floor(serverTime / ROTATION_SECONDS)</code>, and <code>ObbyCourse.pick(slot)</code> + <code>build</code> give the same 6 sections on every server and client. The server publishes only the slot (<code>OBBY_SLOT</code>); each client builds its own copy.</li>
+    <li><b>Timing is already server-side.</b> <code>ObbyService</code> starts the clock at the portal and stops it on the finish pad. A skipped section or a finish under <code>MIN_RUN_SECONDS</code> (19 s) marks the run invalid.</li>
+    <li><b>The best time is runtime only.</b> <code>session.obbyBest = { slot, seconds }</code>. A rejoin forgets it. Nobody else sees it.</li>
+    <li><b>Entry rule (2026-11-01).</b> You can't enter a course you already cleared. Your base lock counts down 50% slower while you run.</li>
+    <li><b>Boards today.</b> Five Hall of Fame boards on OrderedDataStores, refreshed every 60 s, with a "Show me on leaderboards" setting that hides you as "Hidden player". Memory mode ranks only this server.</li>
+  </ul>
+  <p>So the "shared ID" is already there: it is the slot. What's missing is a safe key, a shared store, and the rule changes.</p>
+</section>
+
+<section id="id">
+  <h2>1. Course ID</h2>
+  <p>The board key has two parts: <b>which 30 minutes</b> (the slot) and <b>which course content</b> (a hash).</p>
+  <div class="tablewrap"><table>
+    <tr><th>Part</th><th>What</th><th>Why</th></tr>
+    <tr><td>Slot</td><td><code>floor(serverTime / 1800)</code></td><td>Same on every server. <code>GetServerTimeNow</code> is synced across servers.</td></tr>
+    <tr><td>Content hash</td><td>8 hex chars of a hash over the built course: every part's size, position, rotation, look and motion, rounded to 0.01, plus <code>OBBY.COURSE_VERSION</code></td><td>During a rolling update, old and new servers can build a different course for the same slot. A different hash means a different board, so times never mix.</td></tr>
+    <tr><td>Board name</td><td><code>Obby_&lt;slot&gt;_&lt;hash&gt;</code></td><td>One board per course and code version.</td></tr>
+  </table></div>
+  <div class="card">
+    <div class="card-head"><span class="pick">Recommended</span><b>Hash the built course, not just the picks</b></div>
+    <p>A hash of picks alone misses a tweak inside a section's code. Hashing the build output catches every change by itself. <code>COURSE_VERSION</code> stays as a manual "reset the board" switch. The server builds the course once per rotation already, so the hash is computed once per 30 minutes (pure: <code>ObbyCourse.hash(course)</code>, Lune spec checks two builds of a slot match).</p>
+  </div>
+  <p><b>What players see:</b> a short course number on the portal sign and the board: <b>"Course #1,204"</b>. It counts from the first slot of the release (<code>OBBY.COURSE_EPOCH</code>), so it starts small instead of "#996,432". The hash is never shown to players; it goes in a server <code>warn</code> and in the admin menu for debugging.</p>
+</section>
+
+<section id="storage">
+  <h2>2. Where the board lives</h2>
+  <div class="tablewrap"><table>
+    <tr><th></th><th>A. MemoryStore SortedMap per course</th><th>B. OrderedDataStore per course</th></tr>
+    <tr><td>Lifetime</td><td class="good">Expires by itself (we set course end + 1 h)</td><td class="risk">Forever: 48 new stores a day that never go away</td></tr>
+    <tr><td>Speed</td><td class="good">Fast, read-after-write in about a second</td><td>Slower, can lag by seconds</td></tr>
+    <tr><td>Budget</td><td class="good">1,000 + 100 per player request units / minute, game-wide. Our use ≈ 25 per player.</td><td class="risk">Per server: 5 + 2 per player GetSortedAsync / minute = 21 on an 8-player server, already shared with the 5 Hall of Fame boards</td></tr>
+    <tr><td>Memory</td><td>64 KB + 1 KB per player. ~100 bytes per entry; only 3 courses alive at once</td><td>Not a concern</td></tr>
+    <tr><td>Ties and order</td><td class="good">Sort key we choose (time, then who was first)</td><td>Integer only; ties fall back to key order</td></tr>
+    <tr><td>Testing</td><td>Inject a memory store (same shape)</td><td>Same</td></tr>
+  </table></div>
+  <div class="card">
+    <div class="card-head"><span class="pick">Recommended: A</span><b>MemoryStore SortedMap, one per course</b></div>
+    <ul class="plain">
+      <li><b>Entry:</b> key = userId, sort key = <code>ms × 10⁵ + seconds into the course</code> (lower wins; equal times go to whoever set it first), value = <code>{ ms, name, hidden }</code>.</li>
+      <li><b>Write:</b> one <code>UpdateAsync</code> when a counted finish beats your own best on this course. It keeps the lower time, so two servers can't overwrite each other. Retry 3 times with backoff.</li>
+      <li><b>Read:</b> each server reads the top 100 every 30 s. That's ~200 units a minute per server, about 25% of an 8-player server's share. The top 10 goes on the board; the rest gives "your rank" down to #100, deeper shows "#100+". (Request-unit costs per the docs today: re-check before building.)</li>
+      <li><b>Expiry:</b> course end + 1 hour. Long enough for "Last course" on the board. Then it's gone: nothing to clean up.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <b>Memory mode and tests (house rule 4)</b>
+    <p>The board store follows the <code>Persistence</code> pattern. At boot it picks the backend:</p>
+    <ul class="plain">
+      <li><code>DataStoreMode = "Memory"</code>, Studio, or <code>GetSortedMap</code> fails → an in-memory sorted map that ranks this server only (like the Hall of Fame boards in memory mode).</li>
+      <li>Otherwise the real MemoryStore. Status goes on a workspace attribute <code>ObbyBoardStatus</code> (<code>Ok</code> / <code>Memory</code> / <code>Error</code>) with a <code>warn</code> on each bad change.</li>
+      <li>MemoryStore isn't a DataStore, but a cloud script on the real place would still write the live board. So cloud scripts and tests get the memory store too, through the same <code>DataStoreMode</code> switch.</li>
+      <li>The store is passed in through <code>ctx</code>. Lune specs run two fake "servers" on one shared memory store to prove cross-server ranking, ties and hash separation.</li>
+    </ul>
+  </div>
+  <p><b>Shared code first (house rule 10).</b> A "best value per period, across servers" board has nothing game-specific in it. The pure core goes to <code>shared/luau/src/ranking/PeriodBoard.luau</code> (keys, sort keys, keep-the-best, rows, ranks, memory store) with a thin <code>MemoryStoreBoard</code> adapter, next to <code>OrderedBoard</code>. The game keeps only the obby rules.</p>
+  <p><b>Permanent record:</b> optional, not in v1. See question 4.</p>
+</section>
+
+<section id="cheat">
+  <h2>3. When a time counts</h2>
+  <p>The client never sends a time. The server posts only when all of these hold:</p>
+  <div class="tablewrap"><table>
+    <tr><th>#</th><th>Must be true</th><th>Exists today?</th></tr>
+    <tr><td>1</td><td>The run started at this server's portal, on this course's slot, and the clock is server time from entry to the finish tick.</td><td class="good">Yes</td></tr>
+    <tr><td>2</td><td>Every section was passed, in order (<code>run.section</code>); none was skipped.</td><td class="good">Yes (<code>invalid</code>)</td></tr>
+    <tr><td>3</td><td>Time ≥ <code>MIN_RUN_SECONDS</code> (19 s).</td><td class="good">Yes</td></tr>
+    <tr><td>4</td><td>The finish is within the course's 30 min + <code>REBUILD_GRACE</code> (90 s). It posts to the run's own slot.</td><td>Partly: add the check</td></tr>
+    <tr><td>5</td><td>No anti-cheat flag during the run (the movement guard's teleport or speed flags, or a server move outside the known fall resets).</td><td>New: read the flag</td></tr>
+    <tr><td>6</td><td>The server's course hash is the board's hash (true by construction: it writes to its own board).</td><td>New</td></tr>
+    <tr><td>7</td><td>The session can save (not read-only, not a Studio fallback profile) and the store is the live one.</td><td>New</td></tr>
+    <tr><td>8</td><td>It beats the player's own best on this course. At most one write per finish.</td><td>New</td></tr>
+  </table></div>
+  <p class="why">Times are measured at the server's 0.1 s tick, so the board shows tenths: "0:42.3".</p>
+  <div class="note alert">
+    <b>Not covered on purpose</b>
+    <p>A truly fast but legit route is fine. We don't add a per-course "too fast" floor yet: there's no data. Instead <code>ObbyNewBest</code> logs every top-10 time, and after a week we look for outliers. Each board expires after an hour, so a cheated time can spoil one course at most.</p>
+  </div>
+</section>
+
+<section id="show">
+  <h2>4. Where it shows</h2>
+  <div class="mocks">
+    <figure class="mock">
+      <div class="stage">
+        <div class="board" role="img" aria-label="Mock of the course board by the portal">
+          <div class="head"><b>FASTEST RUNS</b><span>Course #1,204 · new course in 12:34</span></div>
+          <div class="row"><span>#1</span><span>GooGoblin</span><span class="t">0:38.2</span></div>
+          <div class="row"><span>#2</span><span>slimequeen</span><span class="t">0:39.0</span></div>
+          <div class="row"><span>#3</span><span>Hidden player</span><span class="t">0:40.7</span></div>
+          <div class="row"><span>#4</span><span>Jumpy_Joe</span><span class="t">0:41.1</span></div>
+          <div class="row"><span>…</span><span>&nbsp;</span><span class="t">&nbsp;</span></div>
+          <div class="row"><span>#10</span><span>Mossy</span><span class="t">0:47.9</span></div>
+          <div class="row me"><span>#23</span><span>You</span><span class="t">0:51.4</span></div>
+          <div class="last">Last course: GooGoblin 0:36.8</div>
+        </div>
+      </div>
+      <figcaption><b>Board A (recommended):</b> top 10, your own row, last course's winner. Beside the portal signpost, one-sided, facing the path.</figcaption>
+    </figure>
+    <figure class="mock">
+      <div class="stage">
+        <div class="runcard">
+          <div class="r"><span>Section 4/6</span><span class="mono">0:31.6</span></div>
+          <div class="r"><span>Best 0:51.4</span><span class="chip">#23</span></div>
+          <div class="r"><span>🔒 2:10</span><span class="chip">50% slower</span></div>
+        </div>
+        <div class="toast">Cleared in 0:44.9! New best: #6 on this course</div>
+        <div class="toast" style="background:#33281a">Cleared in 0:52.0. Your best: 0:44.9 (#6)</div>
+      </div>
+      <figcaption><b>Run card and finish message:</b> your best and rank on the card (from your second run on), the rank in the finish message.</figcaption>
+    </figure>
+  </div>
+  <div class="tablewrap"><table>
+    <tr><th>Place</th><th>What</th><th>Refresh</th></tr>
+    <tr><td>Board by the portal</td><td>Top 10 + your row + last course's #1. SurfaceGui, 40 px per stud, <b>MaxDistance 200</b> (landmark sign, same as the portal sign). Built with <code>BoardFace.row</code> like the Hall of Fame boards. A new row in the world-label registry.</td><td>Every 30 s; at once when someone on this server sets a new best (inserted into the local copy before the next read)</td></tr>
+    <tr><td>Portal sign</td><td>Second line: "Course #1,204 · 12:34 left"</td><td>Every second (client)</td></tr>
+    <tr><td>Run card</td><td>Third row "Best 0:51.4 · #23" once you have a time on this course</td><td>With <code>State.obby</code></td></tr>
+    <tr><td>Finish message</td><td>"New best: #6 on this course" or "Your best: 0:44.9 (#6)". Rank from the local copy; it can shift by the next read.</td><td>On finish</td></tr>
+    <tr><td>Leaderboards panel (Professor Goo)</td><td>Optional later: an "Obby" tab. Not in v1, to keep the panel small.</td><td>—</td></tr>
+  </table></div>
+  <p class="why">B would be a top 3 board with big names. It reads further but hides most players' chance to see themselves; A matches the Hall of Fame boards players already know.</p>
+</section>
+
+<section id="rules">
+  <h2>5. Rule changes</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Rule</th><th>Today</th><th>Proposed</th></tr>
+    <tr><td><code>ROTATION_SECONDS</code></td><td>600 (10 min)</td><td><b>1800 (30 min)</b> — decided</td></tr>
+    <tr><td><code>CHAIN_SLOTS</code></td><td>144 (a day)</td><td><b>48</b> (still a day)</td></tr>
+    <tr><td>Enter a cleared course</td><td>Refused until the next course</td><td><b>Allowed</b>: retries to beat your time — decided</td></tr>
+    <tr><td>Boost x1.5</td><td>Any counted finish when ready; 5 min on, 5 min cooldown</td><td><b>Unchanged</b>: still on its own timer (question 1)</td></tr>
+    <tr><td>Lock 50% slower</td><td>Every run</td><td><b>Only until your first counted finish on this course</b>; retries run the lock at normal speed (question 2)</td></tr>
+    <tr><td>Best time</td><td>Runtime only</td><td>On the board; a rejoin reads your entry back from the board</td></tr>
+    <tr><td><code>REBUILD_GRACE</code></td><td>90 s</td><td>Unchanged</td></tr>
+  </table></div>
+  <div class="card">
+    <div class="card-head"><span class="pick">Why the boost stays on its timer</span></div>
+    <p>Today a course lasts 10 minutes and the boost cycle is 10 minutes (5 on, 5 cooldown), so an active runner gets about 50% boost uptime. "Once per course" with 30-minute courses drops that to 5 of 30 minutes, about 17%. That's a big income cut nobody asked for. Keeping the timer keeps the economy exactly as it is. No pacing-sim run needed.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="pick">Why the lock perk needs a limit</span></div>
+    <p>The entry rule from 2026-11-01 was "a perk for running, without farming the same course". With retries, a player could loop one course for 30 minutes and keep their base lock at half speed the whole time. Giving the 50% only until your first counted finish keeps the perk for real runs and stops the loop. The run card shows the "50% slower" chip only while it applies.</p>
+  </div>
+</section>
+
+<section id="build">
+  <h2>6. Build and rollout</h2>
+  <div class="flow">
+    <div><b>1. Contract</b>Update <code>contract/obby.md</code> (§2 rotation, §3 entry and lock, §4 State, §6 analytics), <code>CONTRACT.md</code> (board store), <code>Constants</code> names, <code>Config.OBBY.BOARD</code>. Decision log rows.</div>
+    <div><b>2. Pure core + specs</b><code>shared/luau/.../PeriodBoard</code>, <code>ObbyCourse.hash</code>, <code>server/ObbyBoard</code> (when to post, view). Lune specs with two servers on one memory store.</div>
+    <div><b>3. Adapters + world</b><code>MemoryStoreBoard</code>, <code>server/ObbyBoardView</code> (read loop, world board), the board prop by the portal (render first: house rule 2).</div>
+    <div><b>4. UI (Jolt)</b>Run card best/rank row, finish message, portal sign line. Layout gate at all six sizes.</div>
+  </div>
+  <ul class="plain">
+    <li><b>No feature flag</b> (decision log: new features ship on).</li>
+    <li><b>Config</b> (one place): <code>OBBY.BOARD = { REFRESH = 30, SIZE = 10, RANK_DEPTH = 100, EXPIRE_AFTER = 3600 }</code>, <code>COURSE_VERSION</code>, <code>COURSE_EPOCH</code>.</li>
+    <li><b>Rolling update:</b> old servers rotate every 10 min and have no board, so their slots never match the new ones. New servers on different section code get a different hash, so their times go to their own board until the old servers drain.</li>
+    <li><b>What we can't check before live:</b> real cross-server ranking. Studio and cloud scripts use the memory store. The two-server spec covers the logic; the first live hour needs a look at <code>ObbyBoardStatus</code> and the board.</li>
+    <li><b>Cost:</b> no Robux. MemoryStore is free within quota; we use roughly a quarter of the request budget and a small part of memory.</li>
+  </ul>
+  <h3>Analytics (server only, shared tracker)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Event</th><th>Value / field</th><th>Answers</th></tr>
+    <tr><td><code>ObbyStarted</code> (exists)</td><td>new field: First try / Retry</td><td>Do people retry for time?</td></tr>
+    <tr><td><code>ObbyFinished</code> (exists, name kept)</td><td>value = seconds; fields as today</td><td>Unchanged funnel</td></tr>
+    <tr><td><code>ObbyNewBest</code> (new)</td><td>value = rank (0 = 100+); field: Top 3 / Top 10 / Top 100 / Deeper</td><td>How many chase the board; outlier times</td></tr>
+    <tr><td><code>ObbyFell</code> (exists)</td><td>unchanged</td><td>—</td></tr>
+  </table></div>
+  <p class="why">Goal to fill before building (roadmap rule): "obby runs per daily player, from <i>baseline</i> to <i>+X%</i>, within 7 days of release". Baseline from the Creator Dashboard on the live version.</p>
+</section>
+
+<section id="edges">
+  <h2>7. Edge cases</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Case</th><th>What happens</th></tr>
+    <tr><td>Server shuts down mid-course</td><td>Times already posted stay (they live in MemoryStore). A run in progress is lost, like today. Nothing to flush on close.</td></tr>
+    <tr><td>Join at minute 29</td><td>You can still enter. A finish within the 90 s grace counts for that course. The sign shows the countdown, so nobody is surprised.</td></tr>
+    <tr><td>Rejoin or server hop</td><td>Your best on this course comes back from the board on the next read. Hopping gives no advantage: same course, same board.</td></tr>
+    <tr><td>Ties</td><td>Same tenth of a second: whoever set it first ranks higher.</td></tr>
+    <tr><td>MemoryStore down</td><td>The board keeps its last rows with "Board offline". Runs still count for the boost; your best is kept in the session and posted on your next finish.</td></tr>
+    <tr><td>Cheater gets a time in</td><td>The board expires an hour after the course. Later: an admin "remove time" action (needs its own guard, since <code>TestHooks</code> is memory-only).</td></tr>
+    <tr><td>Names</td><td>The display name is saved in the entry when the time is posted, so every server shows the same name without lookups. Display names are moderated by Roblox, the same as on the Hall of Fame boards. Players type no free text.</td></tr>
+    <tr><td>"Show me on leaderboards" off</td><td>Shown as "Hidden player"; the userId never goes to clients (same as <code>Leaderboard.fromPage</code>). Changing the setting updates your entry on the current course.</td></tr>
+    <tr><td>Privacy</td><td>Stored: userId (server only), display name, time, hidden flag. Deleted automatically an hour after the course ends.</td></tr>
+    <tr><td>Avatars</td><td>R15 runners are already set to the standard scale. R6 is left alone today; R6 hitboxes differ a little. Watch top-10 data before acting.</td></tr>
+    <tr><td>Speed Coil, PvP slows on runners</td><td>Both change times. See question 3.</td></tr>
+  </table></div>
+</section>
+
+<section id="questions" class="q">
+  <h2>Open questions for Merijn</h2>
+  <div class="card">
+    <b>1. Boost x1.5 with retries</b>
+    <ol type="A">
+      <li><b>On its own timer, as today</b> (any counted finish when it's ready). Same income as now. <i>Recommended.</i></li>
+      <li>Only on your first clear of each course. Uptime drops from ~50% to ~17%.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <b>2. Lock 50% slower</b>
+    <ol type="A">
+      <li><b>Only until your first counted finish on this course</b>; retries run the lock at normal speed. <i>Recommended.</i></li>
+      <li>On every run, retries too. Simple, but you can loop the course to keep your base locked longer.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <b>3. Speed Coil and PvP slows during a run</b>
+    <ol type="A">
+      <li><b>Off during a run</b>: everyone runs at the same speed, so times are fair. <i>Recommended.</i></li>
+      <li>Allowed: the coil is part of the game, but bought speed buys board spots.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <b>4. A permanent record</b>
+    <ol type="A">
+      <li><b>None in v1</b>: only the live course board. <i>Recommended.</i></li>
+      <li>A "Courses cleared" board in the Hall of Fame (count, uses the existing board code).</li>
+      <li>"Obby wins" (times in the top 3), later: needs one server to settle each course.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <b>5. Course number on the sign</b>
+    <ol type="A">
+      <li><b>Short, counting from release: "Course #1,204".</b> <i>Recommended.</i></li>
+      <li>No number, just "new course in 12:34".</li>
+    </ol>
+  </div>
+</section>
+
+</main>
+</body>
+</html>

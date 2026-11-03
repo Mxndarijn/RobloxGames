@@ -680,7 +680,7 @@ M.variants = {
 				})
 			)
 			-- the exit sits on the left only: the far-left tile is the one way to it
-			return settle(Kit.section(exit(parts, 48, 0, -8, 8), 0, parts), "medium")
+			return Kit.signed(settle(Kit.section(exit(parts, 48, 0, -8, 8), 0, parts), "medium"), "melt,key")
 		end,
 	},
 	{

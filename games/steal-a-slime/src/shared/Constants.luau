@@ -45,6 +45,7 @@ return table.freeze({
 	RITUAL_READY_AT_ATTRIBUTE = "ReadyAt", -- Map.RitualCircle: server time the rest ends (Cooldown only, else nil)
 	RITUAL_TAKEN_ATTRIBUTE = "Taken", -- Map.RitualCircle.Spot_<i>: true while a counted player stands on it
 	CARRYING_ATTRIBUTE = "Carrying", -- Player: carried slime id, nil when empty-handed
+	OBBY_VINE_ATTRIBUTE = "ObbyVine", -- Player, set by the server: the obby vine rope part id (ObbyId) they hold, nil = none
 	WEATHER_ATTRIBUTE = "Weather", -- workspace, set by the server (WeatherService): "Clear" | "Rain" | "Snow" | "Starfall"
 	WEATHER_STARTED_ATTRIBUTE = "WeatherStartedAt", -- workspace, server time (GetServerTimeNow) the current weather began; set before WEATHER_ATTRIBUTE
 	SNOW_ENDED_ATTRIBUTE = "SnowEndedAt", -- workspace, server time Snow last ended; cleared (nil) while Snow shows. Late joiners derive ground snow from both

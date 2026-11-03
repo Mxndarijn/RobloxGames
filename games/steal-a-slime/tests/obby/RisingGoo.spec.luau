@@ -367,11 +367,11 @@ describe("RisingGoo", function()
 		expect(windows[1].slack >= ObbyCheck.WINDOW.easy - 1e-6 and windows[1].slack <= 2.0 + 1e-6).toBe(true)
 	end)
 
-	it("Drain Valve: the gate's key is on the valve ledge and the pad throws you onto step 8", function()
+	it("Drain Valve: the gate's key is on the valve ledge and the pad throws you onto step 7", function()
 		local s = RisingGoo.variants[15].build(1)
 		local pad, target
 		local steps = mainSteps(s)
-		target = steps[8]
+		target = steps[7]
 		for _, p in s.parts do
 			if p.look == "spring" then
 				pad = p
@@ -382,13 +382,13 @@ describe("RisingGoo", function()
 		local _, _, _, targetTop = Kit.bounds(target)
 		local reach = Kit.launchReach(m.power, targetTop - padTop, m.throw)
 		expect(reach ~= nil).toBe(true)
-		-- from the pad's middle to the nearest edge of step 8, and at least half way onto it
+		-- from the pad's nearest edge to 2 studs onto step 7, with a fifth to spare (air control wears the throw down)
 		local tx0, tx1, _, _, tz0, tz1 = Kit.bounds(target)
-		local px, pz = (pad :: Part).pos[1], (pad :: Part).pos[3]
-		local dx = math.max(tx0 - px, 0, px - tx1)
-		local dz = math.max(tz0 - pz, 0, pz - tz1)
-		expect(math.sqrt(dx * dx + dz * dz) + 4 <= (reach :: number)).toBe(true)
-		-- and the valve route is longer for the walk-on runner, but the shortcut skips steps 6 and 7
-		expect(targetTop - padTop > Kit.RISE_MAX * 2).toBe(true)
+		local px0, px1, _, _, pz0, pz1 = Kit.bounds(pad :: Part)
+		local dx = math.max(tx0 - px1, 0, px0 - tx1)
+		local dz = math.max(tz0 - pz1, 0, pz0 - tz1)
+		expect((math.sqrt(dx * dx + dz * dz) + 2) * 1.2 <= (reach :: number)).toBe(true)
+		-- two steps up in one throw: the shortcut skips step 6
+		expect(targetTop - padTop > Kit.RISE_MAX).toBe(true)
 	end)
 end)

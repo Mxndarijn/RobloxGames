@@ -4,17 +4,35 @@
 
 	The obby's picture signs: wordless pictures that show how a section works. Every pictogram is built from Frames,
 	UICorner (circles, pills), UIStroke (rings, outlines) and rotated Frames (lines, arrows, chevrons); the only
-	text is digits (a stopwatch's seconds, a countdown, the cannon's step numbers). No image uploads.
+	text is digits, and only where the number is the message (a stopwatch's seconds, Rising Goo's 3 2 1). No image
+	uploads.
+
+	One visual language across the set (two blind tests with three judges; contract/obby-sections.md §8b):
+	  * fixed colours: red is danger only (a hazard, a fake or breaking tile), green is safe / the target only (a safe
+	    tile, a lit pad, the cannon's target ring), yellow is a thing you use (a pad, a button, a key, a vent, a vine,
+	    the speed pad), lilac is an ordinary platform; white is the runner, its jumps and the arrows
+	  * the mechanic is the biggest thing on the board, and the runner is on every board that asks you to do something
+	  * white dots are only ever the runner's own jump, evenly spaced (a launch by cannon, vent or spring draws the
+	    same); a falling or rolling hazard is a solid red shape with motion streaks behind it
+	  * speed is the yellow pad with chevrons; there is no lightning bolt; "watch" is an almond eye
+	  * one arrow style (`arrow`) in three weights, one motion cue per picture, no leftward arrow, no step numbers: a
+	    board of steps shows them left to right with an arrow between (`THEN`); a stopwatch's sweep is its seconds on
+	    a ten-second dial
+	  * one runner size (`runner`, 20 x 42 grid units; only Glow Memory's runner on a tile is drawn small), one ghost
+	    for "where it was / goes" (`ghostBox`, `ghostRunner`: the shape as a faded lilac outline), one crack (thick
+	    near black, edged white), motion streaks only on the trailing side (above a falling thing), one cannon
+	    (`cannon`: wheel, tapered barrel, muzzle ring), stopwatch digits white, bold and outlined; "look" is the eye
+	  * every picture draws inside the slot's safe margin (`SIZE.margin`) and keeps within 3..97 of its grid
 
 	  ObbySigns.IDS                      every pictogram id, sorted
 	  ObbySigns.has(id) -> boolean
-	  ObbySigns.paint(gui, slots, deps?) fills a banner's SurfaceGui: a picture per slot at its place across the lane
+	  ObbySigns.paint(gui, slots, deps?, height?) fills a banner's SurfaceGui: a picture per slot across the lane
 	  ObbySigns.boosters(banner, deps?)  a flaming booster engine under each end of a banner (adornments, particles)
 
-	Every sign in the obby is the same banner (ObbyCourse.SIGN: lane-wide, the height over the floor, the slot size),
+	Every sign in the obby is the same banner (ObbyCourse.SIGN: lane-wide, the height over the floor, the slot sizes),
 	hovering on two boosters: one picture is one square slot, placed over the part of the lane it is about. The
-	cannon's four steps are four slots (cannon1..cannon4, each with its step number). A slot draws on a 100 x 100 grid
-	(x right, y down, like the proposal's SVGs).
+	cannon's four steps are four slots (cannon1..cannon4) with an arrow between each. A slot draws on a 100 x 100
+	grid (x right, y down, like the proposal's SVGs).
 
 	`deps` ({ Instance, Enum, UDim, UDim2, Color3, Vector2, Vector3, CFrame, ColorSequence, ColorSequenceKeypoint,
 	NumberSequence, NumberSequenceKeypoint, NumberRange }) is the Roblox globals in the game and @lune/roblox's in
@@ -48,12 +66,19 @@ local ObbySigns = {}
 -- The board's geometry (post, height, slot, margins) is ObbyCourse.SIGN; these are how it is drawn.
 ObbySigns.SIZE = table.freeze({
 	pixelsPerStud = 50,
-	maxDistance = 60,
+	-- Drawn out to 200 studs, a landmark sign (the guide's 200 to 300): sections run 60 to 120 studs, so from
+	-- anywhere in one the next section's entry board already shows. A whole 7.2-stud picture (5 on the cannon's
+	-- board of four) reads on a 720p screen from about 40 studs and its main shape is still a 30 px patch at 100;
+	-- ObbyFx bobs the banner out to its MAX_DISTANCE (260), so it never shows standing still.
+	maxDistance = 200,
 	rim = 0.12, -- studs: the board's white rim
 	phonePxPerStud = 10.7, -- at the read distance below
 	readDistance = 26,
 	minShapePx = 14, -- the main shape on a phone at the read distance
 	minLine = 0.12, -- studs: the thinnest stroke or dot on any board
+	-- A slot's safe margin each side (a fraction of the slot): the picture's grid is drawn inside it, and every
+	-- picture keeps its shapes within 3..97 of that grid, so nothing comes nearer than about 8% to the slot's edge.
+	margin = 0.05,
 	-- The boosters under the banner's ends (studs): a body, an orange band and a bell nozzle pointing down, and a
 	-- flame of built-in fire particles. Body + nozzle make ObbyCourse.SIGN.hang; the radius stays within SIGN.reach.
 	booster = table.freeze({
@@ -70,44 +95,42 @@ ObbySigns.SIZE = table.freeze({
 	}),
 })
 
--- Line widths and dot sizes on the 100-unit panel grid.
-local W = table.freeze({ thin = 4, line = 5.5, bold = 7.5, dot = 3.4 })
+-- Line widths and dot sizes on the 100-unit panel grid (a board of four draws its slots 5 studs big: thin is still
+-- 0.25 studs there, a pixel on a phone at 60 studs).
+local W = table.freeze({ thin = 5, line = 7, bold = 9, dot = 4.4 })
 
 local function rgb(r: number, g: number, b: number): { number }
 	return table.freeze({ r, g, b })
 end
 
--- Colours: the obby's looks (visuals/shared/ObbyParts LOOKS) where a sign shows that thing, else the sign's own.
+-- Colours, one meaning each across the set (the second blind test's palette): hazard red is danger only, green is
+-- safe / the target only, yellow (gold, boost) is a thing you use, lilac (violet) is an ordinary platform. Other
+-- colours are a thing's own look where the sign shows that thing (ice, wind, the cannon, Glow Memory's pink fakes).
 local C = table.freeze({
 	board = rgb(46, 38, 70), -- ObbyParts.COLORS.sign
 	white = rgb(255, 255, 255),
 	hazard = rgb(215, 20, 25), -- the hazard look
 	hazardEdge = rgb(90, 0, 10),
-	shine = rgb(255, 138, 138),
-	mint = rgb(108, 242, 194), -- the cannon's aim dots on target
-	gold = rgb(255, 205, 60), -- keys, glow tiles
-	star = rgb(255, 220, 80),
-	orange = rgb(255, 150, 50), -- spring pads, belts, the cannon's band
-	lime = rgb(150, 230, 70), -- goo, ladders, vines
-	sticky = rgb(175, 240, 40),
-	print = rgb(95, 145, 20),
-	violet = rgb(185, 140, 255), -- jelly
+	gold = rgb(255, 205, 60), -- a thing you use: keys, buttons, vents, vines, spring pads
+	orange = rgb(255, 150, 50), -- the cannon's band, the booster's band
+	violet = rgb(185, 140, 255), -- an ordinary platform
 	gate = rgb(150, 90, 220),
 	grey = rgb(140, 136, 166),
+	dim = rgb(96, 92, 124), -- a dead vent, a dark platform
+	sweep = rgb(112, 104, 150), -- a stopwatch's sweep
 	barrel = rgb(70, 66, 96), -- the cannon look
 	pink = rgb(255, 126, 194),
 	boost = rgb(255, 215, 50),
-	slow = rgb(110, 120, 200), -- the back strip
-	night = rgb(13, 10, 26),
-	warm = rgb(255, 226, 170),
-	green = rgb(80, 215, 120),
-	moon = rgb(200, 190, 255),
-	vent = rgb(168, 98, 58),
-	wind = rgb(205, 230, 250),
-	tile = rgb(79, 122, 74), -- a plain Glow Memory tile on the sign
+	slow = rgb(110, 120, 200), -- the slow strip, Sliding Maze's walls
+	bubble = rgb(170, 190, 255), -- Moon Jump's bubble
+	wind = rgb(205, 230, 250), -- wind columns, ice
+	tile = rgb(98, 92, 140), -- a Glow Memory tile that shows nothing
 	safe = rgb(80, 215, 120),
 	flame = rgb(255, 90, 30), -- the booster flame's middle
 	blue = rgb(90, 170, 255), -- the booster flame's tail
+	ink = rgb(22, 16, 34), -- a crack's line (near black, edged white so it shows on any tile)
+	jet = rgb(215, 238, 255), -- a geyser's water jet
+	wood = rgb(176, 112, 62), -- the cannon's wheel
 })
 
 --------------------------------------------------------------------------------------------------------------------
@@ -119,6 +142,8 @@ type Pen = {
 	z: number,
 	px: number, -- canvas pixels per grid unit
 	bg: { number }, -- the colour behind the panel (crescents and covers paint with it)
+	o: number, -- where the grid's 0 sits in the frame, in percent (a slot's safe margin)
+	k: number, -- the grid's 100 as a fraction of the frame
 }
 
 type Opts = {
@@ -142,8 +167,8 @@ local function box(pen: Pen, cx: number, cy: number, w: number, h: number, c: { 
 	local f = d.Instance.new("Frame")
 	f.Name = "Shape"
 	f.AnchorPoint = d.Vector2.new(0.5, 0.5)
-	f.Position = d.UDim2.fromScale(cx / 100, cy / 100)
-	f.Size = d.UDim2.fromScale(w / 100, h / 100)
+	f.Position = d.UDim2.fromScale((pen.o + cx * pen.k) / 100, (pen.o + cy * pen.k) / 100)
+	f.Size = d.UDim2.fromScale(w * pen.k / 100, h * pen.k / 100)
 	f.BorderSizePixel = 0
 	f.BackgroundColor3 = color(pen, c)
 	f.BackgroundTransparency = if opts.hollow then 1 else (opts.alpha or 0)
@@ -213,10 +238,12 @@ local function head(pen: Pen, x: number, y: number, angle: number, size: number,
 	end
 end
 
--- An arrow from (x1, y1) to its tip at (x2, y2).
-local function arrow(pen: Pen, x1: number, y1: number, x2: number, y2: number, width: number, c: { number })
-	line(pen, x1, y1, x2, y2, width, c)
-	head(pen, x2, y2, math.deg(math.atan2(y2 - y1, x2 - x1)), width * 2.2, width, c)
+-- The one arrow of the set: a round-ended white stroke with an open head, in three weights (W.line, W.bold and,
+-- for a lone big arrow, 11). From (x1, y1) to its tip at (x2, y2).
+local function arrow(pen: Pen, x1: number, y1: number, x2: number, y2: number, width: number, c: { number }?)
+	local ink = c or C.white
+	line(pen, x1, y1, x2, y2, width, ink)
+	head(pen, x2, y2, math.deg(math.atan2(y2 - y1, x2 - x1)), width * 2.2, width, ink)
 end
 
 -- Points on a quadratic curve from p0 through the pull of control point p1 to p2.
@@ -230,12 +257,38 @@ local function curve(p0: { number }, p1: { number }, p2: { number }, n: number):
 	return out
 end
 
--- A jump arc: `n + 1` points from (x0, y0) to (x1, y1), `h` units above the straight line at its middle.
+-- A jump arc: `n + 1` points from (x0, y0) to (x1, y1), `h` units above the straight line at its middle, evenly
+-- spaced along the curve (so the dots never bunch at the top).
 local function arc(x0: number, y0: number, x1: number, y1: number, h: number, n: number): { { number } }
+	local fine, lengths = {}, { 0 }
+	for i = 0, 64 do
+		local t = i / 64
+		table.insert(fine, { x0 + (x1 - x0) * t, y0 + (y1 - y0) * t - h * 4 * t * (1 - t) })
+		if i > 0 then
+			local a, b = fine[i], fine[i + 1]
+			table.insert(lengths, lengths[i] + math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2))
+		end
+	end
+	local out, k = {}, 1
+	for i = 0, n do
+		local want = lengths[65] * i / n
+		while k < 64 and lengths[k + 1] < want do
+			k += 1
+		end
+		local span = lengths[k + 1] - lengths[k]
+		local f = if span > 0 then math.clamp((want - lengths[k]) / span, 0, 1) else 0
+		local a, b = fine[k], fine[k + 1]
+		table.insert(out, { a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f })
+	end
+	return out
+end
+
+-- Points on an ellipse round (cx, cy) with radii (rx, ry) from angle `a0` to `a1` (degrees, 0 = right, 90 = down).
+local function oval(cx: number, cy: number, rx: number, ry: number, a0: number, a1: number, n: number): { { number } }
 	local out = {}
 	for i = 0, n do
-		local t = i / n
-		table.insert(out, { x0 + (x1 - x0) * t, y0 + (y1 - y0) * t - h * 4 * t * (1 - t) })
+		local a = math.rad(a0 + (a1 - a0) * i / n)
+		table.insert(out, { cx + math.cos(a) * rx, cy + math.sin(a) * ry })
 	end
 	return out
 end
@@ -253,84 +306,276 @@ local function path(pen: Pen, points: { { number } }, width: number, c: { number
 	end
 end
 
--- A curved arrow along `points`, its tip at the last point.
-local function curvedArrow(pen: Pen, points: { { number } }, width: number, c: { number })
-	path(pen, points, width, c)
+-- A curved arrow along `points`, its tip at the last point (and at the first too when `both`).
+local function curvedArrow(pen: Pen, points: { { number } }, width: number, both: boolean?)
+	path(pen, points, width, C.white)
 	local a, b = points[#points - 1], points[#points]
-	head(pen, b[1], b[2], math.deg(math.atan2(b[2] - a[2], b[1] - a[1])), width * 2.2, width, c)
+	head(pen, b[1], b[2], math.deg(math.atan2(b[2] - a[2], b[1] - a[1])), width * 2.2, width, C.white)
+	if both then
+		local p, q = points[2], points[1]
+		head(pen, q[1], q[2], math.deg(math.atan2(q[2] - p[2], q[1] - p[1])), width * 2.2, width, C.white)
+	end
 end
 
 -- The runner: a round head over a capsule body, in a box w x h whose top-left is (x, y) (the proposal's `fig`).
-local function figure(pen: Pen, x: number, y: number, w: number, h: number, c: { number }?)
+-- `alpha` fades it (a ghost: where the runner was).
+local function figure(pen: Pen, x: number, y: number, w: number, h: number, c: { number }?, alpha: number?)
 	local ink = c or C.white
-	box(pen, x + w / 2, y + h * 27.5 / 40, w * 14 / 20, h * 25 / 40, ink, { full = true })
-	dot(pen, x + w / 2, y + h * 7 / 40, w * 6.5 / 20, ink)
+	box(pen, x + w / 2, y + h * 27.5 / 40, w * 14 / 20, h * 25 / 40, ink, { full = true, alpha = alpha })
+	dot(pen, x + w / 2, y + h * 7 / 40, w * 6.5 / 20, ink, { alpha = alpha })
 end
 
--- An eight-point star: two squares a quarter turn apart (the course's star marker).
-local function star(pen: Pen, cx: number, cy: number, size: number)
-	box(pen, cx, cy, size * 0.72, size * 0.72, C.star)
-	box(pen, cx, cy, size * 0.72, size * 0.72, C.star, { rot = 45 })
+-- The runner at the one size of the set (deliberately small cases, a runner on a memory tile, use `figure`): 20 x 42
+-- units, its middle at x = `cx`, its feet at y = `foot`.
+local RUNNER = table.freeze({ w = 20, h = 42 })
+local function runner(pen: Pen, cx: number, foot: number)
+	figure(pen, cx - RUNNER.w / 2, foot - RUNNER.h, RUNNER.w, RUNNER.h)
 end
 
--- A crescent: a disc with a disc of `cover` (the colour behind it) bitten out of its upper right.
-local function crescent(pen: Pen, cx: number, cy: number, r: number, c: { number }, cover: { number }, alpha: number?)
-	dot(pen, cx, cy, r, c, { alpha = alpha })
-	dot(pen, cx + r * 0.45, cy - r * 0.35, r * 0.82, cover)
+-- The one ghost of the set ("where it was" / "where it goes"): the thing's shape as a faded lilac outline.
+local GHOST = table.freeze({ c = C.violet, alpha = 0.45, stroke = 3.5 })
+local function ghostBox(pen: Pen, cx: number, cy: number, w: number, h: number, o: Opts?): any
+	local opts: Opts = if o then table.clone(o) else {}
+	opts.hollow, opts.stroke, opts.alpha = true, GHOST.stroke, GHOST.alpha
+	return box(pen, cx, cy, w, h, GHOST.c, opts)
+end
+local function ghostRunner(pen: Pen, cx: number, foot: number)
+	local w, h, x, y = RUNNER.w, RUNNER.h, cx - RUNNER.w / 2, foot - RUNNER.h
+	ghostBox(pen, x + w / 2, y + h * 27.5 / 40, w * 14 / 20, h * 25 / 40, { full = true })
+	ghostBox(pen, x + w / 2, y + h * 7 / 40, w * 13 / 20, w * 13 / 20, { full = true })
 end
 
--- Digits (the only text a sign may show).
+-- The runner's own jump (white dots only ever mean this): dots along `points`, ending in a solid arrow along the last
+-- stretch (so its head follows the jump's line). A launch (a cannon, a vent, a spring) draws the same.
+local function jumpArrow(pen: Pen, points: { { number } }, c: { number }?)
+	local ink = c or C.white
+	local n = #points
+	dots(pen, table.move(points, 1, n - 3, 1, {}), W.dot, ink)
+	arrow(pen, points[n - 2][1], points[n - 2][2], points[n][1], points[n][2], W.line, ink)
+end
+
+-- Motion streaks on the trailing side of a moving thing (above a falling one, never below or beside): `n` short
+-- strokes from (x, y) on, pointing `angle` degrees (the way it came from), `gap` apart across, `len` the longest. The
+-- middle one is longest and the outer ones start further back and are shorter (speed lines, never two equal upright
+-- bars that read as a pause sign).
+local function streaks(pen: Pen, x: number, y: number, angle: number, len: number, gap: number, n: number)
+	local a = math.rad(angle)
+	local ux, uy = math.cos(a), math.sin(a)
+	local px, py = -uy, ux
+	for k = 1, n do
+		local off = (k - (n + 1) / 2) * gap
+		local edge = math.abs(off) / math.max(gap, 1)
+		local back = edge * len * 0.6
+		local long = len * (1.2 - 0.6 * edge)
+		local sx, sy = x + px * off + ux * back, y + py * off + uy * back
+		line(pen, sx, sy, sx + ux * long, sy + uy * long, W.thin * 0.6, C.white, 0.3)
+	end
+end
+
+-- A hazard ball: flat red with a dark rim (the hazard look; no shine), the same everywhere.
+local function ball(pen: Pen, cx: number, cy: number, r: number)
+	dot(pen, cx, cy, r, C.hazard, { stroke = 4, strokeColor = C.hazardEdge })
+end
+
+-- A crack: a thick near-black zigzag with a thin white edge across a tile centred at (cx, cy), `s` its size (the one
+-- crack of the set: it shows on lilac, green, red and pink alike).
+local function crack(pen: Pen, cx: number, cy: number, s: number)
+	local zig = {
+		{ cx - 0.42 * s, cy - 0.3 * s },
+		{ cx - 0.1 * s, cy + 0.15 * s },
+		{ cx + 0.12 * s, cy - 0.2 * s },
+		{ cx + 0.42 * s, cy + 0.3 * s },
+	}
+	path(pen, zig, W.thin + 3, C.white)
+	path(pen, zig, W.thin + 0.5, C.ink)
+end
+
+-- The crumbling floor, big: a row of floor pieces; the one behind the runner has cracked and drops (tipped, streaks
+-- over it), the one under the runner cracks right through, the one ahead is whole, and one arrow says keep going. `kind` is the floor: "tile" (Melting Floor: lilac tiles), "plank" (Collapsing
+-- Bridge: narrow planks) or "glow" (Glow Memory's hot feet: even the green tiles crack). Same idea, same drawing; the
+-- floor's shape tells them apart.
+local function crumble(pen: Pen, kind: string)
+	local ink = if kind == "glow" then C.safe else C.violet
+	local top = 62
+	if kind == "plank" then
+		-- a plank behind, cracked, dropped and tipped (streaks above it: it falls)
+		box(pen, 15, 83, 12, 18, ink, { round = 2, rot = 24 })
+		crack(pen, 15, 83, 11)
+		streaks(pen, 15, 69, -90, 10, 7, 3)
+		-- the plank under the runner cracks, the rest of the bridge is whole
+		for i, x in { 32, 47, 62, 77, 92 } do
+			box(pen, x, top + 10, 11, 20, ink, { round = 2 })
+			if i == 2 then
+				crack(pen, x, top + 10, 12)
+			end
+		end
+	else
+		-- the tile behind has cracked through and drops, a broken piece falling off it (streaks above: falling)
+		box(pen, 17, 84, 20, 13, ink, { round = 3, rot = 20 })
+		crack(pen, 17, 84, 16)
+		box(pen, 31, 91, 8, 6, ink, { round = 1.5, rot = -30 })
+		streaks(pen, 17, 70, -90, 10, 8, 3)
+		box(pen, 50, top + 9, 32, 18, ink, { round = 3 })
+		crack(pen, 57, top + 9, 18)
+		box(pen, 84, top + 9, 22, 18, ink, { round = 3 })
+	end
+	runner(pen, 47, top)
+	arrow(pen, 66, 36, 92, 36, W.bold)
+end
+
+-- Digits (the only text a sign may show), with a dark outline so they hold on any fill behind them.
 local function digits(pen: Pen, cx: number, cy: number, w: number, h: number, text: string, c: { number }): any
 	assert(string.match(text, "^[%d ]+$"), `obby sign text must be digits: {text}`)
 	local d = pen.d
 	local label = d.Instance.new("TextLabel")
 	label.Name = "Digits"
 	label.AnchorPoint = d.Vector2.new(0.5, 0.5)
-	label.Position = d.UDim2.fromScale(cx / 100, cy / 100)
-	label.Size = d.UDim2.fromScale(w / 100, h / 100)
+	label.Position = d.UDim2.fromScale((pen.o + cx * pen.k) / 100, (pen.o + cy * pen.k) / 100)
 	label.BackgroundTransparency = 1
 	label.Font = d.Enum.Font.FredokaOne
 	label.Text = text
 	label.TextColor3 = color(pen, c)
-	label.TextScaled = true
+	label.TextStrokeColor3 = color(pen, C.board)
+	label.TextStrokeTransparency = 0
+	-- A font stops at 100 px, under a big slot's digits: fit the size to the box (FredokaOne digits are about 0.62 em
+	-- wide, a space 0.3), and where that is over 100 px draw the label smaller and scale it up
+	local _, spaces = string.gsub(text, " ", "")
+	local em = 0.62 * (#text - spaces) + 0.3 * spaces
+	local size = math.min(h * pen.px * 0.95, w * pen.px / em)
+	local k = math.max(1, size / 100)
+	label.Size = d.UDim2.fromScale(w * pen.k / 100 / k, h * pen.k / 100 / k)
+	label.TextSize = size / k
+	-- a thick dark outline round the glyphs (the text stroke is a pixel; this holds on any fill behind); a UIScale
+	-- scales it with the text, so it is drawn that much thinner
+	local outline = d.Instance.new("UIStroke")
+	outline.ApplyStrokeMode = d.Enum.ApplyStrokeMode.Contextual
+	outline.Color = color(pen, C.board)
+	outline.Thickness = math.max(2, size * 0.07) / k
+	outline.Parent = label
+	if k > 1 then
+		local scale = d.Instance.new("UIScale")
+		scale.Scale = k
+		scale.Parent = label
+	end
 	pen.z += 1
 	label.ZIndex = pen.z
 	label.Parent = pen.parent
 	return label
 end
 
--- The jump button: a ring with an up chevron.
-local function jumpButton(pen: Pen, cx: number, cy: number, r: number)
-	ring(pen, cx, cy, r, W.thin, C.white)
-	head(pen, cx, cy - r * 0.35, -90, r * 0.6, W.thin, C.white)
+-- A frame that clips what is drawn in it to the rectangle (x0, y0)..(x1, y1); returns a pen whose 100 x 100 grid is
+-- that rectangle.
+local function clip(pen: Pen, x0: number, y0: number, x1: number, y1: number): Pen
+	local d = pen.d
+	local f = d.Instance.new("Frame")
+	f.Name = "Clip"
+	f.BackgroundTransparency = 1
+	f.ClipsDescendants = true
+	f.Position = d.UDim2.fromScale((pen.o + x0 * pen.k) / 100, (pen.o + y0 * pen.k) / 100)
+	f.Size = d.UDim2.fromScale((x1 - x0) * pen.k / 100, (y1 - y0) * pen.k / 100)
+	pen.z += 1
+	f.ZIndex = pen.z
+	f.Parent = pen.parent
+	return { d = d, parent = f, z = pen.z, px = pen.px * (x1 - x0) / 100, bg = pen.bg, o = 0, k = 1 }
 end
 
--- A stopwatch: a ring with a crown and the seconds inside.
+-- The stopwatch, only where the seconds are the message: a thick ring with a crown, a sweep from twelve as big as the
+-- seconds on a ten-second dial (4 s is four tenths of the face) and the seconds big inside. The crown reaches
+-- `r + W.line + 7` above `cy`.
 local function stopwatch(pen: Pen, cx: number, cy: number, r: number, seconds: string)
-	box(pen, cx, cy - r - 3, r * 0.5, 6, C.white, { round = 1.5 })
+	box(pen, cx, cy - r - W.line - 4, math.max(r * 0.45, 8), 6, C.white, { round = 1.5 })
+	dot(pen, cx, cy, r, C.board)
+	-- the sweep: a fan of spokes from the middle, 5 degrees apart (a spoke is wider than the gap at the rim)
+	local turn = math.clamp((tonumber(seconds) or 0) / 10, 0, 1) * 360
+	local reach = r - W.line / 2
+	for a = 0, turn, 5 do
+		local t = math.rad(a - 90)
+		line(pen, cx, cy, cx + math.cos(t) * reach * 0.9, cy + math.sin(t) * reach * 0.9, 4, C.sweep)
+	end
 	ring(pen, cx, cy, r, W.line, C.white)
-	digits(pen, cx, cy + r * 0.06, r * 1.3, r * 1.2, seconds, C.white)
+	-- the seconds: white, bold and big (the glyph is about two thirds of the dial), outlined dark
+	digits(pen, cx, cy + r * 0.04, r * 1.75, r * 2, seconds, C.white)
 end
 
--- The cannon barrel at (cx, cy), turned `rot` degrees (0 = muzzle right), with its orange band at the muzzle.
-local function barrel(pen: Pen, cx: number, cy: number, rot: number, scale: number)
+-- The cannon, one classic cartoon cannon for every step, side view: a tapered dark barrel (a round breech, two
+-- narrowing lengths and a flared muzzle ring, one white outline round the lot) turned `rot` degrees (0 = muzzle right)
+-- round its wheel's hub at (cx, cy), and a big wooden wheel with spokes over the barrel's back. `rider` puts the
+-- runner's head out of the muzzle (you are inside); `ghost` draws the set's ghost (where it swings to).
+local CANNON = table.freeze({
+	-- the barrel's lengths along its axis from the hub: { middle, length, thickness }
+	parts = { { 5, 22, 22 }, { 18, 12, 19 }, { 27, 10, 16 }, { 34, 6, 24 } },
+	breech = { -3, 11 }, -- the round back: { where, radius }
+	wheel = 11,
+	edge = 2.5, -- the white outline
+})
+local function cannon(pen: Pen, cx: number, cy: number, rot: number, s: number, rider: boolean?, ghost: boolean?)
 	local a = math.rad(rot)
-	box(
-		pen,
-		cx,
-		cy,
-		34 * scale,
-		18 * scale,
-		C.barrel,
-		{ round = 8 * scale, rot = rot, stroke = 3, strokeColor = C.white }
-	)
-	local bx, by = cx + math.cos(a) * 13 * scale, cy + math.sin(a) * 13 * scale
-	box(pen, bx, by, 8 * scale, 22 * scale, C.orange, { round = 3 * scale, rot = rot })
+	local ux, uy = math.cos(a), math.sin(a)
+	local function at(u: number): (number, number)
+		return cx + ux * u * s, cy + uy * u * s
+	end
+	if ghost then
+		local x, y = at(15)
+		ghostBox(pen, x, y, 40 * s, 18 * s, { round = 8 * s, rot = rot })
+		x, y = at(34)
+		ghostBox(pen, x, y, 6 * s, 22 * s, { round = 2 * s, rot = rot })
+		if rider then
+			x, y = at(43)
+			ghostBox(pen, x, y, 13 * s, 13 * s, { full = true })
+		end
+		ghostBox(pen, cx, cy, 2 * CANNON.wheel * s, 2 * CANNON.wheel * s, { full = true })
+		return
+	end
+	if rider then
+		local x, y = at(42)
+		dot(pen, x, y, 7 * s, C.white)
+	end
+	-- the outline: every piece a little bigger in white, then the pieces in the barrel's colour over it
+	for pass = 1, 2 do
+		local e = if pass == 1 then CANNON.edge else 0
+		local ink = if pass == 1 then C.white else C.barrel
+		local bx, by = at(CANNON.breech[1])
+		dot(pen, bx, by, CANNON.breech[2] * s + e, ink)
+		for _, p in CANNON.parts do
+			local x, y = at(p[1])
+			box(pen, x, y, p[2] * s + 2 * e, p[3] * s + 2 * e, ink, { round = 2 * s, rot = rot })
+		end
+	end
+	-- a shine along the barrel's top (a round barrel, not a box)
+	local sx, sy = at(2)
+	local ex, ey = at(28)
+	local nx, ny = uy * 5 * s, -ux * 5 * s
+	line(pen, sx + nx, sy + ny, ex + nx * 0.7, ey + ny * 0.7, 2.5, C.white, 0.55)
+	-- the wheel over the barrel's back: wood, four spokes, a white hub
+	local r = CANNON.wheel * s
+	dot(pen, cx, cy, r, C.wood, { stroke = 3, strokeColor = C.white })
+	for k = 0, 3 do
+		local t = math.rad(k * 45 + 22.5)
+		line(
+			pen,
+			cx - math.cos(t) * r * 0.78,
+			cy - math.sin(t) * r * 0.78,
+			cx + math.cos(t) * r * 0.78,
+			cy + math.sin(t) * r * 0.78,
+			2.6,
+			C.ink,
+			0.25
+		)
+	end
+	dot(pen, cx, cy, 3.2 * s, C.white)
 end
 
--- A grid of rounded tiles: `cols` x `rows` cells of `cell` units from top-left (x0, y0); `lit[i]` (row-major index)
--- makes cell i gold with a glow, `fake[i]` pink, `cracked[i]` adds a red crack.
-type GridOpts = { lit: { [number]: boolean }?, fake: { [number]: boolean }?, cracked: { [number]: boolean }? }
+-- The cannon's target: a green ring lying on the floor at (cx, cy), `w` wide, with a soft green glow round it (a
+-- landing spot, not a switch: no rail, no dot).
+local function target(pen: Pen, cx: number, cy: number, w: number)
+	box(pen, cx, cy, w * 1.25, w * 0.5, C.safe, { full = true, alpha = 0.72 })
+	box(pen, cx, cy, w, w * 0.36, C.safe, { full = true, alpha = 0.45, stroke = 4, strokeColor = C.safe })
+end
+
+-- A grid of rounded square tiles: `cols` x `rows` cells of `cell` units from top-left (x0, y0), row-major index i.
+-- `path[i]`: green with a glow (safe, the way); `bad[i]`: the danger tile (hazard red, a rim and a crack); `pink[i]`:
+-- Glow Memory's pink fake, the same danger tile in its own pink; else a plain tile that shows nothing.
+type GridOpts = { path: { [number]: boolean }?, bad: { [number]: boolean }?, pink: { [number]: boolean }? }
 local function grid(
 	pen: Pen,
 	x0: number,
@@ -345,11 +590,16 @@ local function grid(
 		for c = 1, cols do
 			local i = (r - 1) * cols + c
 			local cx, cy = x0 + (c - 1) * (cell + gap) + cell / 2, y0 + (r - 1) * (cell + gap) + cell / 2
-			if o.lit and o.lit[i] then
-				box(pen, cx, cy, cell + 6, cell + 6, C.gold, { round = 6, alpha = 0.6 })
-				box(pen, cx, cy, cell, cell, C.gold, { round = 4 })
-			elseif o.fake and o.fake[i] then
-				box(pen, cx, cy, cell, cell, C.pink, { round = 4 })
+			local corner = math.max(cell * 0.18, 2)
+			if o.path and o.path[i] then
+				box(pen, cx, cy, cell + gap * 1.6, cell + gap * 1.6, C.safe, { round = corner + 2, alpha = 0.55 })
+				box(pen, cx, cy, cell, cell, C.safe, { round = corner })
+			elseif o.bad and o.bad[i] then
+				box(pen, cx, cy, cell, cell, C.hazard, { round = corner, stroke = 3, strokeColor = C.hazardEdge })
+				crack(pen, cx, cy, cell * 0.8)
+			elseif o.pink and o.pink[i] then
+				box(pen, cx, cy, cell, cell, C.pink, { round = corner, stroke = 3, strokeColor = C.hazard })
+				crack(pen, cx, cy, cell * 0.8)
 			else
 				box(
 					pen,
@@ -358,404 +608,550 @@ local function grid(
 					cell,
 					cell,
 					C.tile,
-					{ round = 4, stroke = 2, strokeColor = C.white, strokeAlpha = 0.5 }
+					{ round = corner, stroke = 2, strokeColor = C.white, strokeAlpha = 0.6 }
 				)
-			end
-			if o.cracked and o.cracked[i] then
-				local s = cell / 20
-				path(pen, {
-					{ cx - 4 * s, cy + 6 * s },
-					{ cx, cy },
-					{ cx - 5 * s, cy - 3 * s },
-					{ cx, cy - 9 * s },
-				}, 3, C.hazard)
 			end
 		end
 	end
 end
 
--- The eye over the Glow Memory grids: an almond (a pill) with a dark pupil.
-local function eye(pen: Pen, cx: number, cy: number)
-	box(pen, cx, cy, 40, 17, C.white, { full = true })
-	dot(pen, cx, cy, 6.5, C.board)
+-- Watch: an almond eye (two curved lids meeting in points) with a round iris and a dark pupil, `w` wide. `look` moves
+-- the iris sideways (-1 = looking left, 1 = right).
+local function eye(pen: Pen, cx: number, cy: number, w: number, look: number?)
+	local lid = w * 0.5
+	path(pen, curve({ cx - w / 2, cy }, { cx, cy - lid }, { cx + w / 2, cy }, 8), W.thin, C.white)
+	path(pen, curve({ cx - w / 2, cy }, { cx, cy + lid }, { cx + w / 2, cy }, 8), W.thin, C.white)
+	local ix = cx + (look or 0) * w * 0.16
+	dot(pen, ix, cy, w * 0.19, C.white)
+	dot(pen, ix, cy, w * 0.085, C.board)
+end
+
+-- Red goo across the bottom from `top` down to 94 (x 7..93), up arrows in it: goo that rises. A thin strip (under 18
+-- units) has its arrows poking up out of it.
+local function risingGoo(pen: Pen, top: number)
+	local h = 94 - top
+	box(pen, 50, (top + 94) / 2, 86, h, C.hazard, { round = 3, stroke = 3, strokeColor = C.hazardEdge })
+	if h >= 18 then
+		for _, x in { 22, 50, 78 } do
+			arrow(pen, x, top + h * 0.82, x, top + h * 0.3, W.thin)
+		end
+	else
+		for _, x in { 30, 70 } do
+			arrow(pen, x, top + h * 0.6, x, top - 10, W.thin)
+		end
+	end
+end
+
+-- A spring pad: a yellow plate (a thing you use) on an open white zigzag coil over a grey foot, its plate's top at
+-- `top` (a few wide zigs with gaps between, so it reads as a spring, not a stack).
+local function spring(pen: Pen, cx: number, top: number, w: number)
+	local coil = {}
+	for k = 0, 6 do
+		table.insert(coil, { cx + (if k % 2 == 0 then -w * 0.3 else w * 0.3), top + 9 + k * 2.4 })
+	end
+	path(pen, coil, W.thin * 0.7, C.white)
+	box(pen, cx, top + 26, w * 0.9, 5, C.grey, { round = 2 })
+	box(pen, cx, top + 4, w, 8, C.gold, { round = 3 })
+end
+
+-- A dashed outline of the box (x0, y0)..(x1, y1) in the ghost's faded lilac: a floor that is there but not this one.
+local function dashedBox(pen: Pen, x0: number, y0: number, x1: number, y1: number)
+	local width, dash, gap = 3, 6, 4
+	local function edge(ax: number, ay: number, bx: number, by: number)
+		local len = math.sqrt((bx - ax) ^ 2 + (by - ay) ^ 2)
+		local n = math.max(1, math.floor((len + gap) / (dash + gap)))
+		local step = (len + gap) / n
+		for i = 0, n - 1 do
+			-- a round-ended stroke grows by its width, so each dash is drawn that much shorter
+			local t0 = (i * step + width / 2) / len
+			local t1 = (i * step + step - gap - width / 2) / len
+			line(
+				pen,
+				ax + (bx - ax) * t0,
+				ay + (by - ay) * t0,
+				ax + (bx - ax) * t1,
+				ay + (by - ay) * t1,
+				width,
+				GHOST.c,
+				GHOST.alpha
+			)
+		end
+	end
+	edge(x0, y0, x1, y0)
+	edge(x1, y0, x1, y1)
+	edge(x1, y1, x0, y1)
+	edge(x0, y1, x0, y0)
+end
+
+-- Wait: an hourglass (two glass bulbs meeting in a waist between a top and a bottom bar, sand in the bottom bulb),
+-- `h` tall, centred at (cx, cy).
+local function hourglass(pen: Pen, cx: number, cy: number, h: number)
+	local w, t, b = h * 0.6, cy - h / 2, cy + h / 2
+	path(pen, {
+		{ cx - w / 2, t },
+		{ cx, cy },
+		{ cx - w / 2, b },
+		{ cx + w / 2, b },
+		{ cx, cy },
+		{ cx + w / 2, t },
+		{ cx - w / 2, t },
+	}, W.thin * 0.8, C.white)
+	box(pen, cx, b - h * 0.12, w * 0.5, h * 0.14, C.white, { round = 1 })
+	line(pen, cx - w * 0.7, t, cx + w * 0.7, t, W.line, C.white)
+	line(pen, cx - w * 0.7, b, cx + w * 0.7, b, W.line, C.white)
 end
 
 --------------------------------------------------------------------------------------------------------------------
--- Pictograms
+-- Pictograms (every one keeps its shapes, strokes included, within 3..97 of its grid: the slot's safe margin)
 
 type Draw = (pen: Pen) -> ()
 local PICTURES: { [string]: Draw } = {}
 
--- Aim the Cannon: four steps, one slot each, numbered.
-local function stepNumber(pen: Pen, n: number)
-	dot(pen, 9, 9, 8, C.white)
-	digits(pen, 9, 10, 11, 13, tostring(n), C.board)
+-- Aim the Cannon: four steps on one board, left to right with an arrow between each (ObbySigns.paint draws those):
+-- jump into the cannon, it swings with you inside, it launches you on your jump arc, you land in the green ring.
+PICTURES.cannon1 = function(pen)
+	box(pen, 50, 92, 92, 4, C.white, { round = 2, alpha = 0.5 })
+	cannon(pen, 57, 79, -30, 0.9)
+	runner(pen, 15, 90)
+	jumpArrow(pen, arc(26, 46, 82, 56, 22, 8))
 end
 
-local function cannonWalkIn(pen: Pen)
-	stepNumber(pen, 1)
-	box(pen, 50, 87, 92, 6, C.white, { round = 2, alpha = 0.5 })
-	barrel(pen, 68, 57, -25, 1.25)
-	dot(pen, 64, 73, 8.5, C.grey, { stroke = 2.5, strokeColor = C.white })
-	figure(pen, 8, 48, 18, 36)
-	arrow(pen, 30, 66, 46, 66, W.bold, C.white)
+-- It swings, you inside: the cannon tipped one way (the runner's head out of its muzzle), the set's ghost of it tipped
+-- the other way, and a two-headed arc over both.
+PICTURES.cannon2 = function(pen)
+	box(pen, 50, 94, 92, 4, C.white, { round = 2, alpha = 0.5 })
+	cannon(pen, 50, 80, -145, 0.95, true, true)
+	cannon(pen, 50, 80, -35, 0.95, true)
+	curvedArrow(pen, oval(50, 80, 36, 52, -140, -40, 10), W.line, true)
 end
 
-local function cannonSwings(pen: Pen)
-	stepNumber(pen, 2)
-	curvedArrow(pen, curve({ 50, 44 }, { 30, 44 }, { 16, 70 }, 6), W.line, C.white)
-	curvedArrow(pen, curve({ 50, 44 }, { 70, 44 }, { 84, 70 }, 6), W.line, C.white)
-	box(pen, 50, 76, 28, 36, C.barrel, { round = 11, stroke = 3, strokeColor = C.white })
-	box(pen, 50, 59, 32, 8, C.orange, { round = 3 })
-	dots(pen, arc(46, 36, 18, 14, 4, 4), W.dot, C.hazard)
-	dots(pen, arc(54, 36, 84, 14, 4, 4), W.dot, C.hazard)
+-- It fires you: your head out of the muzzle, then your own white jump arc into the green target ring.
+PICTURES.cannon3 = function(pen)
+	box(pen, 50, 94, 92, 4, C.white, { round = 2, alpha = 0.5 })
+	target(pen, 80, 86, 24)
+	cannon(pen, 21, 80, -45, 0.85, true)
+	jumpArrow(pen, arc(52, 46, 78, 76, 20, 7))
 end
 
-local function cannonJump(pen: Pen)
-	stepNumber(pen, 3)
-	barrel(pen, 22, 58, -30, 1.1)
-	dot(pen, 20, 71, 7.5, C.grey, { stroke = 2.5, strokeColor = C.white })
-	dots(pen, arc(38, 46, 84, 62, 46, 8), W.dot, C.mint)
-	box(pen, 84, 79, 28, 6, C.white, { round = 2, alpha = 0.3 })
-	star(pen, 84, 68, 20)
-	jumpButton(pen, 50, 84, 12)
-	for _, ray in { { 34, 84, 27, 84 }, { 36, 74, 31, 70 }, { 64, 74, 69, 70 }, { 66, 84, 73, 84 } } do
-		line(pen, ray[1], ray[2], ray[3], ray[4], W.thin, C.gold)
-	end
+-- Land in the ring: from the ghost (where you flew from), your jump arc down onto the ring.
+PICTURES.cannon4 = function(pen)
+	target(pen, 66, 87, 34)
+	ghostRunner(pen, 16, 52)
+	jumpArrow(pen, arc(28, 24, 54, 46, 16, 7))
+	runner(pen, 66, 84)
 end
 
-local function cannonLand(pen: Pen)
-	stepNumber(pen, 4)
-	dots(pen, arc(4, 40, 46, 56, 34, 7), W.dot, C.mint)
-	box(pen, 58, 82, 56, 10, C.white, { round = 3, alpha = 0.2 })
-	star(pen, 58, 66, 22)
-	figure(pen, 50, 34, 16, 32)
-	line(pen, 38, 72, 32, 68, W.thin, C.white)
-	line(pen, 80, 72, 86, 68, W.thin, C.white)
-end
-
-PICTURES.cannon1 = cannonWalkIn
-PICTURES.cannon2 = cannonSwings
-PICTURES.cannon3 = cannonJump
-PICTURES.cannon4 = cannonLand
-
--- Rolling Blobs: red balls roll down at you, step aside.
+-- Rolling Blobs: a red ball rolls down at you, step aside: the ghost in the ball's line, the runner beside it.
 PICTURES.blobs = function(pen)
-	path(pen, { { 30, 10 }, { 70, 10 }, { 96, 96 }, { 4, 96 }, { 30, 10 } }, W.thin, C.white, 0.45)
-	for _, x in { 38, 48, 58 } do
-		line(pen, x, 16, x, 30, W.thin, C.white)
-	end
-	dot(pen, 46, 54, 19, C.hazard, { stroke = 4, strokeColor = C.hazardEdge })
-	dot(pen, 39, 47, 4.5, C.shine)
-	figure(pen, 72, 58, 18, 36)
-	curvedArrow(pen, curve({ 44, 88 }, { 58, 96 }, { 72, 84 }, 5), W.line, C.white)
+	box(pen, 50, 95, 92, 4, C.white, { round = 2, alpha = 0.5 })
+	streaks(pen, 32, 17, -90, 10, 10, 3)
+	ball(pen, 32, 36, 16)
+	ghostRunner(pen, 32, 92)
+	arrow(pen, 47, 75, 64, 75, W.line)
+	runner(pen, 80, 92)
 end
 
 -- Climb: red drops fall down the ladder; wait for one to pass, then climb.
 PICTURES.drips = function(pen)
-	for _, x in { 30, 70 } do
-		line(pen, x, 22, x, 96, 6, C.lime)
+	for _, x in { 32, 68 } do
+		line(pen, x, 8, x, 92, 7, C.violet)
 	end
-	for _, y in { 38, 56, 74, 92 } do
-		line(pen, 30, y, 70, y, 6, C.lime)
+	for _, y in { 24, 44, 64, 84 } do
+		line(pen, 32, y, 68, y, 6, C.violet)
 	end
-	box(pen, 50, 12, 26, 13, C.grey, { round = 3, stroke = 2.5, strokeColor = C.white })
-	-- the drop: a dark outline under a red teardrop (a disc with a corner of a square on top)
-	box(pen, 50, 39, 19, 19, C.hazardEdge, { rot = 45, round = 2 })
-	dot(pen, 50, 52, 14, C.hazardEdge)
-	box(pen, 50, 40, 14, 14, C.hazard, { rot = 45, round = 2 })
-	dot(pen, 50, 52, 11, C.hazard)
-	arrow(pen, 88, 28, 88, 74, W.bold, C.white)
-	figure(pen, 2, 56, 19, 38)
+	streaks(pen, 50, 16, -90, 10, 8, 3)
+	ball(pen, 50, 34, 12)
+	runner(pen, 50, 94)
 end
 
--- Glow Memory: watch, the glowing tiles are the path, the others crack. The variants add their twist on the same
--- board (GlowMemory picks one per variant through the section's `sign`).
-local GLOW_PATH = { [2] = true, [4] = true, [8] = true }
-
+-- Glow Memory: watch, the glowing green tiles are the path (the runner, deliberately small, on one); the plain ones
+-- are not. The variants add their twist on the same grid (GlowMemory picks one per variant through the section's
+-- `sign`).
 PICTURES.glow = function(pen)
-	eye(pen, 50, 13)
-	grid(pen, 16.5, 31, 19, 5, 3, 3, { lit = GLOW_PATH, cracked = { [6] = true } })
+	eye(pen, 50, 16, 40)
+	grid(pen, 19.5, 32, 18, 3.5, 3, 3, { path = { [2] = true, [4] = true, [5] = true, [8] = true } })
+	figure(pen, 44, 46, 12, 24)
 end
 
--- Step on the button, then the path glows.
+-- Step on the button, then the path glows: the runner's foot presses a big yellow button (press lines round it), an
+-- arrow, the lit green path.
 PICTURES.glowButton = function(pen)
-	box(pen, 22, 90, 38, 9, C.grey, { round = 3 })
-	box(pen, 22, 84, 20, 8, C.gold, { full = true })
-	figure(pen, 13, 44, 18, 36)
-	arrow(pen, 38, 58, 50, 50, W.line, C.white)
-	grid(pen, 56, 18, 18, 5, 2, 3, { lit = { [1] = true, [4] = true, [5] = true } })
+	box(pen, 28, 92, 38, 5, C.grey, { round = 2 })
+	box(pen, 28, 85, 30, 11, C.gold, { full = true, stroke = 3, strokeColor = C.white })
+	for _, side in { -1, 1 } do
+		line(pen, 28 + side * 15, 75, 28 + side * 18, 70, 3.5, C.white)
+		line(pen, 28 + side * 18.5, 83, 28 + side * 22, 83, 3.5, C.white)
+	end
+	runner(pen, 28, 81)
+	arrow(pen, 48, 60, 58, 60, W.line)
+	grid(pen, 64, 38, 13, 3.5, 2, 3, { path = { [1] = true, [4] = true, [5] = true } })
 end
 
--- Pink tiles are the fakes: they crack.
+-- Pink tiles are the fakes: they crack (the grid on its floor).
 PICTURES.glowPink = function(pen)
-	eye(pen, 50, 13)
-	local pink = { [1] = true, [3] = true, [5] = true, [9] = true }
-	grid(pen, 16.5, 31, 19, 5, 3, 3, { fake = pink, cracked = pink })
+	eye(pen, 50, 16, 40)
+	box(pen, 50, 62.5, 67, 67, C.dim, { round = 5, alpha = 0.55 })
+	grid(pen, 19.5, 32, 18, 3.5, 3, 3, { pink = { [1] = true, [3] = true, [5] = true, [9] = true } })
 end
 
--- The map is behind you: turn round, read it, go.
+-- The map is behind you: the eye looks back at the sign, the runner walks on.
 PICTURES.glowBehind = function(pen)
-	box(pen, 28, 52, 44, 56, C.board, { round = 4, stroke = W.thin, strokeColor = C.white })
-	grid(pen, 11, 31, 10, 3.5, 3, 4, { lit = { [2] = true, [6] = true, [8] = true, [10] = true } })
-	figure(pen, 66, 50, 18, 36)
-	curvedArrow(pen, curve({ 84, 48 }, { 84, 14 }, { 54, 14 }, 6), W.line, C.white)
+	line(pen, 28, 60, 28, 94, W.line, C.grey)
+	box(pen, 28, 35, 40, 42, C.board, { round = 4, stroke = W.thin, strokeColor = C.white })
+	grid(pen, 12, 19, 9.5, 2.5, 3, 3, { path = { [2] = true, [4] = true, [8] = true } })
+	eye(pen, 74, 26, 30, -1)
+	runner(pen, 74, 94)
 end
 
--- One look only: the path glows once.
+-- One look only: the path shows once (the eye over it), then the grid goes plain.
 PICTURES.glowOnce = function(pen)
-	eye(pen, 36, 13)
-	dot(pen, 76, 13, 11, C.white)
-	digits(pen, 76, 14, 14, 17, "1", C.board)
-	grid(pen, 16.5, 31, 19, 5, 3, 3, { lit = GLOW_PATH })
+	eye(pen, 22.5, 28, 32)
+	grid(pen, 7, 46, 14, 3, 2, 3, { path = { [2] = true, [3] = true, [6] = true } })
+	arrow(pen, 43, 70, 56, 70, W.line)
+	grid(pen, 63, 46, 14, 3, 2, 3, {})
 end
 
 -- A new path every 8 seconds.
 PICTURES.glowRounds = function(pen)
-	stopwatch(pen, 50, 24, 17, "8")
-	grid(pen, 3, 52, 11, 3, 3, 3, { lit = { [2] = true, [4] = true, [8] = true } })
-	grid(pen, 58, 52, 11, 3, 3, 3, { lit = { [3] = true, [5] = true, [7] = true } })
-	arrow(pen, 44, 62, 56, 62, W.thin, C.white)
-	arrow(pen, 56, 80, 44, 80, W.thin, C.white)
+	stopwatch(pen, 50, 31, 14, "8")
+	grid(pen, 8, 52, 12, 3, 2, 3, { path = { [2] = true, [3] = true, [5] = true } })
+	arrow(pen, 41, 73, 57, 73, W.line)
+	grid(pen, 65, 52, 12, 3, 2, 3, { path = { [1] = true, [4] = true, [6] = true } })
 end
 
--- Hot feet: even the safe tiles crack soon after you land, so keep running.
+-- Hot feet: even the safe tiles crack soon after you land (green, cracked through, a piece falling), so keep running.
 PICTURES.glowRush = function(pen)
-	grid(pen, 5, 60, 28, 3, 3, 1, { lit = { [1] = true, [2] = true, [3] = true }, cracked = { [1] = true } })
-	figure(pen, 46, 18, 18, 36)
-	for _, y in { 30, 40, 50 } do
-		line(pen, 26, y, 38, y, W.thin, C.white)
-	end
-	arrow(pen, 72, 40, 92, 40, W.bold, C.white)
+	crumble(pen, "glow")
 end
 
--- Beat Pads: count the beat, jump on the gold beat from full pad to full pad.
+-- Beat Pads: a row of pads, one lit and pulsing on the beat (full rings round it, the note right over it); the runner
+-- jumps onto the lit one.
 PICTURES.beat = function(pen)
-	dot(pen, 26, 14, 6, C.white, { alpha = 0.5 })
-	dot(pen, 48, 14, 6, C.white, { alpha = 0.5 })
-	dot(pen, 72, 14, 9.5, C.gold)
-	box(pen, 24, 86, 42, 15, C.violet, { full = true, stroke = 2.5, strokeColor = C.white })
-	box(pen, 78, 86, 42, 15, C.violet, { full = true, stroke = 2.5, strokeColor = C.white })
-	box(pen, 78, 86, 18, 7, C.white, { full = true, hollow = true, stroke = 2, alpha = 0.3 })
-	figure(pen, 15, 46, 18, 36)
-	dots(pen, arc(36, 46, 72, 64, 30, 8), W.dot, C.white)
-	head(pen, 74, 68, 60, 10, W.line, C.white)
+	box(pen, 74, 82, 38, 19, C.white, { full = true, hollow = true, stroke = 3, alpha = 0.6 })
+	box(pen, 74, 82, 30, 14, C.white, { full = true, hollow = true, stroke = 3, alpha = 0.25 })
+	box(pen, 20, 82, 22, 9, C.violet, { full = true, alpha = 0.5 })
+	box(pen, 46, 82, 14, 9, C.violet, { full = true, alpha = 0.5 })
+	box(pen, 74, 82, 22, 9, C.violet, { full = true, stroke = 2, strokeColor = C.white })
+	-- an eighth note right over the lit pad: a tilted oval head, a stem and a flag
+	box(pen, 79, 44, 14, 10, C.white, { full = true, rot = -22 })
+	line(pen, 85, 42, 85, 17, W.thin, C.white)
+	line(pen, 85, 17, 92, 25, W.thin, C.white)
+	runner(pen, 20, 78)
+	jumpArrow(pen, arc(30, 40, 60, 71, 16, 8))
 end
 
 -- Key Run: grab the gold keys, the gate opens.
 PICTURES.key = function(pen)
-	ring(pen, 18, 50, 13, 7, C.gold)
-	line(pen, 33, 50, 54, 50, 7, C.gold)
-	line(pen, 50, 50, 50, 61, 6, C.gold)
-	line(pen, 42, 50, 42, 58, 6, C.gold)
-	arrow(pen, 58, 50, 67, 50, W.line, C.white)
-	box(pen, 85, 52, 24, 78, C.gate, { round = 3, alpha = 0.45, stroke = 2.5, strokeColor = C.white })
-	ring(pen, 85, 32, 7, 4.5, C.gold)
-	box(pen, 85, 34, 9, 9, C.gate, { alpha = 0.45 })
-	line(pen, 78, 32, 78, 42, 4.5, C.gold)
-	box(pen, 85, 50, 20, 16, C.gold, { round = 3 })
+	-- the key: its ring's stroke lies outside r, so the ring's left edge is at 22 - 10 - 7 = 5
+	ring(pen, 22, 50, 10, 7, C.gold)
+	line(pen, 36, 50, 54, 50, 8, C.gold)
+	line(pen, 51, 50, 51, 62, 7, C.gold)
+	line(pen, 43, 50, 43, 59, 7, C.gold)
+	arrow(pen, 59, 50, 67, 50, W.line)
+	box(pen, 84, 52, 20, 80, C.gate, { round = 3, alpha = 0.45, stroke = 3, strokeColor = C.white })
+	-- the padlock: a shackle ring whose lower half the gold body hides, so it reads as an arch
+	ring(pen, 84, 38, 5, 4.5, C.gold)
+	box(pen, 84, 51, 18, 20, C.gold, { round = 3 })
 end
 
--- Clue Doors: the board's symbol, walk through the door with the same symbol.
+-- Clue Doors: the board's symbol, walk through the door with the same symbol (white symbols: the shape is the clue).
 PICTURES.clue = function(pen)
-	box(pen, 50, 21, 40, 32, C.board, { round = 4, stroke = W.thin, strokeColor = C.white })
-	box(pen, 50, 21, 15, 15, C.violet, { rot = 45, round = 2 })
-	for _, door in { 15, 50, 85 } do
-		box(pen, door, 78, 23, 40, C.board, { round = 11, stroke = W.thin, strokeColor = C.white })
+	box(pen, 50, 23, 40, 26, C.board, { round = 4, stroke = W.thin, strokeColor = C.white })
+	box(pen, 50, 23, 14, 14, C.white, { rot = 45, round = 2 })
+	-- arched doors standing on the floor line: drawn in a frame that clips them at the line (their rounded bottoms
+	-- run on below it), so nothing of them reaches the slot's edge
+	local doors = clip(pen, 0, 0, 100, 95)
+	for _, door in { 19, 50, 81 } do
+		-- the frame is 95 units tall, so y (and the height) scale by 100 / 95 inside it
+		box(doors, door, 80 / 0.95, 22, 56 / 0.95, C.board, { round = 11, stroke = W.thin, strokeColor = C.white })
 	end
-	box(pen, 50, 98, 100, 6, C.board)
-	line(pen, 2, 95, 98, 95, W.thin, C.white)
-	dot(pen, 15, 76, 7.5, C.mint)
-	box(pen, 50, 76, 14, 14, C.orange, { round = 2 })
-	box(pen, 85, 76, 14, 14, C.violet, { rot = 45, round = 2 })
-	curvedArrow(pen, curve({ 72, 22 }, { 86, 26 }, { 86, 50 }, 5), W.line, C.white)
+	pen.z = doors.z
+	line(pen, 5, 95, 95, 95, W.thin, C.white)
+	dot(pen, 19, 72, 8, C.white)
+	box(pen, 50, 72, 15, 15, C.white, { round = 2 })
+	box(pen, 81, 72, 14, 14, C.white, { rot = 45, round = 2 })
+	curvedArrow(pen, curve({ 73, 23 }, { 84, 25 }, { 84, 42 }, 5), W.line)
 end
 
--- Sticky Walls: jump at the green wall, you stick, jump again to the next wall.
-PICTURES.sticky = function(pen)
-	box(pen, 15, 51, 19, 74, C.sticky, { round = 3 })
-	box(pen, 85, 43, 19, 74, C.sticky, { round = 3 })
-	for _, drip in { { 11, 89 }, { 19, 89 }, { 81, 81 }, { 89, 81 } } do
-		box(pen, drip[1], drip[2], 5, 5, C.sticky, { rot = 45 })
-	end
-	dot(pen, 15, 35, 5.5, C.print)
-	for _, finger in { { 10.5, 25 }, { 15, 24 }, { 19.5, 25 } } do
-		box(pen, finger[1], finger[2], 3, 9, C.print, { full = true })
-	end
-	figure(pen, 25, 50, 16, 32)
-	line(pen, 30, 84, 30, 87, W.thin, C.white)
-	line(pen, 30, 92, 30, 95, W.thin, C.white)
-	dots(pen, arc(43, 52, 72, 36, 28, 8), W.dot, C.white)
-	head(pen, 74, 39, 30, 10, W.line, C.white)
+-- Moon Jump: inside the bubble (a see-through dome over the floor) your jump floats high and far: the ghost of a
+-- normal small hop beside a big floaty arc to a high ledge. Two Moons' lower gravity reads the same: a big float.
+local function moonJump(pen: Pen)
+	local dome = clip(pen, 0, 0, 100, 94)
+	box(dome, 50, 100, 86, 164, C.bubble, { full = true, alpha = 0.78, stroke = W.thin, strokeColor = C.white })
+	pen.z = dome.z
+	box(pen, 50, 93, 86, 5, C.white, { round = 2, alpha = 0.4 })
+	box(pen, 80, 60, 20, 7, C.violet, { round = 2 })
+	runner(pen, 20, 92)
+	-- a normal hop, as the set's ghost, beside the big float
+	dots(pen, arc(32, 86, 58, 90, 12, 4), W.dot * 0.8, GHOST.c, GHOST.alpha)
+	jumpArrow(pen, arc(32, 54, 78, 54, 28, 11))
 end
 
--- Moon Jump: inside the bubble your jump goes high and far.
-local function moonJump(pen: Pen, moons: number)
-	dot(pen, 50, 96, 46, C.moon, { alpha = 0.6, stroke = W.thin, strokeColor = C.white })
-	for i = 1, moons do
-		crescent(pen, 30 + (i - 1) * 26 + (if moons == 1 then 14 else 0), 22, 11, C.star, C.board)
-	end
-	box(pen, 78, 54, 28, 7, C.white, { round = 2 })
-	figure(pen, 12, 62, 16, 32)
-	local far = if moons == 1 then 78 else 92
-	dots(pen, arc(28, 62, far, 46, if moons == 1 then 36 else 44, 10), W.dot, C.white)
-	arrow(pen, 18, 56, 18, 38, W.line, C.white)
-end
+PICTURES.moon = moonJump
+PICTURES.moon2 = moonJump
 
-PICTURES.moon = function(pen)
-	moonJump(pen, 1)
-end
--- The same, lower gravity: two moons, a longer jump.
-PICTURES.moon2 = function(pen)
-	moonJump(pen, 2)
-end
-
--- Speed Strip: yellow is fast (lightning), blue is slow (snail).
+-- Speed Strip: the yellow pad with chevrons is fast (chevrons only ever mean speed), blue with a snail is slow.
 PICTURES.speed = function(pen)
-	box(pen, 50, 27, 94, 32, C.boost, { round = 5 })
-	for _, x in { 18, 34, 50 } do
-		head(pen, x, 27, 0, 11, W.line, C.board)
+	box(pen, 50, 28, 92, 34, C.boost, { round = 5 })
+	for _, x in { 34, 54, 74 } do
+		head(pen, x, 28, 0, 12, W.line, C.board)
 	end
-	path(pen, { { 80, 13 }, { 68, 29 }, { 80, 27 }, { 70, 42 } }, W.line, C.board)
-	box(pen, 50, 73, 94, 32, C.slow, { round = 5 })
-	for _, x in { 8, 24, 40 } do
-		head(pen, x, 73, 180, 11, W.line, C.white)
+	box(pen, 50, 72, 92, 34, C.slow, { round = 5 })
+	-- the snail, big: a round white shell with a spiral in the strip's colour, a long foot, a head with two eye
+	-- stalks with round tips
+	local sx = -10
+	box(pen, 66 + sx, 83, 48, 7, C.white, { full = true })
+	dot(pen, 57 + sx, 69, 13, C.white)
+	local spiral = {}
+	for i = 0, 18 do
+		local a = 1 + i * (2.6 * math.pi - 1) / 18
+		table.insert(spiral, { 57 + sx + math.cos(a) * 1.2 * a, 69 + math.sin(a) * 1.2 * a })
 	end
-	ring(pen, 74, 70, 9, W.thin, C.white)
-	line(pen, 60, 81, 90, 81, W.thin, C.white)
-	line(pen, 89, 80, 86, 66, W.thin, C.white)
+	path(pen, spiral, 3.5, C.slow)
+	dot(pen, 86 + sx, 78, 5, C.white)
+	line(pen, 84 + sx, 75, 81 + sx, 63, W.thin, C.white)
+	line(pen, 88 + sx, 75, 92 + sx, 63, W.thin, C.white)
+	dot(pen, 81 + sx, 62, 3, C.white)
+	dot(pen, 92 + sx, 62, 3, C.white)
 end
 
--- Arrow Maze: the floor carries you the arrow's way; pink tiles switch direction.
+-- Arrow Maze: a conveyor floor (rollers under a lilac belt, arrows printed on it) carries the runner its arrow's way.
 PICTURES.belts = function(pen)
-	box(pen, 26, 59, 44, 58, C.orange, { round = 4 })
-	arrow(pen, 10, 80, 38, 80, 6, C.board)
-	line(pen, 8, 44, 14, 44, W.thin, C.board)
-	line(pen, 8, 52, 14, 52, W.thin, C.board)
-	figure(pen, 18, 30, 16, 32, C.white)
-	box(pen, 75, 59, 42, 58, C.pink, { round = 4 })
-	arrow(pen, 62, 48, 88, 48, W.line, C.board)
-	arrow(pen, 88, 70, 62, 70, W.line, C.board)
+	box(pen, 50, 80, 92, 22, C.violet, { round = 11 })
+	for _, x in { 13, 87 } do
+		dot(pen, x, 80, 5, C.board)
+	end
+	arrow(pen, 24, 80, 42, 80, W.line)
+	arrow(pen, 56, 80, 74, 80, W.line)
+	runner(pen, 48, 69)
+	arrow(pen, 66, 42, 92, 42, W.bold)
 end
 
--- Lights Out: in the dark, jump to the glowing green.
+-- Lights Out: everything is dark but one green pad in a bright beam of light: jump to it.
 PICTURES.dark = function(pen)
-	box(pen, 50, 50, 98, 98, C.night, { round = 8 })
-	crescent(pen, 18, 18, 10, C.white, C.night, 0.2)
-	dot(pen, 22, 64, 21, C.warm, { alpha = 0.78 })
-	figure(pen, 15, 48, 15, 32)
-	box(pen, 22, 82, 30, 5, C.white, { round = 2, alpha = 0.5 })
-	dot(pen, 76, 58, 18, C.green, { alpha = 0.72 })
-	dot(pen, 76, 60, 10, C.green)
-	box(pen, 76, 64, 20, 8, C.green)
-	box(pen, 76, 70, 30, 5, C.green, { round = 2 })
-	dots(pen, arc(34, 48, 62, 48, 22, 7), W.dot, C.white)
-	head(pen, 64, 51, 45, 10, W.line, C.white)
+	box(pen, 70, 43, 28, 70, C.white, { alpha = 0.72 })
+	box(pen, 70, 80, 44, 18, C.safe, { full = true, alpha = 0.6 })
+	box(pen, 70, 80, 36, 13, C.safe, { full = true, alpha = 0.4 })
+	box(pen, 70, 80, 30, 9, C.safe, { round = 3 })
+	box(pen, 20, 88, 30, 7, C.dim, { round = 2 })
+	runner(pen, 20, 84)
+	jumpArrow(pen, arc(31, 46, 60, 72, 24, 8))
 end
 
--- Vine Swing: jump to the green knob, swing, press jump to let go.
+-- Vine Swing: hang on the yellow vine under the branch, and let go to fly on to the ledge.
 PICTURES.vine = function(pen)
-	box(pen, 50, 9, 50, 7, C.white, { round = 3 })
-	line(pen, 50, 12, 32, 54, W.line, C.lime)
-	dot(pen, 31, 57, 7.5, C.lime, { stroke = 2, strokeColor = C.white })
-	figure(pen, 23, 60, 15, 30)
-	local swing = {}
-	for i = 0, 9 do
-		local a = math.rad(145 - i * 110 / 9)
-		table.insert(swing, { 50 + math.cos(a) * 44, 33 + math.sin(a) * 44 })
-	end
-	dots(pen, swing, 2.4, C.white, 0.4)
-	arrow(pen, 80, 52, 90, 32, W.line, C.white)
-	jumpButton(pen, 80, 84, 11)
+	box(pen, 30, 9, 48, 7, C.violet, { round = 3 })
+	line(pen, 38, 12, 22, 46, W.line, C.gold)
+	runner(pen, 20, 90)
+	box(pen, 82, 82, 24, 7, C.violet, { round = 2 })
+	jumpArrow(pen, arc(36, 48, 82, 74, 24, 9))
 end
 
--- Geyser Field: a dead vent, wait; a glowing rim throws you up.
+-- Geyser Field: the dead vent (dark) waits (an hourglass over it); the live vent (yellow, a thing you use) shoots a
+-- water jet up that lifts the runner standing on it (an up arrow in the jet).
 PICTURES.geyser = function(pen)
-	for y = 8, 92, 12 do
-		line(pen, 50, y, 50, y + 4, 3.5, C.white, 0.5)
-	end
-	box(pen, 24, 87, 38, 13, C.vent, { full = true })
-	figure(pen, 16, 50, 17, 34)
-	line(pen, 15, 9, 33, 9, W.line, C.white)
-	line(pen, 15, 35, 33, 35, W.line, C.white)
-	line(pen, 17, 10, 31, 34, W.thin, C.white)
-	line(pen, 31, 10, 17, 34, W.thin, C.white)
-	box(pen, 76, 87, 46, 17, C.gold, { full = true, hollow = true, stroke = 3 })
-	box(pen, 76, 87, 36, 12, C.orange, { full = true })
-	line(pen, 56, 80, 52, 76, W.thin, C.gold)
-	line(pen, 96, 80, 100, 76, W.thin, C.gold)
-	arrow(pen, 76, 76, 76, 44, W.bold, C.white)
-	figure(pen, 69, 4, 15, 30)
+	box(pen, 20, 88, 28, 9, C.dim, { full = true })
+	hourglass(pen, 20, 64, 24)
+	box(pen, 66, 67, 20, 34, C.jet, { round = 6, stroke = 2, strokeColor = C.white })
+	arrow(pen, 66, 79, 66, 58, W.thin, C.board)
+	box(pen, 66, 88, 34, 10, C.gold, { full = true, stroke = 3, strokeColor = C.white })
+	runner(pen, 66, 50)
 end
 
 -- Updraft: jump into the wind column, it carries you up.
 PICTURES.updraft = function(pen)
-	box(pen, 19, 70, 32, 8, C.white, { round = 2 })
-	box(pen, 69, 48, 38, 80, C.wind, { round = 4, alpha = 0.65, stroke = 2.5, strokeColor = C.white })
-	box(pen, 69, 91, 44, 9, C.grey, { round = 2 })
-	for _, s in { { 58, 68, 1 }, { 80, 58, -1 }, { 60, 34, 1 } } do
-		head(pen, s[1], s[2], if s[3] > 0 then 0 else 180, 7, W.thin, C.white)
-	end
-	figure(pen, 62, 18, 15, 30)
-	arrow(pen, 86, 46, 86, 28, W.line, C.white)
-	figure(pen, 13, 36, 15, 30)
-	dots(pen, arc(29, 40, 54, 44, 14, 6), 2.8, C.white)
+	box(pen, 17, 74, 28, 8, C.violet, { round = 2 })
+	box(pen, 70, 47, 38, 76, C.wind, { round = 4, alpha = 0.6, stroke = 3, strokeColor = C.white })
+	box(pen, 70, 90, 44, 8, C.violet, { round = 2 })
+	runner(pen, 17, 70)
+	dots(pen, arc(29, 34, 48, 40, 12, 4), W.dot, C.white)
+	arrow(pen, 70, 78, 70, 20, W.bold)
 end
 
--- Two Roads: one symbol per road.
+-- Two Roads: one symbol per road. Fast: the speed pad (yellow with chevrons).
 PICTURES.fast = function(pen)
-	path(pen, { { 64, 8 }, { 34, 54 }, { 64, 48 }, { 36, 92 } }, 13, C.boost)
+	box(pen, 50, 50, 92, 52, C.boost, { round = 8 })
+	for _, x in { 32, 56, 80 } do
+		head(pen, x, 50, 0, 17, W.bold, C.board)
+	end
 end
 
 PICTURES.safe = function(pen)
-	box(pen, 50, 38, 62, 46, C.safe, { round = 12 })
-	box(pen, 50, 60, 44, 44, C.safe, { rot = 45, round = 4 })
-	path(pen, { { 34, 46 }, { 46, 60 }, { 68, 34 } }, 9, C.white)
+	-- a top with rounded upper corners and square lower ones (x 18..82, y 12..44), and a diamond whose side corners
+	-- are exactly those lower corners: straight flanks into a point
+	box(pen, 50, 28, 64, 32, C.safe, { round = 12 })
+	box(pen, 50, 38.5, 64, 11, C.safe)
+	box(pen, 50, 44, 45.25, 45.25, C.safe, { rot = 45 })
+	path(pen, { { 34, 40 }, { 46, 53 }, { 67, 27 } }, 10, C.white)
 end
 
--- Bail out: cross the plank from the fast road to the safe one.
+-- Bail out, from above: the fast road (the speed pad's yellow with chevrons, pointing the way the roads run) and the
+-- safe road (green, a tick) side by side; a lilac plank across between them, the runner on it and one arrow along it
+-- from the fast road to the safe one.
 PICTURES.bail = function(pen)
-	line(pen, 84, 8, 84, 92, 10, C.white, 0.55)
-	line(pen, 16, 8, 16, 92, 10, C.white, 0.55)
-	arrow(pen, 72, 22, 32, 70, 11, C.white)
+	box(pen, 19, 50, 22, 84, C.boost, { round = 4 })
+	for _, y in { 22, 40 } do
+		head(pen, 19, y, -90, 10, W.line, C.board)
+	end
+	box(pen, 81, 50, 22, 84, C.safe, { round = 4 })
+	path(pen, { { 73, 30 }, { 79, 37 }, { 89, 23 } }, W.line, C.white)
+	box(pen, 50, 70, 46, 16, C.violet, { round = 3, stroke = 2, strokeColor = C.white })
+	runner(pen, 42, 63)
+	arrow(pen, 34, 70, 64, 70, W.thin)
 end
 
--- Terraced roads, low on the left to high on the right: the gold one is this road.
-local TERRACES = { { 20, 88 }, { 50, 68 }, { 80, 48 } }
-local function terraces(pen: Pen, which: number)
-	for i, t in TERRACES do
-		local on = i == which
-		box(pen, t[1], t[2], 38, 10, if on then C.gold else C.white, { round = 3, alpha = if on then 0 else 0.45 })
+-- Terraced roads, side view: three ledges stepping up left to right like terraces, each the top of its own block;
+-- this road's ledge is solid lilac with the runner standing on it, the other two are dashed outlines at their
+-- heights. Low, middle, high read as one choice side by side.
+local TERRACE = { { 8, 34, 80 }, { 37, 63, 66 }, { 66, 92, 52 } } -- low, middle, high: { x0, x1, top }
+local TERRACE_FOOT = 92
+local function floors(pen: Pen, which: number)
+	for i, t in TERRACE do
+		if i == which then
+			local x0, x1, top = t[1], t[2], t[3]
+			box(pen, (x0 + x1) / 2, (top + TERRACE_FOOT) / 2, x1 - x0, TERRACE_FOOT - top, C.violet, {
+				round = 2,
+				stroke = 2,
+				strokeColor = C.white,
+			})
+		else
+			dashedBox(pen, t[1], t[3], t[2], TERRACE_FOOT)
+		end
 	end
-	local t = TERRACES[which]
-	figure(pen, t[1] - 9, t[2] - 41, 18, 36)
+	local t = TERRACE[which]
+	runner(pen, (t[1] + t[2]) / 2, t[3] - 1)
 end
 
 PICTURES.low = function(pen)
-	terraces(pen, 1)
+	floors(pen, 1)
 end
 PICTURES.middle = function(pen)
-	terraces(pen, 2)
+	floors(pen, 2)
 end
 PICTURES.high = function(pen)
-	terraces(pen, 3)
+	floors(pen, 3)
 end
 
--- The door shuts 4 s after you start.
+-- The door shuts 4 s after you step in: the doorway behind the runner with its solid gate half down (a down arrow on
+-- it), a small stopwatch, the runner running on.
 PICTURES.door4 = function(pen)
-	box(pen, 30, 62, 40, 66, C.gate, { round = 6, stroke = W.line, strokeColor = C.white })
-	dot(pen, 42, 64, 4, C.white)
-	stopwatch(pen, 74, 30, 18, "4")
+	box(pen, 50, 94, 92, 4, C.white, { round = 2, alpha = 0.5 })
+	box(pen, 22, 63, 28, 54, C.board, { round = 3, stroke = W.thin, strokeColor = C.white })
+	box(pen, 22, 49, 28, 26, C.gate, { round = 2 })
+	arrow(pen, 22, 39, 22, 57, W.thin)
+	stopwatch(pen, 77, 35, 13, "4")
+	runner(pen, 50, 92)
+	arrow(pen, 66, 72, 92, 72, W.bold)
 end
 
--- Key Run's clock: 9 s from the first key.
+-- Key Run's clock: the key is the star (big), the stopwatch hangs on its tip like a badge (grabbing it starts 9 s),
+-- and a small strip of red goo below rises after.
 PICTURES.clock9 = function(pen)
-	stopwatch(pen, 50, 56, 34, "9")
+	ring(pen, 21, 46, 10, 7, C.gold)
+	line(pen, 35, 46, 68, 46, 8, C.gold)
+	line(pen, 46, 46, 46, 58, 7, C.gold)
+	line(pen, 55, 46, 55, 56, 7, C.gold)
+	stopwatch(pen, 76, 33, 14, "9")
+	risingGoo(pen, 82)
 end
 
 -- Rising Goo's countdown before the goo starts.
 PICTURES.countdown = function(pen)
-	digits(pen, 50, 52, 96, 60, "3 2 1", C.gold)
+	digits(pen, 50, 36, 92, 56, "3 2 1", C.white)
+	risingGoo(pen, 72)
+end
+
+-- Crusher Alley: the red crusher comes down (streaks above it, a down arrow beside, its spot on the floor red); run
+-- under it once it lifts.
+PICTURES.crusher = function(pen)
+	box(pen, 50, 92, 88, 8, C.violet, { round = 2 })
+	box(pen, 50, 92, 40, 8, C.hazard, { round = 2, alpha = 0.35 })
+	box(pen, 50, 42, 40, 28, C.hazard, { round = 3, stroke = 3, strokeColor = C.hazardEdge })
+	streaks(pen, 50, 24, -90, 14, 11, 3)
+	arrow(pen, 83, 18, 83, 46, W.line)
+	runner(pen, 15, 88)
+	arrow(pen, 30, 72, 70, 72, W.line)
+end
+
+-- Melting Floor: a tile cracks and drops soon after you step on it, so keep moving.
+PICTURES.melt = function(pen)
+	crumble(pen, "tile")
+end
+
+-- Goo Rides: step on the ride, it carries you along its rail to its stop (the set's ghost of the platform).
+PICTURES.ride = function(pen)
+	line(pen, 8, 90, 92, 90, W.line, C.grey)
+	line(pen, 8, 84, 8, 90, W.thin, C.grey)
+	line(pen, 92, 84, 92, 90, W.thin, C.grey)
+	line(pen, 26, 80, 26, 88, W.thin, C.grey)
+	box(pen, 26, 76, 24, 10, C.violet, { round = 3 })
+	runner(pen, 26, 71)
+	ghostBox(pen, 74, 76, 24, 10, { round = 3 })
+	arrow(pen, 42, 76, 58, 76, W.line)
+end
+
+-- Bounce Chain: a spring pad throws you up onto the high ledge.
+PICTURES.bounce = function(pen)
+	spring(pen, 20, 66, 30)
+	box(pen, 80, 36, 26, 8, C.violet, { round = 3 })
+	runner(pen, 20, 66)
+	jumpArrow(pen, arc(32, 32, 76, 30, 20, 8))
+end
+
+-- Ice Slide: on the shiny ice you keep sliding: skid marks behind the runner's feet, shine on the ice.
+PICTURES.ice = function(pen)
+	box(pen, 50, 86, 90, 14, C.wind, { round = 4 })
+	line(pen, 70, 82, 80, 90, 3, C.white)
+	line(pen, 80, 82, 88, 88, 3, C.white)
+	-- the skid: two long marks on the ice behind the runner's feet
+	line(pen, 8, 81, 46, 81, 3, C.white, 0.2)
+	line(pen, 14, 84.5, 46, 84.5, 3, C.white, 0.2)
+	runner(pen, 56, 79)
+	arrow(pen, 70, 50, 92, 50, W.bold)
+end
+
+-- Merry-go-round: the disk turns you; jump off where it points the right way.
+PICTURES.spin = function(pen)
+	box(pen, 50, 72, 60, 20, C.violet, { full = true, stroke = 3, strokeColor = C.white })
+	runner(pen, 50, 70)
+	curvedArrow(pen, oval(50, 72, 38, 21, -60, 15, 8), W.thin)
+	curvedArrow(pen, oval(50, 72, 38, 21, 120, 195, 8), W.thin)
+end
+
+-- Two Roads: the course forks; pick a road.
+PICTURES.fork = function(pen)
+	line(pen, 50, 88, 50, 60, 13, C.violet)
+	line(pen, 50, 62, 18, 24, 13, C.violet)
+	line(pen, 50, 62, 82, 24, 13, C.violet)
+	arrow(pen, 36, 44, 16, 20, W.line)
+	arrow(pen, 64, 44, 84, 20, W.line)
+	runner(pen, 50, 93)
+end
+
+-- Rising Goo: the red goo rises behind you; climb before it reaches you.
+PICTURES.rising = function(pen)
+	risingGoo(pen, 78)
+	box(pen, 24, 64, 26, 8, C.violet, { round = 2 })
+	box(pen, 52, 44, 26, 8, C.violet, { round = 2 })
+	box(pen, 80, 24, 26, 8, C.violet, { round = 2 })
+	runner(pen, 24, 60)
+	arrow(pen, 40, 34, 68, 8, W.bold)
+end
+
+-- Collapsing Bridge: the planks fall away behind you; don't stop.
+PICTURES.collapse = function(pen)
+	crumble(pen, "plank")
+end
+
+-- Sliding Maze: red panels slide across the way; blue walls are safe. Wait for the gap, then go.
+PICTURES.panels = function(pen)
+	box(pen, 50, 7, 92, 8, C.slow, { round = 2 })
+	box(pen, 50, 93, 92, 8, C.slow, { round = 2 })
+	box(pen, 60, 44, 24, 50, C.hazard, { round = 3, stroke = 3, strokeColor = C.hazardEdge })
+	line(pen, 30, 80, 88, 80, W.line, C.white)
+	head(pen, 88, 80, 0, W.line * 2.2, W.line, C.white)
+	head(pen, 30, 80, 180, W.line * 2.2, W.line, C.white)
+	runner(pen, 15, 72)
 end
 
 local IDS = {}
@@ -787,14 +1183,21 @@ local function defaults(): Deps
 	}
 end
 
+-- Steps of one mechanic that a board shows left to right: an arrow in the gap between a step and the next.
+local THEN: { [string]: string } = { cannon1 = "cannon2", cannon2 = "cannon3", cannon3 = "cannon4" }
+
 -- Fills `gui` (on a banner's face) with the banner: a dark plate with a white rim and one slot per picture, each
--- centred at its `z` across the lane (left to right as the runner sees it).
-function ObbySigns.paint(gui: any, slots: { ObbyCourse.Slot }, deps: Deps?): any
+-- centred at its `z` across the lane (left to right as the runner sees it), and an arrow between two steps of one
+-- mechanic. `height` is the banner's (default: the height ObbyCourse gives a board of this many pictures); the
+-- slots are that less the margins.
+function ObbySigns.paint(gui: any, slots: { ObbyCourse.Slot }, deps: Deps?, height: number?): any
 	local d = deps or defaults()
 	local S, G = ObbySigns.SIZE, ObbyCourse.SIGN
-	local w, h = G.width, ObbyCourse.bannerHeight()
+	local w = G.width
+	local h = height or ObbyCourse.bannerHeight((ObbyCourse.slotSize(#slots)))
+	local side = h - 2 * G.pad
 	local rimPx = math.round(S.rim * S.pixelsPerStud)
-	local pen0: Pen = { d = d, parent = gui, z = 0, px = 1, bg = C.board }
+	local pen0: Pen = { d = d, parent = gui, z = 0, px = 1, bg = C.board, o = 0, k = 1 }
 
 	local root = d.Instance.new("Frame")
 	root.Name = "Picture"
@@ -821,11 +1224,37 @@ function ObbySigns.paint(gui: any, slots: { ObbyCourse.Slot }, deps: Deps?): any
 		slot.Name = `Slot{i}`
 		slot.BackgroundTransparency = 1
 		slot.ClipsDescendants = true
-		slot.Position = d.UDim2.fromScale((s.z + w / 2 - G.slot / 2) / w, G.pad / h)
-		slot.Size = d.UDim2.fromScale(G.slot / w, G.slot / h)
+		slot.Position = d.UDim2.fromScale((s.z + w / 2 - side / 2) / w, G.pad / h)
+		slot.Size = d.UDim2.fromScale(side / w, side / h)
 		slot.ZIndex = 2
 		slot.Parent = root
-		draw({ d = d, parent = slot, z = 2, px = G.slot * S.pixelsPerStud / 100, bg = C.board })
+		-- the picture's 100 x 100 grid sits inside the slot's safe margin, so nothing reaches the slot's edge
+		local k = 1 - 2 * S.margin
+		draw({
+			d = d,
+			parent = slot,
+			z = 2,
+			px = side * S.pixelsPerStud / 100 * k,
+			bg = C.board,
+			o = 100 * S.margin,
+			k = k,
+		})
+		local next = slots[i + 1]
+		if next and THEN[s.id] == next.id then
+			-- a square a bit wider than the gap, centred in it; the chevron keeps to the gap
+			local gap = next.z - s.z - side
+			local square = gap + 2 * G.pad
+			local arrowBox = d.Instance.new("Frame")
+			arrowBox.Name = "Then"
+			arrowBox.BackgroundTransparency = 1
+			arrowBox.Position = d.UDim2.fromScale(((s.z + next.z) / 2 + w / 2 - square / 2) / w, (h - square) / 2 / h)
+			arrowBox.Size = d.UDim2.fromScale(square / w, square / h)
+			arrowBox.ZIndex = 3
+			arrowBox.Parent = root
+			local pen: Pen =
+				{ d = d, parent = arrowBox, z = 3, px = square * S.pixelsPerStud / 100, bg = C.board, o = 0, k = 1 }
+			head(pen, 50 + 50 * gap / square * 0.75, 50, 0, 46 * gap / square, 34 * gap / square, C.white)
+		end
 	end
 	return root
 end
@@ -836,7 +1265,7 @@ end
 function ObbySigns.boosters(banner: any, deps: Deps?)
 	local d = deps or defaults()
 	local B, G = ObbySigns.SIZE.booster, ObbyCourse.SIGN
-	local pen: Pen = { d = d, parent = banner, z = 0, px = 1, bg = C.board }
+	local pen: Pen = { d = d, parent = banner, z = 0, px = 1, bg = C.board, o = 0, k = 1 }
 	local bottom = -banner.Size.Y / 2
 	local up = d.CFrame.Angles(math.rad(-90), 0, 0) -- an adornment's axis (its Z) pointing up
 	for _, side in { -1, 1 } do
@@ -893,10 +1322,10 @@ end
 
 -- Every GuiObject a board holds, for the specs: (name, class, size in studs (w, h), text).
 function ObbySigns.shapes(root: any): { { name: string, class: string, w: number, h: number, text: string? } }
-	local side = ObbyCourse.SIGN.slot
 	local out = {}
 	for _, slot in root:GetChildren() do
 		if slot:IsA("Frame") then
+			local side = slot.Size.X.Scale * ObbyCourse.SIGN.width -- slots (and the arrows between) are square
 			for _, child in slot:GetChildren() do
 				if child:IsA("GuiObject") then
 					table.insert(out, {

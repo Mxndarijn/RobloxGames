@@ -66,6 +66,7 @@ export type ObbyRun = {
 	settleUntil: number?, -- the server just moved the runner: fall and off-course checks wait until then
 	lastX: number?, -- course-local x at the last check (a jump back onto the start pad = the client's fall reset)
 	lockAt: number?, -- server time the base lock was last slowed for this run (server/ObbyLock); nil = startedAt
+	vine: string?, -- the vine rope part id the runner says they hold (ObbyService.holdVine; others draw it), nil = none
 }
 
 export type Session = {

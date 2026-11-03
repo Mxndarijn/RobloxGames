@@ -354,3 +354,18 @@ Format: `- [model/YYYY-MM-DD/bot] lesson` — one concrete, reusable sentence or
 - [obby_cannon] A mouth you climb into = one closed lathe profile: outer wall -> rolled lip -> bore back inside to an inner pole, with a dark bore colour (52,40,70). 0 nm, and the hole reads from the front at any size. Inside a 3-stud-tall box keep the tilt at 12-14 deg, or the flared mouth breaks the height limit.
 - [obby_cannon] The old slate (70,66,96) goes near-black purple on the Roblox look's shadow side; 124/150/188-value slate (124,118,166 -> 188,182,226) reads as metal. Orange slime lows need >= (255,136,52) or the shadow side goes red-brown.
 - [obby_cannon_b] Creature eyes on top of a barrel hide behind a flared lip in the front view: put them on the front third, pushed out ~1.2 x the body radius so they peek over the lip.
+
+## Obby key options (2026-11-02: obby_key_a/b/c, helpers in models/_obby_key_parts.py)
+- [obby_key] A 1.6-stud key: keep the bow's outer diameter at about half the height (0.82); a 0.92 bow with a fat tube reads as a donut on a stub. Spine and teeth boxes with the same depth z-fight into black squares: make the spine 15 % thinner.
+- [obby_key_b] A slime on a cone-shaped gold cup reads as an ice cream, and a drip under the face reads as a trunk: use a flat gold plate + collar ring and put the drip on the slime's side edge.
+- [obby_key_c] A flat cut-out with an offset outline slab behind it: every notch in the outline must be taller than 2 x the outline offset, or the outline folds over itself and shows black dashes. Make the bigger face slab a little thicker than the one it overlaps (0.4 vs 0.34) so their fronts don't z-fight.
+
+## Obby gate padlock options (2026-11-02: obby_padlock_a/b/c, helpers in models/_obby_padlock_parts.py)
+- [obby_padlock] An animated prop = separate piece meshes from one script: `PADLOCK_PIECE=body|shackle` exports one piece value-only (the game tints it), and the default run previews shut + open side by side, tinted, on a gate slice. `PADLOCK_STATE=shut` with `--no-ref` gives a close-up sheet; the 2-lock sheet is too small to judge keyholes or legs poking through.
+- [obby_padlock] Shackle legs poke through a bevelled body top or the face: keep the bar's outer edge inside the body face (plane y + bar < face) and give the body a full-height box with a cap band over the top bevel. A shackle with one short leg reads as open with a plain lift, because the short leg leaves the body; a swing round the long leg (in the gate plane) reads even better.
+- [obby_padlock] A dark keyhole inlay standing proud shows its lit top face as a grey bar; sink it to ~0.02 proud.
+
+## Obby drip options (2026-11-02: obby_drip_a/b/c, helpers in models/_obby_drip_parts.py)
+- [obby_drip] A hazard drop that must keep a 2-stud ball touch shape: teardrop as a surface of revolution `x = sin t * sin(t/2)^p, z = cos t`, scaled to radius 1 with the belly centre on the ball centre and the tip 0.2 over the ball top (2 x 2.2 x 2). p 1.15 = round gumdrop, 1.5 = classic, 1.8 = sharp. Gloss = vertex colour by normal . key dir (> 0.55 bright red, > 0.86 near white), smooth shaded, 20 x 18 = 680 tris.
+- [obby_drip] A red goo roll on a nozzle lip right above a red drop fuses with it into one red bag; a thin roll (thick 0.1, 14 balls) reads as beads. 28 balls at thick 0.12 with 2-3 uneven drips reads as goo, and a dark lip ring between nozzle and drop keeps them apart.
+- [obby_drip] A small handle or wheel on the +X side sits in the Roblox look's shadow and goes dark; put small details on the lit side (-X / front-left). Violet goo below ~140 value goes muddy there too, and eye whites sunk past ~0.6 of their depth vanish.

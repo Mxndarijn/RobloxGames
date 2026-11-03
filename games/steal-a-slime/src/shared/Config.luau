@@ -1286,6 +1286,11 @@ local Config = {
 	PLOT_BASE_DEFAULT = "jar",
 	PET_SEATS = table.freeze(PET_SEATS), -- what the follow pet rides on (PetSeats, contract/pet-seats.md)
 	PET_SEAT_DEFAULT = "cloud",
+	-- The follow pet's cloud (visuals PetFollow / FollowPets): further than SNAP_DISTANCE studs from its owner (a
+	-- teleport into or out of the obby, a respawn) it snaps to its spot instead of flying there; another player's
+	-- pet further than DRAW_DISTANCE from the camera is hidden and snaps back when it comes into range (your own
+	-- pet is always drawn).
+	PET_FOLLOW = table.freeze({ SNAP_DISTANCE = 60, DRAW_DISTANCE = 200 }),
 	EXCLUSIVE_SHOP = EXCLUSIVE_SHOP, -- Robux products, passes and the jar's display tunables (contract/exclusive-shop.md)
 
 	-- Lock / steal
@@ -1701,7 +1706,7 @@ local Config = {
 		COOLDOWN_SECONDS = 5 * 60, -- counted from the end of the boost
 		ROTATION_SECONDS = 10 * 60,
 		CHAIN_SLOTS = 144, -- rotations per chain (a day): "no section of the last course" holds inside one chain
-		ORDER = table.freeze({ "easy", "easy", "easy", "medium", "medium", "medium", "hard", "hard" }),
+		ORDER = table.freeze({ "easy", "easy", "medium", "medium", "hard", "hard" }), -- 6 sections (was 8: 25% shorter, Merijn 2026-11-02)
 		-- The sections themselves are the ideas in Shared.ObbySections (one module per idea, variants per tier); ORDER
 		-- says which tier each slot of a course takes (ObbyCourse.pick).
 		MIN_RUN_SECONDS = 19, -- a finish faster than this doesn't count (the whole course at a speed-coil walk takes longer)
@@ -1713,6 +1718,9 @@ local Config = {
 		REBUILD_GRACE = 90, -- a new rotation waits this long for runners to finish before it sends them home
 		RESPAWN_LIFT = 3, -- studs above the start pad a runner appears (on entering and after a fall)
 		MOVE_GRACE = 1.5, -- after the server moves a runner, their old position may still arrive once: no fall / off-course checks
+		-- Every jump pad and geyser throws at its section's launch speed times this (ObbySections.Kit.bounce), so the
+		-- layouts and the checks see the same stronger throw. 1.1 = 21 % more height than the section's number.
+		BOUNCE_BOOST = 1.1,
 		-- During a run the runner's base lock counts down at this rate: lock seconds lost per real second (0.5 = 50 %
 		-- slower; server/ObbyLock pushes lockUntil out). Kept within 0.1..1, so a run never holds a lock forever.
 		LOCK_RATE = 0.5,
@@ -1725,6 +1733,14 @@ local Config = {
 			HeadScale = 1,
 			BodyTypeScale = 0,
 			BodyProportionScale = 0,
+		}),
+		-- A picture sign banner the runner has passed fades out on their own client, so it never hangs between the
+		-- camera and the runner (visuals/shared/ObbyBannerFade). Studs along the course from the banner's middle:
+		-- it hides once the root is HIDE_PAST beyond it and shows again once the root is back within SHOW_PAST.
+		BANNER_FADE = table.freeze({
+			HIDE_PAST = 2,
+			SHOW_PAST = 0.5,
+			SECONDS = 0.25, -- a full fade out or in
 		}),
 	}),
 

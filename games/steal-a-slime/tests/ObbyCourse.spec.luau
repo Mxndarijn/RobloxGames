@@ -71,7 +71,6 @@ describe("ObbyCourse layout", function()
 				seen[id] = true
 			end
 			expect(seen.s).toBe(true)
-			expect(seen.h).toBe(true)
 			expect(seen.f).toBe(true)
 			expect(seen["l1"]).toBe(true)
 			expect(seen["1.1"]).toBe(true)

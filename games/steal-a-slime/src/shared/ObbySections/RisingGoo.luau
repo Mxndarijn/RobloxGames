@@ -633,7 +633,7 @@ M.variants = {
 				step(55, 63, 12, -8, 8, "spring", {
 					route = "valve",
 					marker = "rings3",
-					motion = { kind = "bounce", power = 72, throw = { 28, 0, 10 } },
+					motion = { kind = "bounce", power = Kit.bounce(72), throw = { 28, 0, 10 } },
 				})
 			)
 			table.insert(
@@ -645,7 +645,7 @@ M.variants = {
 			end
 			local length, rise = 107, 27
 			flood(parts, 0, length, 2, { { v = 2.5, to = rise - 1 } })
-			return Kit.section(length, rise, parts)
+			return Kit.signed(Kit.section(length, rise, parts), "rising,key,bounce")
 		end,
 	},
 	{
