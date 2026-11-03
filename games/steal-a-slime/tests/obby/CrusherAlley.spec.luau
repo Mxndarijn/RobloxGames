@@ -94,7 +94,7 @@ describe("Crusher Alley", function()
 			end
 			if not clocked then
 				local tight = math.huge
-				for _, w in ObbyCheck.windows(section) do
+				for _, w in ObbyCheck.windows(section, ObbyCheck.straight(case)) do
 					tight = math.min(tight, w.slack)
 				end
 				local band = BAND[case.tier]
@@ -245,5 +245,55 @@ describe("Crusher Alley timing twists", function()
 			-- And it does come: waiting it out is not a way through.
 			expect(wet < 20).toBe(true)
 		end
+	end)
+end)
+
+describe("Crusher Alley: the way the sign shows", function()
+	it("every variant but the weaving ones gets its tier's window on one line across the lane", function()
+		local off = {}
+		for _, case in ObbyCheck.cases(CrusherAlley) do
+			local v = CrusherAlley.variants[case.variant]
+			expect(ObbyCheck.straight(case)).toBe(not v.weave)
+			if not v.weave then
+				local why = ObbyCheck.fairness(case.build(1), case.tier, true)
+				if why then
+					table.insert(off, `{case.name}: {why}`)
+				end
+			end
+		end
+		expect(table.concat(off, "\n")).toBe("")
+	end)
+
+	it("Double Trouble: the middle line is open as long as for a runner who sidesteps", function()
+		local section = variantNamed("Double Trouble").build(1)
+		local side, line = ObbyCheck.windows(section), ObbyCheck.windows(section, true)
+		expect(#line).toBe(2)
+		for i, w in line do
+			expect(w.slack >= ObbyCheck.WINDOW.hard - 1e-6).toBe(true)
+			expect(w.slack).toBe(side[i].slack)
+		end
+	end)
+
+	it("Slam and Jump: a strip to wait on before each gap, and the gap itself is no place to wait", function()
+		local section = variantNamed("Slam and Jump").build(1)
+		local windows = ObbyCheck.windows(section, true)
+		-- one stretch per island: the jump in and the crusher over the landing; it ends before the island's strip
+		expect(#windows).toBe(3)
+		for _, w in windows do
+			expect(w.slack >= ObbyCheck.WINDOW.medium - 1e-6).toBe(true)
+		end
+		-- The same islands without their strips (crushers end at the far edge) are one stretch: the gaps between
+		-- still floors are jumped in one go.
+		local parts = {}
+		for _, p in section.parts do
+			local q = table.clone(p)
+			if q.step and q.look == "jelly" and q.pos[1] > 14 then
+				q.size = { 10, q.size[2], q.size[3] }
+				q.pos = { q.pos[1] - 2, q.pos[2], q.pos[3] }
+			end
+			table.insert(parts, q)
+		end
+		local tight = ObbyCheck.windows({ length = section.length, rise = section.rise, parts = parts }, true)
+		expect(#tight).toBe(1)
 	end)
 end)

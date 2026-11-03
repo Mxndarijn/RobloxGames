@@ -176,6 +176,8 @@ local M = {}
 M.id = "CrusherAlley"
 M.name = "Crusher Alley"
 M.idea = 1
+-- The sign shows walking straight through under the crusher: a straight line must get the tier's window (Kit.Idea).
+M.straight = true
 
 M.variants = {
 	{
@@ -251,6 +253,7 @@ M.variants = {
 		-- Four half-lane crushers nearly back to back, left, right, left, right, each a quarter beat before the one
 		-- behind it: the open half swaps sides as you go, so weave across instead of waiting.
 		name = "Half Lane",
+		weave = true, -- the way through dodges across the lane
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
 			local length = 60
@@ -357,18 +360,21 @@ M.variants = {
 		end,
 	},
 	{
-		-- Each landing island has a crusher over it: jump the gap only once it has lifted.
+		-- Each landing island has a crusher over where you land: wait on the safe strip at its far end and jump the
+		-- gap only once the next one has lifted.
 		name = "Slam and Jump",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
-			local length = 66
+			local length = 80
 			local parts = {}
 			entry(parts)
-			local island, gap = 10, 6
+			-- A jump carries about 8.7 studs, so you land 2 to 3 studs onto an island, under its crusher; the 5-stud
+			-- strip past the crusher is where you wait before the next gap.
+			local island, gap, landing = 14, 6, 8 -- the crusher a stud in from the near edge, the strip after it
 			local x = FLOOR_FROM
 			for i = 0, 2 do
 				floor(parts, x, x + island, 0, "jelly", 1 + i)
-				table.insert(parts, crusher(x + island / 2, 0, Kit.WIDTH, 0, 3.5, i * 0.33))
+				table.insert(parts, crusher(x + 1 + landing / 2, 0, Kit.WIDTH, 0, 3.2, i * 0.33, landing))
 				x += island + gap
 			end
 			floor(parts, x - gap + ENTRY_GAP, length, 0, "goo", 1)
@@ -379,6 +385,7 @@ M.variants = {
 		-- Punchers from both walls, close together and each on its own offset: zigzag through as each pulls back.
 		-- They stand 7 tall (no hopping over), and the offsets keep any one straight line from staying open.
 		name = "Cross-Punch",
+		weave = true, -- the way through dodges across the lane
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
 			local length = 54
@@ -515,8 +522,8 @@ M.variants = {
 		end,
 	},
 	{
-		-- A crusher and two wall punchers hit the same narrow square on different beats: go only when all three are
-		-- back. Two stations.
+		-- A crusher and two wall punchers hit the same narrow square one after the other on one beat (puncher, slam,
+		-- puncher): go straight through the middle once all three are back. Two stations, mirrored.
 		name = "Double Trouble",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
@@ -526,16 +533,18 @@ M.variants = {
 			local square, long = 12, 8
 			-- The punchers sit over the holes beside the square and reach 3 studs past its middle.
 			local o = { thick = (Kit.WIDTH - square) / 2, reach = 9, long = 6 }
-			-- Crusher 2.6 s, punchers 2 s: these phases leave about 0.8 s in the first cycles (a phase search).
-			local phases = { { 0.1, 0.35 }, { 0.35, 0.1 } }
+			-- One 2.6 s beat for all three; these phases (a search) leave about 0.9 s on the middle line, the same as for
+			-- a runner who sidesteps, so no sideways jump beats walking straight through.
+			local beat = 2.6
+			local phases = { { 0.9, 0.15 }, { 0.15, 0.9 } }
 			local x = FLOOR_FROM
 			for i = 1, 2 do
 				floor(parts, x, x + 10, 0, "goo", 1)
 				x += 10
 				floor(parts, x, x + long, 0, "beam", 2, square)
-				table.insert(parts, crusher(x + long / 2, 0, square, 0, 2.6, 0, long))
-				table.insert(parts, puncher(x + long / 2, -1, 0, 2, phases[i][1], o))
-				table.insert(parts, puncher(x + long / 2, 1, 0, 2, phases[i][2], o))
+				table.insert(parts, crusher(x + long / 2, 0, square, 0, beat, 0, long))
+				table.insert(parts, puncher(x + long / 2, -1, 0, beat, phases[i][1], o))
+				table.insert(parts, puncher(x + long / 2, 1, 0, beat, phases[i][2], o))
 				x += long
 			end
 			floor(parts, x, length, 0, "goo", 1)

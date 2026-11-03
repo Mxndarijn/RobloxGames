@@ -548,8 +548,8 @@
         {
           "name": "Slam and Jump",
           "tier": "medium",
-          "does": "Each landing island has a crusher over it: jump the gap only once it has lifted.",
-          "numbers": "3 islands 10 x 24, 7 stud gaps, crushers 2.8 s beat, open 1.6 s, 64 studs",
+          "does": "Each landing island has a crusher over where you land: wait on the safe strip at its far end, jump the gap only once the next one has lifted.",
+          "numbers": "3 islands 14 x 24 (8-stud crusher over the landing, 5-stud wait strip), 6 stud gaps, crushers 3.2 s beat, open about 1.1 s, 80 studs",
           "view": "side",
           "sketch": [
             [
@@ -1080,8 +1080,8 @@
         {
           "name": "Double Trouble",
           "tier": "hard",
-          "does": "A crusher and two wall punchers hit the same square on different beats: go only when all three are back.",
-          "numbers": "2 stations, each 1 crusher 2.4 s + 2 punchers 2 s, open about 0.9 s, 64 studs",
+          "does": "A crusher and two wall punchers hit the same square one after the other on one beat: go straight through the middle once all three are back.",
+          "numbers": "2 stations, each 1 crusher + 2 punchers on one 2.6 s beat, open about 0.9 s on the middle line, 64 studs",
           "view": "top",
           "sketch": [
             [

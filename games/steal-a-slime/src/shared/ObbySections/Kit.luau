@@ -93,7 +93,8 @@ export type Part = {
 -- `sign`: the picture sign at the section's entry when it differs from its idea's (ObbySections.entrySign).
 export type Section = { length: number, rise: number, parts: { Part }, sign: string? }
 
-export type Variant = { name: string, tier: string, build: (seed: number) -> Section }
+-- `weave`: the way through dodges across the lane inside a stretch of hazards (its idea is `straight` otherwise).
+export type Variant = { name: string, tier: string, build: (seed: number) -> Section, weave: boolean? }
 export type Generator = { tiers: { string }, build: (seed: number, tier: string) -> Section, examples: number? }
 
 -- One idea module (ObbySections/<Id>.luau).
@@ -103,6 +104,9 @@ export type Idea = {
 	idea: number,
 	variants: { Variant },
 	generator: Generator?,
+	-- The idea's sign shows walking straight through its hazards: every variant (bar `weave` ones) must leave the
+	-- hazard window of its tier on one line across the lane, not only to a runner who sidesteps (tests/ObbyCheck).
+	straight: boolean?,
 }
 
 local Kit = {}
