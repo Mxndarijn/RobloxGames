@@ -1040,7 +1040,7 @@ function ObbyMoves.start(): Controller
 
 	-- A root lying along `up` (its head that way), face to the sky.
 	local function lying(at: Vector3, up: Vector3): CFrame
-		local face = Vector3.yAxis - up * Vector3.yAxis:Dot(up)
+		local face = Vector3.yAxis - up * up.Y
 		if face.Magnitude < 1e-3 then
 			face = -Vector3.xAxis
 		end
