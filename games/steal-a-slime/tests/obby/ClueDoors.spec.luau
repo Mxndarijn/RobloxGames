@@ -498,4 +498,47 @@ describe("Clue Doors", function()
 		end
 		expect(table.concat(bad, "\n")).toBe("")
 	end)
+
+	it("hides Remember It's board once you pass it (each runner's own view), and only that board", function()
+		-- Merijn: a memory section shows its route while you are before its board and hides it once you pass. Every
+		-- part of the entry board (frame, backing, symbols) carries a still `reveal` line at the board's own x; the
+		-- boards over the doors never hide.
+		local bad = {}
+		eachCase(function(name, index, tier)
+			local variant = if index > 0 then ClueDoors.variants[index].name else ""
+			for seed = 1, 20 do
+				local section = ClueDoors.inspect(index, seed, tier)
+				local line: number? = nil
+				for _, p in section.parts do
+					if p.look == "plank" and p.reveal then
+						line = p.reveal
+					end
+				end
+				if variant == "Remember It" and line == nil then
+					table.insert(bad, `{name} seed {seed}: the board never hides`)
+				end
+				if line == nil then
+					for _, p in section.parts do
+						if p.reveal then
+							table.insert(bad, `{name} seed {seed}: a part hides without its board`)
+						end
+					end
+					continue
+				end
+				for _, p in section.parts do
+					local x0, x1, y0 = Kit.bounds(p)
+					local onBoard = not p.step and y0 >= 5 and x0 >= line - 1 and x1 <= line + 1
+					if onBoard and (p.reveal ~= line or p.motion ~= nil or not p.ghost) then
+						table.insert(
+							bad,
+							`{name} seed {seed}: a board part at {p.pos[1]} does not hide as a still ghost`
+						)
+					elseif not onBoard and p.reveal then
+						table.insert(bad, `{name} seed {seed}: a part off the board hides at {p.reveal}`)
+					end
+				end
+			end
+		end)
+		expect(table.concat(bad, "\n")).toBe("")
+	end)
 end)

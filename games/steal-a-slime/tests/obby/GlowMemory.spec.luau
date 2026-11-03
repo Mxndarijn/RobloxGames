@@ -1,7 +1,7 @@
 --!strict
 -- Glow Memory (obby idea 10): every variant and the generator through ObbyCheck, plus what the shared checks can't
 -- see in a memory grid: the safe tiles alone (no fake) always lead from the entry pad to the exit, no lane is safe
--- all the way (so it can't be jumped straight), every row has a fake, and the path glows long enough to read.
+-- all the way (so it can't be jumped straight), every row has a fake, and the path shows only before the entry sign.
 local T = require("../TestRunner")
 local describe, it, expect = T.describe, T.it, T.expect
 local GlowMemory = require("../../src/shared/ObbySections/GlowMemory")
@@ -202,45 +202,51 @@ describe("GlowMemory", function()
 		expect(table.concat(bad, "\n")).toBe("")
 	end)
 
-	it("shows the path for at least 1.5 s in all", function()
-		-- A glow is a solid flip lit while its cycle is under duty, or an overlay popped up out of its tile. The show is
-		-- the longest stretch of 0.05 s samples (one 20 s look) with some path tile lit: seq modes light one after another.
-		local function lit(p: Kit.Part, t: number): boolean
-			local m = p.motion
-			if not m then
-				return false
-			end
-			local cycle = (t / Kit.periodOf(p) + (m.phase or 0)) % 1
-			if m.kind == "flip" and m.solid then
-				return cycle < (m.duty or 0)
-			elseif m.kind == "path" and p.ghost then
-				local _, dy = Kit.offsetAt(p, t)
-				return dy > 0.3
-			end
-			return false
-		end
-		local bad = {}
-		eachSection(function(name, section, seed)
-			local best, run = 0, 0
-			for k = 0, 400 do
-				local any = false
+	it(
+		"shows the route only before the entry sign: a lit slab on every safe tile (the fakes in pink), no timers",
+		function()
+			-- Merijn: the route shows while you are before the sign and hides once you pass it. Every slab is a ghost with a
+			-- `reveal` line at the entry pad's back edge (where ObbyCourse.signs hangs the entry sign), lying on its tile;
+			-- nothing in the grid starts on a button or a clock.
+			local bad = {}
+			eachSection(function(name, section, seed)
+				local first: Kit.Part? = nil
 				for _, p in section.parts do
-					any = any or lit(p, k * 0.05)
+					if p.step then
+						first = p
+						break
+					end
 				end
-				run = if any then run + 0.05 else 0
-				best = math.max(best, run)
-			end
-			-- the map board (a lit cell per row, always on) shows the path instead of the floor
-			local board = false
-			for _, p in section.parts do
-				board = board or (p.ghost == true and p.look == "glow" and p.motion == nil)
-			end
-			if not board and not hasRounds(section) and best < 1.5 - 0.06 then
-				table.insert(bad, `{name} seed {seed}: shown {best} s`)
-			end
-		end)
-		expect(table.concat(bad, "\n")).toBe("")
-	end)
+				local x0 = Kit.bounds(first :: Kit.Part)
+				local pink = section.sign == "glowPink"
+				local slabs: { [string]: number } = {}
+				for _, p in section.parts do
+					if p.trigger or p.start then
+						table.insert(bad, `{name} seed {seed}: a part waits on a trigger or clock`)
+					end
+					if p.reveal then
+						if p.reveal ~= x0 or not p.ghost or p.motion then
+							table.insert(bad, `{name} seed {seed}: route slab not a still ghost at the sign line`)
+						end
+						local key = `{math.floor(p.pos[1] * 10 + 0.5)},{math.floor(p.pos[3] + 0.5)}`
+						slabs[key] = (slabs[key] or 0) + 1
+					end
+				end
+				for _, row in rowsOf(section) do
+					for _, tile in row do
+						local key = `{math.floor(tile.pos[1] * 10 + 0.5)},{math.floor(tile.pos[3] + 0.5)}`
+						local flips = tile.motion ~= nil and tile.motion.kind == "flip"
+						local want = if pink then isFake(tile) else not isFake(tile) and not flips
+						local got = slabs[key] or 0
+						if got ~= (if want then 1 else 0) then
+							table.insert(bad, `{name} seed {seed}: tile {key} has {got} route slabs`)
+						end
+					end
+				end
+			end)
+			expect(table.concat(bad, "\n")).toBe("")
+		end
+	)
 
 	it("lets nobody wait on a safe tile for the next glow (it melts first), but in One Look and rounds", function()
 		local bad = {}

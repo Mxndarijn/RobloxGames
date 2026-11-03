@@ -77,3 +77,31 @@ describe("ObbyBannerFade.transparency", function()
 		expect(ObbyBannerFade.transparency(1, 0.5)).toBe(1)
 	end)
 end)
+
+describe("ObbyBannerFade route (a memory section's route, Config.OBBY.ROUTE_REVEAL)", function()
+	local ROUTE = ObbyBannerFade.ROUTE
+	local line = 50
+
+	it("uses its own tunables and keeps the banner's as the default", function()
+		expect(ROUTE).toBe(Config.OBBY.ROUTE_REVEAL)
+		expect(ObbyBannerFade.BANNER).toBe(TUNE)
+		expect(ROUTE.SHOW_PAST < ROUTE.HIDE_PAST).toBe(true)
+	end)
+
+	it("shows the route before its line and hides it once the runner is past", function()
+		expect(ObbyBannerFade.hidden(false, line - 20, line, ROUTE)).toBe(false)
+		expect(ObbyBannerFade.hidden(false, line + ROUTE.HIDE_PAST - 0.1, line, ROUTE)).toBe(false)
+		expect(ObbyBannerFade.hidden(false, line + ROUTE.HIDE_PAST + 0.1, line, ROUTE)).toBe(true)
+		expect(ObbyBannerFade.hidden(true, line + 40, line, ROUTE)).toBe(true)
+	end)
+
+	it("shows it again after a fall or reset puts the runner back before the line", function()
+		expect(ObbyBannerFade.hidden(true, 0, line, ROUTE)).toBe(false)
+		expect(ObbyBannerFade.hidden(true, line + ROUTE.SHOW_PAST - 0.1, line, ROUTE)).toBe(false)
+	end)
+
+	it("fades over its own SECONDS", function()
+		expect(ObbyBannerFade.step(0, true, ROUTE.SECONDS / 2, ROUTE)).toBeCloseTo(0.5, EPS)
+		expect(ObbyBannerFade.step(0, true, ROUTE.SECONDS, ROUTE)).toBe(1)
+	end)
+end)

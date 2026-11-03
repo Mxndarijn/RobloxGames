@@ -87,6 +87,9 @@ export type Part = {
 	start: string?,
 	marker: string?,
 	beat: number?,
+	-- a memory section's route: shown on each runner's own client only while their root is before this x along the
+	-- course (section-local here, course-local once built), hidden once past it (visuals/client/ObbySignFade)
+	reveal: number?,
 	id: string?, -- set by ObbyCourse.build: "<section>.<index>", "s", "h", "f", "l<n>"
 }
 

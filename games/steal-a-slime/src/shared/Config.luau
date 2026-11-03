@@ -1754,6 +1754,14 @@ local Config = {
 			SHOW_PAST = 0.5,
 			SECONDS = 0.25, -- a full fade out or in
 		}),
+		-- A memory section's route (Glow Memory's lit safe tiles, Remember It's clue board): shown while the runner's
+		-- root is before its line (the entry sign, the board), hidden once HIDE_PAST studs past it, back once within
+		-- SHOW_PAST again (a fall or reset to the start, a walk back). visuals/client/ObbySignFade.
+		ROUTE_REVEAL = table.freeze({
+			HIDE_PAST = 1,
+			SHOW_PAST = 0,
+			SECONDS = 0.15,
+		}),
 		-- Roblox's camera only stops at solid parts, so it would slide into non-collide course parts (the lava floors) and
 		-- show straight through them from inside. The obby stops it in front of a part like this one too
 		-- (visuals/shared/ObbyCameraClip): no collision, Transparency under MAX_TRANSPARENCY, every side at least

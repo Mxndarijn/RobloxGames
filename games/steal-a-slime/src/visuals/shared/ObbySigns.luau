@@ -773,42 +773,11 @@ PICTURES.glow = function(pen)
 	figure(pen, 44, 46, 12, 24)
 end
 
--- Step on the button, then the path glows: the runner's foot presses a big yellow button (press lines round it), an
--- arrow, the lit green path.
-PICTURES.glowButton = function(pen)
-	box(pen, 28, 92, 38, 5, C.grey, { round = 2 })
-	box(pen, 28, 85, 30, 11, C.gold, { full = true, stroke = 3, strokeColor = C.white })
-	for _, side in { -1, 1 } do
-		line(pen, 28 + side * 15, 75, 28 + side * 18, 70, 3.5, C.white)
-		line(pen, 28 + side * 18.5, 83, 28 + side * 22, 83, 3.5, C.white)
-	end
-	runner(pen, 28, 81)
-	arrow(pen, 48, 60, 58, 60, W.line)
-	grid(pen, 64, 38, 13, 3.5, 2, 3, { path = { [1] = true, [4] = true, [5] = true } })
-end
-
 -- Pink tiles are the fakes: they crack (the grid on its floor).
 PICTURES.glowPink = function(pen)
 	eye(pen, 50, 16, 40)
 	box(pen, 50, 62.5, 67, 67, C.dim, { round = 5, alpha = 0.55 })
 	grid(pen, 19.5, 32, 18, 3.5, 3, 3, { pink = { [1] = true, [3] = true, [5] = true, [9] = true } })
-end
-
--- The map is behind you: the eye looks back at the sign, the runner walks on.
-PICTURES.glowBehind = function(pen)
-	line(pen, 28, 60, 28, 94, W.line, C.grey)
-	box(pen, 28, 35, 40, 42, C.board, { round = 4, stroke = W.thin, strokeColor = C.white })
-	grid(pen, 12, 19, 9.5, 2.5, 3, 3, { path = { [2] = true, [4] = true, [8] = true } })
-	eye(pen, 74, 26, 30, -1)
-	runner(pen, 74, 94)
-end
-
--- One look only: the path shows once (the eye over it), then the grid goes plain.
-PICTURES.glowOnce = function(pen)
-	eye(pen, 22.5, 28, 32)
-	grid(pen, 7, 46, 14, 3, 2, 3, { path = { [2] = true, [3] = true, [6] = true } })
-	arrow(pen, 43, 70, 56, 70, W.line)
-	grid(pen, 63, 46, 14, 3, 2, 3, {})
 end
 
 -- A new path every 8 seconds.

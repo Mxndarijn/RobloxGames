@@ -12,6 +12,10 @@
 	AudioSfxVolume / AudioMusicVolume, set by the SettingsController (loaded from State, saved with
 	SetSettings). The steal alarm stays silent while the Settings menu's "Steal alarm" switch is off.
 
+	While the local player is in the obby world (`setAway`, from Visuals' ObbyLook inside flag) the boss fight is
+	silent: no boss track (the day / night music plays) and no Sounds.BOSS_EVENT one-shot; boss one-shots still
+	sounding when the player arrives stop. The boss track comes back on the way out.
+
 	SoundController.play(name, opts?) is static: it returns false when no controller is
 	active (flag off or not built yet) so callers keep their legacy sound path.
 ]]
@@ -58,6 +62,13 @@ end
 function SoundController.setBoss(on: boolean)
 	if active then
 		active.setBoss(on)
+	end
+end
+
+-- `away`: the local player is in the obby world, where the boss fight is silent (AudioLogic.silentAway).
+function SoundController.setAway(away: boolean)
+	if active then
+		active.setAway(away)
 	end
 end
 
@@ -129,9 +140,22 @@ function SoundController.new(config: any, player: Player, dayNight: any, ctx: Co
 	-- Throttled per name (AudioLogic.allowSfx). A throttled play still returns true so callers don't fall
 	-- back to their legacy sound path. The Sound goes when it ends, or after SFX_MAX_SECONDS if it never does.
 	local sfxState = AudioLogic.newSfxState()
+	local away = false
+	local liveBoss: { [Sound]: () -> () } = {} -- boss fight one-shots sounding now -> their finish
+	function self.setAway(on: boolean)
+		away = on
+		if on then
+			for _, finish in table.clone(liveBoss) do
+				finish()
+			end
+		end
+	end
 	function self.play(name: string, opts: PlayOptions?): boolean
 		if name == SoundController.ALARM and ctx and ctx.alarmOn and not ctx.alarmOn() then
 			return true -- switched off: callers must not fall back to their own alarm
+		end
+		if AudioLogic.silentAway(name, away) then
+			return true -- in the obby world: callers must not fall back to their own sound
 		end
 		local id = AudioLogic.resolveSfx(cfg, name)
 		if not id then
@@ -164,6 +188,7 @@ function SoundController.new(config: any, player: Player, dayNight: any, ctx: Co
 		local function finish()
 			if not done then
 				done = true
+				liveBoss[sound] = nil
 				AudioLogic.releaseSfx(sfxState, name)
 				sound:Destroy()
 				if temp then
@@ -173,6 +198,9 @@ function SoundController.new(config: any, player: Player, dayNight: any, ctx: Co
 		end
 		sound.Ended:Once(finish)
 		task.delay(cfg.SFX_MAX_SECONDS, finish)
+		if Sounds.BOSS_EVENT[name] then
+			liveBoss[sound] = finish
+		end
 		local trim = Sounds.TRIM[name]
 		if trim then
 			-- Library files with long tails: fade out over the last SFX_TRIM_FADE seconds of the trim.
@@ -246,7 +274,8 @@ function SoundController.new(config: any, player: Player, dayNight: any, ctx: Co
 	local function ambientStep(dt: number)
 		local weather = if ctx and ctx.weather then ctx.weather() else nil
 		local clock = Lighting.ClockTime
-		local targets = AudioLogic.layerTargets({ clockTime = clock, boss = bossOn, weather = weather }, cfg, dayNight)
+		local targets =
+			AudioLogic.layerTargets({ clockTime = clock, boss = bossOn, away = away, weather = weather }, cfg, dayNight)
 		for key, t in targets do
 			if not layers[key] then
 				layers[key] = { sound = layerSound(key, t.id), level = 0, volume = t.volume, fade = t.fade }

@@ -264,6 +264,9 @@ end
 local function offset(part: Part, dx: number, dy: number): Part
 	local moved = table.clone(part)
 	moved.pos = { part.pos[1] + dx, part.pos[2] + dy, part.pos[3] }
+	if part.reveal then
+		moved.reveal = part.reveal + dx
+	end
 	return moved
 end
 
