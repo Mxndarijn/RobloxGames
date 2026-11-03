@@ -8,13 +8,16 @@
 	  * stepping into the portal circle starts a run (not while carrying a slime) and lifts the player to the start
 	    pad; a course they already cleared lets them in again to beat their time (`cleared`: tracked as a retry)
 	  * while running, the runner's base lock counts down at OBBY.LOCK_RATE (ObbyLock.step, every tick)
-	  * the run's clock starts the first tick the runner is past the start pad's front edge (over section 1 or on);
-	    standing on the start pad doesn't count. A fall back to the start pad keeps it running
+	  * the counted time is one try: its clock starts the first tick the runner is past the start pad's front edge (over
+	    section 1 or on) and starts again from zero each time they leave the start pad after being back on it (a fall
+	    puts them there). Standing on the start pad doesn't count. The total since the first try left the pad is shown
+	    too (`firstAt`), but never counts
 	  * there are no checkpoints: the server tracks the furthest section the runner has been over (ObbyCourse.sectionAt),
-	    in order, and the one they are over now (State.obby.run.at, the run card's section). Skipping a section, or finishing faster than OBBY.MIN_RUN_SECONDS, marks the run invalid (it still
-	    finishes, but earns nothing)
-	  * a fall sends the runner back to the start pad; the clock keeps running and the sections already done stay
-	    done. The client puts its own runner back the moment its root drops OBBY.FALL_DEPTH under the lowest platform
+	    this try (`attempt`, in order) and this run (`section`), and the one they are over now (State.obby.run.at, the run
+	    card's section). Skipping a section within a try, or a try faster than OBBY.MIN_RUN_SECONDS, marks the run
+	    invalid (it still finishes, but earns nothing)
+	  * a fall sends the runner back to the start pad: the try is over and the next one starts from zero; the run and
+	    the sections it reached go on. The client puts its own runner back the moment its root drops OBBY.FALL_DEPTH under the lowest platform
 	    it could still land on (visuals/client/ObbyFx); the server sees the jump back (`resets`: the adapter opens
 	    the anti-cheat's server-move window) and counts the fall. Past FALL_DEPTH + SERVER_FALL_SLACK the server
 	    moves the runner itself, as the backup. Wandering far off the course's ends or sides ends the run
@@ -67,9 +70,9 @@ export type View = {
 	sections: { string }, -- the current course's section names, in order
 	rotatesAt: number, -- server time the next rotation starts
 	-- the run in progress: `section` = the furthest section reached, `at` = the one the runner is over now (0 = the
-	-- start pad, of + 1 = the finish pad), `startedAt` = when the clock started (nil = still on the start pad),
-	-- `lockRate` = how fast the runner's base lock counts down meanwhile (OBBY.LOCK_RATE)
-	run: { section: number, at: number, of: number, startedAt: number?, lockRate: number }?,
+	-- start pad, of + 1 = the finish pad), `startedAt` = when this try's clock started (nil = on the start pad),
+	-- `firstAt` = when the first try's started (the total time, shown but never counted), `lockRate` = how fast the runner's base lock counts down meanwhile (OBBY.LOCK_RATE)
+	run: { section: number, at: number, of: number, startedAt: number?, firstAt: number?, lockRate: number }?,
 	best: number?, -- best counted finish on the current course, seconds (whole tenths)
 	rank: number?, -- that best's rank on the course board (OBBY.BOARD.RANK_DEPTH + 1 = deeper); nil = none yet
 	course: number, -- the course number players see (ObbyRules.courseNumber)
@@ -137,7 +140,14 @@ function ObbyService.enter(world: World, session: Session, place: Place, now: nu
 		return false, "A new course is on its way. Back in a moment!", nil
 	end
 	local retry = ObbyService.cleared(session, course.slot)
-	session.obbyRun = { slot = course.slot, section = 0, at = 0, enteredAt = now, settleUntil = now + OBBY.MOVE_GRACE }
+	session.obbyRun = {
+		slot = course.slot,
+		section = 0,
+		attempt = 0,
+		at = 0,
+		enteredAt = now,
+		settleUntil = now + OBBY.MOVE_GRACE,
+	}
 	World.markDirty(session)
 	World.track(world, session.userId, {
 		op = "event",
@@ -185,7 +195,7 @@ function ObbyService.bestText(newBest: boolean, best: number?, rank: number?): s
 end
 
 local function finish(world: World, session: Session, run: World.ObbyRun, course: ObbyCourse.Course, now: number)
-	local seconds = now - (run.startedAt or now) -- the clock started when the runner left the start pad
+	local seconds = now - (run.startedAt or now) -- this try: from when the runner last left the start pad
 	if seconds < OBBY.MIN_RUN_SECONDS then
 		run.invalid = true
 	end
@@ -262,10 +272,20 @@ local function trackFall(world: World, session: Session, course: ObbyCourse.Cour
 	})
 end
 
--- Starts the run's clock the first time the runner is past the start pad (`at` > 0).
+-- Starts this try's clock the first tick the runner is past the start pad (`at` > 0), and the total with the first.
 local function startClock(session: Session, run: World.ObbyRun, at: number, now: number)
 	if run.startedAt == nil and at > 0 then
 		run.startedAt = now
+		run.firstAt = run.firstAt or now
+		World.markDirty(session)
+	end
+end
+
+-- Back on the start pad (a fall, or walking back): this try is over; the next starts from zero when they leave it.
+local function newTry(session: Session, run: World.ObbyRun)
+	if run.startedAt ~= nil or run.attempt ~= 0 then
+		run.startedAt = nil
+		run.attempt = 0
 		World.markDirty(session)
 	end
 end
@@ -291,8 +311,13 @@ local function progress(world: World, session: Session, place: Place, pos: Vec, 
 	if run.settleUntil and now < run.settleUntil then
 		run.lastX = nil
 		-- the lift or respawn may not have reached the client yet; a runner already off the pad's front (a quick
-		-- start) still starts the clock
-		if run.startedAt == nil and p[1] <= course.length and math.abs(p[3]) <= ObbyCourse.WIDTH / 2 then
+		-- start) still starts the clock, but not the stale position of a runner who just fell (under the floors)
+		if
+			run.startedAt == nil
+			and p[1] <= course.length
+			and math.abs(p[3]) <= ObbyCourse.WIDTH / 2
+			and p[2] >= ObbyCourse.fallHeight(course, p, OBBY.FALL_DEPTH)
+		then
 			startClock(session, run, ObbyCourse.sectionAt(course, p), now)
 		end
 		return nil, false
@@ -316,17 +341,24 @@ local function progress(world: World, session: Session, place: Place, pos: Vec, 
 		run.settleUntil = now + OBBY.MOVE_GRACE
 		run.lastX = nil
 		setAt(session, run, 0) -- back on the start pad
+		newTry(session, run)
 		return worldMove(place, session.userId, course.start), false
 	end
 	setAt(session, run, at)
-	if at == 0 and lastX and lastX - p[1] > ObbyService.RESET_JUMP then
-		trackFall(world, session, course, ObbyCourse.sectionAt(course, { lastX, p[2], p[3] }))
-		return nil, true
+	if at == 0 then
+		newTry(session, run)
+		if lastX and lastX - p[1] > ObbyService.RESET_JUMP then
+			trackFall(world, session, course, ObbyCourse.sectionAt(course, { lastX, p[2], p[3] }))
+			return nil, true
+		end
+	end
+	if at > run.attempt then
+		if at > run.attempt + 1 then
+			run.invalid = true -- got past a section without being over it this try
+		end
+		run.attempt = math.min(at, #course.spans)
 	end
 	if at > run.section then
-		if at > run.section + 1 then
-			run.invalid = true -- got past a section without being over it
-		end
 		run.section = math.min(at, #course.spans)
 		World.markDirty(session)
 	end
@@ -456,6 +488,7 @@ function ObbyService.view(world: World, session: Session, now: number): View?
 				at = run.at,
 				of = #course.spans,
 				startedAt = run.startedAt,
+				firstAt = run.firstAt,
 				lockRate = ObbyLock.rate(),
 			}
 			else nil,

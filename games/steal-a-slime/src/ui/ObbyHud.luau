@@ -5,7 +5,10 @@
 	The Obby on this player's screen, from State.obby:
 	  * a run card at the top of the screen while a run is on (Layout.OBBY_CARD, under the banner stack):
 	      - "Section x/6": the section the runner is over now (run.at), "Start" on the start pad, "Finish" on the
-	        finish pad, and the run clock (0:00.0 until they leave the start pad: run.startedAt)
+	        finish pad, and this try's clock (0:00.0 until they leave the start pad: run.startedAt). The board counts
+	        one try; a fall back to the start pad starts the next from zero
+	      - "Total 2:14" in small muted text once a fall started a new try: all tries since the first left the pad
+	        (run.firstAt, `totalText`)
 	      - one pip per section, from where they are now: behind them (a check), the one they are on (a mint ring
 	        on a light fill), the furthest reached this run when a fall put them behind it (a mint ring on the dark
 	        well), still to come (an Ink well)
@@ -32,7 +35,7 @@ local WorldLeaderboard = if script then require(script.Parent.WorldLeaderboard) 
 -- Drawing only runs in Roblox (the specs use the pure functions).
 local Widgets: any = if script then require(script.Parent.Widgets) else nil
 
-export type Run = { section: number, at: number?, of: number, startedAt: number?, lockRate: number? }
+export type Run = { section: number, at: number?, of: number, startedAt: number?, firstAt: number?, lockRate: number? }
 
 export type View = {
 	bonus: number,
@@ -153,6 +156,17 @@ function ObbyHud.runText(view: View?, now: number): (string?, string?)
 	return title, string.format("%d:%04.1f", m, elapsed - m * 60)
 end
 
+-- The run card's total row: "Total 2:14", every try since the first left the start pad. Only once a fall started
+-- a new try (before that it is the same as the clock); nil otherwise.
+function ObbyHud.totalText(view: View?, now: number): string?
+	local run = runOf(view)
+	if not run or type(run.firstAt) ~= "number" or run.firstAt == run.startedAt then
+		return nil
+	end
+	local s = math.max(0, math.floor(now - run.firstAt))
+	return string.format("Total %d:%02d", s // 60, s % 60)
+end
+
 -- One pip per section of the run, from where the runner is now: behind them, the one they are on, the furthest they
 -- reached this run (when a fall put them behind it), or still to come. Empty when not running.
 function ObbyHud.pips(view: View?): { Pip }
@@ -231,6 +245,7 @@ function ObbyHud.new(gui: Instance)
 		clock: TextLabel,
 		pipRow: Frame,
 		pips: { TextLabel },
+		totalLabel: TextLabel,
 		bestRow: Frame,
 		bestLabel: TextLabel,
 		rankChip: TextLabel,
@@ -281,6 +296,19 @@ function ObbyHud.new(gui: Instance)
 		end
 		local pipRow = holder("Pips", C.pad + C.headH + C.gap, C.pip, card)
 		Widgets.list(Enum.FillDirection.Horizontal, C.pipGap, Enum.HorizontalAlignment.Center).Parent = pipRow
+		local totalLabel = Widgets.label({
+			Name = "TotalTime",
+			Font = Theme.Font,
+			TextSize = C.totalSize,
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Position = UDim2.fromOffset(C.pad, C.pad + C.headH + C.gap + C.pip + C.gap),
+			Size = UDim2.new(1, -C.pad * 2, 0, C.totalH),
+			Visible = false,
+			ZIndex = Z,
+			Text = "",
+			Parent = card,
+		})
 		local bestRow = holder("Best", C.pad + C.headH + C.gap + C.pip + C.gap, C.bestH, card)
 		Widgets.list(Enum.FillDirection.Horizontal, C.gap, Enum.HorizontalAlignment.Center).Parent = bestRow
 		bestRow.Visible = false
@@ -293,6 +321,7 @@ function ObbyHud.new(gui: Instance)
 			clock = headLabel("Clock", C.clockSize, Theme.Muted, Enum.TextXAlignment.Right),
 			pipRow = pipRow,
 			pips = {},
+			totalLabel = totalLabel,
 			bestRow = bestRow,
 			bestLabel = Widgets.label({
 				Name = "BestTime",
@@ -461,16 +490,24 @@ function ObbyHud.new(gui: Instance)
 		for i, kind in kinds do
 			paintPip(card.pips[i], i, kind :: Pip)
 		end
+		local y = C.pad + C.headH + C.gap + C.pip + C.gap
+		local total = ObbyHud.totalText(view, now)
+		card.totalLabel.Visible = total ~= nil
+		card.totalLabel.Text = total or ""
+		if total then
+			y += C.totalH + C.gap
+		end
 		local best, rank = ObbyHud.bestText(view)
 		card.bestRow.Visible = best ~= nil
+		card.bestRow.Position = UDim2.fromOffset(C.pad, y)
 		card.bestLabel.Text = best or ""
 		card.rankChip.Visible = rank ~= nil
 		card.rankChip.Text = rank or ""
-		local lockY = C.pad + C.headH + C.gap + C.pip + C.gap + (if best then C.bestH + C.gap else 0)
+		local lockY = y + (if best then C.bestH + C.gap else 0)
 		card.lockRow.Position = UDim2.fromOffset(C.pad, lockY)
 		card.lockRow.Size = UDim2.new(1, -C.pad * 2, 0, if box.split then C.lockH * 2 + C.gap else C.lockH)
 		card.lockList.FillDirection = if box.split then Enum.FillDirection.Vertical else Enum.FillDirection.Horizontal
-		card.frame.Size = UDim2.fromOffset(box.w, Layout.obbyCardHeight(best ~= nil, box.split))
+		card.frame.Size = UDim2.fromOffset(box.w, Layout.obbyCardHeight(best ~= nil, box.split, total ~= nil))
 		if lockUntil ~= lockSeen.untilAt then
 			lockSeen.untilAt = lockUntil
 			lockSeen.at = now
@@ -494,7 +531,10 @@ function ObbyHud.new(gui: Instance)
 		box.split = ObbyHud.lockSplit(r.w)
 		heightOfBanners = bannerHeight or heightOfBanners
 		if cardParts then
-			cardParts.frame.Size = UDim2.fromOffset(box.w, Layout.obbyCardHeight(cardParts.bestRow.Visible, box.split))
+			cardParts.frame.Size = UDim2.fromOffset(
+				box.w,
+				Layout.obbyCardHeight(cardParts.bestRow.Visible, box.split, cardParts.totalLabel.Visible)
+			)
 		end
 	end
 

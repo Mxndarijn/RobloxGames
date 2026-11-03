@@ -61,9 +61,12 @@ export type LockBreakPass = { plot: number, ownerId: number, untilTime: number }
 export type ObbyRun = {
 	slot: number,
 	section: number, -- the furthest section reached this run, in order (0 = the start pad); a fall keeps it
+	attempt: number, -- the furthest section reached this try, in order (0 = the start pad); back on the start pad resets it
 	at: number, -- the part of the course the runner is over now (ObbyCourse.sectionAt; 0 = the start pad)
 	enteredAt: number, -- server time the runner stepped into the portal
-	startedAt: number?, -- server time the run's clock started: the first tick past the start pad's front edge; nil = not yet
+	startedAt: number?, -- server time this try's clock started: the first tick past the start pad's front edge since the
+	-- runner was last on the start pad (a fall puts them back there); nil = on the start pad now
+	firstAt: number?, -- server time the first try's clock started (the total time on the course); nil = not yet
 	invalid: boolean?, -- skipped a section or finished too fast: the finish earns nothing
 	settleUntil: number?, -- the server just moved the runner: fall and off-course checks wait until then
 	lastX: number?, -- course-local x at the last check (a jump back onto the start pad = the client's fall reset)

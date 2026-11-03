@@ -78,9 +78,9 @@ export type ObbyView = {
 	sections: { string }, -- the current course's section names, in order
 	rotatesAt: number, -- the next course starts
 	-- the run in progress: section = the furthest reached, at = the one the runner is over now (0 = the start pad,
-	-- of + 1 = the finish pad); startedAt = when the clock started (nil = still on the start pad); lockRate = the base
-	-- lock's countdown speed meanwhile (0.5 = half)
-	run: { section: number, at: number?, of: number, startedAt: number?, lockRate: number? }?,
+	-- of + 1 = the finish pad); startedAt = when this try's clock started (nil = on the start pad); firstAt = when the
+	-- first try's started (the total time); lockRate = the base lock's countdown speed meanwhile (0.5 = half)
+	run: { section: number, at: number?, of: number, startedAt: number?, firstAt: number?, lockRate: number? }?,
 	best: number?, -- best counted finish on this course, seconds (whole tenths); retries may beat it
 	rank: number?, -- that best's rank on the course board (OBBY.BOARD.RANK_DEPTH + 1 = deeper); nil = none yet
 	course: number, -- the course number players see ("Course #1,204", ObbyRules.courseNumber)

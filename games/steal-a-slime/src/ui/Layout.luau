@@ -792,6 +792,8 @@ Layout.OBBY_CARD = table.freeze({
 	noteSize = 15,
 	bestH = 24, -- "Best 0:51.4" and the rank chip
 	bestSize = 16,
+	totalH = 20, -- "Total 2:14": all tries since the first left the start pad, once a fall started a new one
+	totalSize = 15,
 	chipPad = 10, -- Widgets.chip's side padding
 	corner = 18,
 	stroke = 2,
@@ -800,24 +802,26 @@ Layout.OBBY_CARD = table.freeze({
 })
 
 -- The run card's height (design px); `best` = with the best-time row, `split` = the lock note on its own line
--- under the lock time (a card too narrow for both on one line, ui/ObbyHud.lockSplit).
-function Layout.obbyCardHeight(best: boolean?, split: boolean?): number
+-- under the lock time (a card too narrow for both on one line, ui/ObbyHud.lockSplit), `total` = with the total-time
+-- row.
+function Layout.obbyCardHeight(best: boolean?, split: boolean?, total: boolean?): number
 	local C = Layout.OBBY_CARD
 	return C.pad * 2
 		+ C.headH
 		+ C.gap
 		+ C.pip
 		+ C.gap
+		+ (if total then C.totalH + C.gap else 0)
 		+ (if best then C.bestH + C.gap else 0)
 		+ C.lockH
 		+ (if split then C.gap + C.lockH else 0)
 end
 
 -- The run card's box on `s` (a Layout.screen), `top` design px from the top (default the banner strip's top).
-function Layout.obbyCard(s: Screen, top: number?, best: boolean?, split: boolean?): Rect
+function Layout.obbyCard(s: Screen, top: number?, best: boolean?, split: boolean?, total: boolean?): Rect
 	local b = s.banners
 	local w = math.min(Layout.OBBY_CARD.w, b.w)
-	return Layout.rect(b.x + math.floor((b.w - w) / 2), top or b.y, w, Layout.obbyCardHeight(best, split))
+	return Layout.rect(b.x + math.floor((b.w - w) / 2), top or b.y, w, Layout.obbyCardHeight(best, split, total))
 end
 
 -- How far the bottom row is lifted off the thumbstick / jump button: phones in portrait and tablets, but not a
