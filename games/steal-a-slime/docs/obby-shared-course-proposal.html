@@ -121,8 +121,10 @@ figcaption b { color: var(--ink); }
     <dd><span class="quote">"Off during a run"</span> — everyone runs at the same speed. Merijn, 2026-11-02.</dd>
     <dt>Permanent record (question 4)</dt>
     <dd><span class="quote">"None in v1"</span> — only the live course board. Merijn, 2026-11-02.</dd>
+    <dt>Course number (question 5)</dt>
+    <dd>Default A: <span class="quote">"Course #1,204"</span>, counting from the release (<code>OBBY.COURSE_EPOCH</code>). Built 2026-11-03.</dd>
   </dl>
-  <p class="why">Still open: the course number on the sign (question 5; default A, "Course #1,204").</p>
+  <p class="why">Built notes (2026-11-03): Speed Coil, PvP slows <i>and</i> the Boss Champion speed are off during a run (everyone at the base walk speed). The board stands on the other side of the Goo Ring from the signpost, mirrored, facing the path. At 30-minute courses every section variant still shows, but over four weeks of courses instead of one (fewer courses a day). A board write that fails is tried again on the next flush instead of waiting for the next new best.</p>
 </section>
 
 <nav class="note">
@@ -274,7 +276,7 @@ figcaption b { color: var(--ink); }
     <tr><td><code>CHAIN_SLOTS</code></td><td>144 (a day)</td><td><b>48</b> (still a day)</td></tr>
     <tr><td>Enter a cleared course</td><td>Refused until the next course</td><td><b>Allowed</b>: retries to beat your time — decided</td></tr>
     <tr><td>Boost x1.5</td><td>Any counted finish when ready; 5 min on, 5 min cooldown</td><td><b>Unchanged</b>: still on its own timer (question 1)</td></tr>
-    <tr><td>Lock 50% slower</td><td>Every run</td><td><b>Only until your first counted finish on this course</b>; retries run the lock at normal speed (question 2)</td></tr>
+    <tr><td>Lock 50% slower</td><td>Every run</td><td><b>Every run</b>, retries too (decided; the proposal had: only until your first counted finish on this course)</td></tr>
     <tr><td>Best time</td><td>Runtime only</td><td>On the board; a rejoin reads your entry back from the board</td></tr>
     <tr><td><code>REBUILD_GRACE</code></td><td>90 s</td><td>Unchanged</td></tr>
   </table></div>

@@ -11,7 +11,8 @@
 	character's root position for ObbyService.step and `apply` makes its teleports. Holds no rules.
 
 	The portal sign is a SurfaceGui (landmark, guides/roblox-world-labels.md): a 1.4-stud title reads from about 25
-	studs on a phone, the 1-stud status lines from about 20; the client fills the two lines per player (ui/ObbyHud).
+	studs on a phone, the 1-stud status lines from about 20; the client fills the two lines per player (ui/ObbyHud):
+	the boost status and "Course #N · m:ss left". The course board beside it is server/ObbyBoardView.
 ]]
 
 local Players = game:GetService("Players")
@@ -98,6 +99,11 @@ function ObbyView.build(course: ObbyCourse.Course)
 	getFolder():SetAttribute(Constants.OBBY_SLOT, course.slot)
 end
 
+-- The sign's course line before the client fills it: "A new course every 30 min".
+function ObbyView.everyText(): string
+	return `A new course every {math.floor(Config.OBBY.ROTATION_SECONDS / 60 + 0.5)} min`
+end
+
 -- Builds workspace.Obby.Portal (once).
 function ObbyView.buildPortal()
 	local root = getFolder()
@@ -153,7 +159,7 @@ function ObbyView.buildPortal()
 		gui.Adornee = sign
 		ObbyParts.signLabel(gui, "Title", "OBBY", 0.04, 0.38, 80)
 		ObbyParts.signLabel(gui, Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!", 0.46, 0.26, 50)
-		ObbyParts.signLabel(gui, Constants.OBBY_SIGN_COURSE, "A new course every 10 min", 0.75, 0.2, 40)
+		ObbyParts.signLabel(gui, Constants.OBBY_SIGN_COURSE, ObbyView.everyText(), 0.75, 0.2, 40)
 		gui.Parent = sign
 	end
 	model.Parent = root

@@ -584,6 +584,11 @@ WorldLayout.OBBY = table.freeze({
 	clearRadius = 12, -- keep-clear circle for props round the portal and its sign
 	pathWidth = 10,
 	archDistance = 108, -- the arch, from the map centre: past the ritual circle (Config.RITUAL, bearing 348, r 93)
+	-- The course board (server/ObbyBoardView: a Hall of Fame board, "FASTEST RUNS"), on the other side of the ring
+	-- from the signpost: in the ring's own axes, like server/ObbyView's sign offset (`side` along the ring's X, the
+	-- sign stands at +11.5; `back` studs away from the plaza), turned `turn` degrees towards the path and scaled to
+	-- `scale`. `clear` = the keep-clear circle round it for props.
+	board = table.freeze({ side = -14, back = 1.5, turn = -22, scale = 0.8, clear = 8 }),
 	world = table.freeze({
 		bearing = 180,
 		distance = 9000,
@@ -609,6 +614,17 @@ function WorldLayout.obbyPortal(): (Vec, number)
 	local o = WorldLayout.OBBY
 	local a = math.rad(o.bearing)
 	return { math.sin(a) * o.portalDistance, 0, math.cos(a) * o.portalDistance }, (o.bearing + 180) % 360
+end
+
+-- The obby course board's foot on the ground (y = 0) and its yaw (its face looks along that yaw).
+function WorldLayout.obbyBoard(): (Vec, number)
+	local portal, toCentre = WorldLayout.obbyPortal()
+	local b = WorldLayout.OBBY.board
+	local a = math.rad(toCentre)
+	local fx, fz = math.sin(a), math.cos(a) -- towards the map centre (the way the ring faces)
+	local rx, rz = -fz, fx -- the ring's own +X (CFrame.lookAt towards the centre)
+	return { portal[1] + rx * b.side - fx * b.back, 0, portal[3] + rz * b.side - fz * b.back },
+		(toCentre + b.turn) % 360
 end
 
 -- The obby course frame in its own world: origin (course-local 0, 0, 0) and yaw (course forward).

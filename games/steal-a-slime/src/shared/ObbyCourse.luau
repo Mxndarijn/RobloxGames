@@ -855,4 +855,59 @@ function ObbyCourse.names(picks: { Pick }): { string }
 	return out
 end
 
+---------------------------------------------------------------------------
+-- Course hash (the shared board's key, server/ObbyBoard)
+---------------------------------------------------------------------------
+
+-- One value as text for the hash: numbers rounded to 0.01 (no "-0.00"), tables with their keys sorted.
+local function encode(v: any, out: { string })
+	local kind = type(v)
+	if kind == "number" then
+		local text = string.format("%.2f", v)
+		table.insert(out, if text == "-0.00" then "0.00" else text)
+	elseif kind == "table" then
+		local keys = {}
+		for k in v do
+			table.insert(keys, tostring(k))
+		end
+		table.sort(keys)
+		table.insert(out, "{")
+		for _, k in keys do
+			local value = v[k]
+			if value == nil then
+				value = v[tonumber(k) :: any]
+			end
+			table.insert(out, k)
+			table.insert(out, "=")
+			encode(value, out)
+			table.insert(out, ";")
+		end
+		table.insert(out, "}")
+	else
+		table.insert(out, tostring(v))
+	end
+end
+
+--[[
+	8 hex characters over everything a built course is: every part (size, position, rotation, look, motion and every
+	other field, numbers rounded to 0.01) in order, plus Config.OBBY.COURSE_VERSION. Two builds of a slot give the
+	same hash; a change to any section's code that moves or changes a part gives another, so servers on other course
+	code post to another board (FNV-1a, 32 bit).
+]]
+function ObbyCourse.hash(course: Course): string
+	local out: { string } = { `v{OBBY.COURSE_VERSION}|{course.slot}|` }
+	for _, part in course.parts do
+		encode(part, out)
+	end
+	local text = table.concat(out)
+	local h = 2166136261
+	for i = 1, #text do
+		h = bit32.bxor(h, string.byte(text, i))
+		-- h * 16777619 mod 2^32, in two halves so the product stays exact in a double
+		h = (bit32.band(h, 0xFFFF) * 16777619 + bit32.lshift(bit32.band(bit32.rshift(h, 16) * 16777619, 0xFFFF), 16))
+			% 4294967296
+	end
+	return string.format("%08x", h)
+end
+
 return table.freeze(ObbyCourse)

@@ -5,8 +5,8 @@
 	Server side of the Obby (the sky course). `world.obby` is the course standing now (ObbyCourse); `session.obbyRun`
 	a player's run. `step` gets where every player stands (the adapter reads root positions) and returns the
 	teleports the adapter must make:
-	  * stepping into the portal circle starts a run (not while carrying a slime, nor on a course they already cleared:
-	    `cleared`) and lifts the player to the start pad
+	  * stepping into the portal circle starts a run (not while carrying a slime) and lifts the player to the start
+	    pad; a course they already cleared lets them in again to beat their time (`cleared`: tracked as a retry)
 	  * while running, the runner's base lock counts down at OBBY.LOCK_RATE (ObbyLock.step, every tick)
 	  * there are no checkpoints: the server tracks the furthest section the runner has been over (ObbyCourse.sectionAt),
 	    in order. Skipping a section, or finishing faster than OBBY.MIN_RUN_SECONDS, marks the run invalid (it still
@@ -19,7 +19,8 @@
 	  * the Goo Ring behind the start pad (ObbyCourse.inHome) ends the run and sets the runner down by the portal
 	  * the course stands in its own world (Place.zone): anyone there without a run is set down by the portal
 	  * the finish pad ends the run: the time, a best on this course, and the boost when ObbyRules says it is ready
-	    (data.obbyUntil / obbyReadyAt, saved); then the player is set down by the portal
+	    (data.obbyUntil / obbyReadyAt, saved); then the player is set down by the portal. A best that passes
+	    ObbyBoard.eligible goes to the course's shared board (`world.obbyBoard`, server/ObbyBoard) with its rank
 	  * a new rotation (ObbyCourse.slot) rebuilds the course once no one is running, or after OBBY.REBUILD_GRACE
 	    seconds, sending the runners still on it back to the portal
 	`refresh` keeps data.obbyBonus (read by Perks) in step with the saved timers, also across rejoins.
@@ -31,6 +32,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local ObbyCourse = if Shared then require(Shared.ObbyCourse) else require("../shared/ObbyCourse")
 local ObbyRules = if Shared then require(Shared.ObbyRules) else require("../shared/ObbyRules")
+local ObbyBoard = if script then require(script.Parent.ObbyBoard) else require("./ObbyBoard")
 local ObbyLock = if script then require(script.Parent.ObbyLock) else require("./ObbyLock")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -64,7 +66,9 @@ export type View = {
 	rotatesAt: number, -- server time the next rotation starts
 	-- the run in progress; `lockRate` = how fast the runner's base lock counts down meanwhile (OBBY.LOCK_RATE)
 	run: { section: number, of: number, startedAt: number, lockRate: number }?,
-	best: number?, -- best finish on the current course, seconds
+	best: number?, -- best counted finish on the current course, seconds (whole tenths)
+	rank: number?, -- that best's rank on the course board (OBBY.BOARD.RANK_DEPTH + 1 = deeper); nil = none yet
+	course: number, -- the course number players see (ObbyRules.courseNumber)
 }
 
 local ObbyService = {}
@@ -84,10 +88,6 @@ end
 local function clock(seconds: number): string
 	local s = math.max(0, math.ceil(seconds))
 	return string.format("%d:%02d", s // 60, s % 60)
-end
-
-local function runTime(seconds: number): string
-	return string.format("%.1f s", seconds)
 end
 
 -- Builds the course for `now` (the adapter calls it once at start, then builds the Instances).
@@ -110,8 +110,8 @@ local function sectionName(course: ObbyCourse.Course, index: number): string
 	return if pick then ObbyCourse.nameOf(pick.id) else "?"
 end
 
--- True when `session` finished the course of rotation `slot` with a run that counted (session.obbyBest is set by
--- every counted finish): the portal lets them in again on the next course.
+-- True when `session` finished the course of rotation `slot` with a run that counted (session.obbyBest, also read
+-- back from the board after a rejoin): a new run on it is a retry for a better time.
 function ObbyService.cleared(session: Session, slot: number): boolean
 	local best = session.obbyBest
 	return best ~= nil and best.slot == slot
@@ -132,13 +132,14 @@ function ObbyService.enter(world: World, session: Session, place: Place, now: nu
 	if course.slot ~= ObbyCourse.slot(now) then
 		return false, "A new course is on its way. Back in a moment!", nil
 	end
-	if ObbyService.cleared(session, course.slot) then
-		local rotatesAt = ObbyCourse.slotStart(course.slot + 1)
-		return false, `You cleared this course! New one in {clock(rotatesAt - now)}`, nil
-	end
+	local retry = ObbyService.cleared(session, course.slot)
 	session.obbyRun = { slot = course.slot, section = 0, startedAt = now, settleUntil = now + OBBY.MOVE_GRACE }
 	World.markDirty(session)
-	World.track(world, session.userId, { op = "event", name = "ObbyStarted" })
+	World.track(world, session.userId, {
+		op = "event",
+		name = "ObbyStarted",
+		fields = { if retry then "Run - Retry" else "Run - First try" },
+	})
 	local status = ObbyRules.phase(session.data, now)
 	local hint = if status == "ready"
 		then "Reach the finish for x1.5 income!"
@@ -155,6 +156,30 @@ function ObbyService.cancel(session: Session)
 	end
 end
 
+-- The ObbyNewBest field for a rank (RANK_DEPTH + 1 = deeper than the board reads).
+function ObbyService.rankField(rank: number): string
+	if rank <= 3 then
+		return "Rank - Top 3"
+	elseif rank <= 10 then
+		return "Rank - Top 10"
+	elseif rank <= OBBY.BOARD.RANK_DEPTH then
+		return "Rank - Top 100"
+	end
+	return "Rank - Deeper"
+end
+
+-- The finish message's board part: "New best: #6 on this course" or "Your best: 0:44.9 (#6)"; nil without a best.
+function ObbyService.bestText(newBest: boolean, best: number?, rank: number?): string?
+	local rankText = ObbyRules.rankText(rank)
+	if newBest then
+		return if rankText then `New best: {rankText} on this course` else "New best on this course!"
+	elseif best then
+		local time = ObbyRules.timeText(ObbyRules.tenths(best))
+		return if rankText then `Your best: {time} ({rankText})` else `Your best: {time}`
+	end
+	return nil
+end
+
 local function finish(world: World, session: Session, run: World.ObbyRun, course: ObbyCourse.Course, now: number)
 	local seconds = now - run.startedAt
 	if seconds < OBBY.MIN_RUN_SECONDS then
@@ -162,30 +187,56 @@ local function finish(world: World, session: Session, run: World.ObbyRun, course
 	end
 	session.obbyRun = nil
 	World.markDirty(session)
+	local tenths = ObbyRules.tenths(seconds)
+	local time = ObbyRules.timeText(tenths)
+	-- A best (and a board time) only from a run that counts, on a save this server may write, with no flag since.
+	local counts = not run.invalid and ObbyBoard.eligible(world, session, run, now)
 	local best = session.obbyBest
-	local newBest = not run.invalid and (best == nil or best.slot ~= course.slot or seconds < best.seconds)
+	local prior = if best and best.slot == course.slot then ObbyRules.tenths(best.seconds) else nil
+	local newBest = counts and (prior == nil or tenths < prior)
+	local board = world.obbyBoard :: ObbyBoard.State?
+	local rank: number? = nil
 	if newBest then
-		session.obbyBest = { slot = course.slot, seconds = seconds }
+		session.obbyBest = { slot = course.slot, seconds = tenths / 10 }
+		if board then
+			local placed = ObbyBoard.record(board, course, session, tenths, now)
+			rank = placed
+			World.track(world, session.userId, {
+				op = "event",
+				name = "ObbyNewBest",
+				value = if placed <= OBBY.BOARD.RANK_DEPTH then placed else 0,
+				fields = { ObbyService.rankField(placed) },
+			})
+		end
+	elseif board and counts then
+		rank = ObbyBoard.rank(board, session, course.slot)
 	end
+	local mine = session.obbyBest
+	local tail = if counts
+		then ObbyService.bestText(newBest, if mine and mine.slot == course.slot then mine.seconds else nil, rank)
+		else nil
 	local earned = false
 	if run.invalid then
 		World.notify(world, session.userId, "That run didn't count. Try again!", "bad", nil)
 	elseif ObbyRules.grant(session.data, now) then
 		earned = true
 		session.data.obbyBonus = OBBY.BONUS
+		local boost = `x{1 + OBBY.BONUS} income for {math.floor(OBBY.BOOST_SECONDS / 60 + 0.5)} min`
 		World.notify(
 			world,
 			session.userId,
-			`Obby cleared in {runTime(seconds)}! x{1 + OBBY.BONUS} income for {math.floor(OBBY.BOOST_SECONDS / 60 + 0.5)} min`,
+			if tail then `Cleared in {time}! {tail} · {boost}` else `Obby cleared in {time}! {boost}`,
 			"good",
 			"BossMvp"
 		)
 	else
-		local tail = if newBest then " New best!" else ""
 		World.notify(
 			world,
 			session.userId,
-			`Cleared in {runTime(seconds)}!{tail} Boost ready again in {clock(session.data.obbyReadyAt - now)}`,
+			if newBest
+				then `Cleared in {time}! {tail}`
+				elseif tail then `Cleared in {time}. {tail}`
+				else `Cleared in {time}! Boost ready again in {clock(session.data.obbyReadyAt - now)}`,
 			"good",
 			nil
 		)
@@ -364,6 +415,7 @@ function ObbyService.view(world: World, session: Session, now: number): View?
 	local boost = ObbyRules.view(session.data, now)
 	local run = session.obbyRun
 	local best = session.obbyBest
+	local board = world.obbyBoard :: ObbyBoard.State?
 	return {
 		bonus = boost.bonus,
 		endsAt = boost.endsAt,
@@ -374,6 +426,8 @@ function ObbyService.view(world: World, session: Session, now: number): View?
 			then { section = run.section, of = #course.spans, startedAt = run.startedAt, lockRate = ObbyLock.rate() }
 			else nil,
 		best = if best and best.slot == course.slot then best.seconds else nil,
+		rank = if board then ObbyBoard.rank(board, session, course.slot) else nil,
+		course = ObbyRules.courseNumber(course.slot),
 	}
 end
 

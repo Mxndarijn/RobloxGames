@@ -774,8 +774,9 @@ Layout.MENU_HEIGHTS = table.freeze({
 })
 Layout.BANNER_WIDTH = 560
 
--- The obby run card (ui/ObbyHud), design px: top centre in the banner strip, under the banners. Three rows: the
--- section and the run clock, one pip per section, the base lock. `w` shrinks to the strip on phones.
+-- The obby run card (ui/ObbyHud), design px: top centre in the banner strip, under the banners. Rows: the section
+-- and the run clock, one pip per section, your best and rank on this course (once you have a time on it), the base
+-- lock. `w` shrinks to the strip on phones.
 Layout.OBBY_CARD = table.freeze({
 	w = 260,
 	pad = 10,
@@ -789,6 +790,8 @@ Layout.OBBY_CARD = table.freeze({
 	lockH = 26,
 	lockSize = 16,
 	noteSize = 15,
+	bestH = 24, -- "Best 0:51.4" and the rank chip
+	bestSize = 16,
 	chipPad = 10, -- Widgets.chip's side padding
 	corner = 18,
 	stroke = 2,
@@ -796,17 +799,17 @@ Layout.OBBY_CARD = table.freeze({
 	transparency = 0.15,
 })
 
--- The run card's height (design px).
-function Layout.obbyCardHeight(): number
+-- The run card's height (design px); `best` = with the best-time row.
+function Layout.obbyCardHeight(best: boolean?): number
 	local C = Layout.OBBY_CARD
-	return C.pad * 2 + C.headH + C.gap + C.pip + C.gap + C.lockH
+	return C.pad * 2 + C.headH + C.gap + C.pip + C.gap + (if best then C.bestH + C.gap else 0) + C.lockH
 end
 
 -- The run card's box on `s` (a Layout.screen), `top` design px from the top (default the banner strip's top).
-function Layout.obbyCard(s: Screen, top: number?): Rect
+function Layout.obbyCard(s: Screen, top: number?, best: boolean?): Rect
 	local b = s.banners
 	local w = math.min(Layout.OBBY_CARD.w, b.w)
-	return Layout.rect(b.x + math.floor((b.w - w) / 2), top or b.y, w, Layout.obbyCardHeight())
+	return Layout.rect(b.x + math.floor((b.w - w) / 2), top or b.y, w, Layout.obbyCardHeight(best))
 end
 
 -- How far the bottom row is lifted off the thumbstick / jump button: phones in portrait and tablets, but not a

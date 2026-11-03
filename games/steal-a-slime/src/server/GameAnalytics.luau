@@ -47,8 +47,9 @@ GameAnalytics.CATALOG = table.freeze({
 		"EggHatched", -- (field: tier)
 		"BossHits", -- per player online when a boss fight ends; value = their hits (fields: outcome, joined)
 		"BossWon", -- the carrier who brought the boss home (field: species)
-		"ObbyStarted", -- stepped into the Obby portal
+		"ObbyStarted", -- stepped into the Obby portal (field: first try on this course, or a retry after a clear)
 		"ObbyFinished", -- value = run seconds (field: boost earned or not)
+		"ObbyNewBest", -- a new best on the course board; value = rank, 0 = past #100 (field: Top 3 / 10 / 100 / Deeper)
 		"ObbyFell", -- fell off a section (field: section)
 		"TutorialSkipped", -- (field: the step it was on)
 		"ShopDenied", -- a shop buy refused (field: shop, reason)

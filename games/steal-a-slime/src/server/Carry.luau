@@ -426,6 +426,11 @@ end
 -- PvP holds / slows (PvpSlow: Goo Traps, Goo Blasters; PvpFun: the Goo Balloon slow; FEATURES.PvP, CONTRACT.md §26)
 -- multiply in; 1 with the flag off.
 function Carry.targetWalkSpeed(session: Session, now: number): number
+	if session.obbyRun then
+		-- An Obby run is timed for the course board: everyone runs at the base speed (no Speed Coil, Boss Champion
+		-- speed or slows) until the run ends (contract/obby.md §3).
+		return Config.BASE_WALK_SPEED
+	end
 	local speed = if session.carry then Carry.walkSpeed(session) else Shop.walkSpeed(session.data, session.coilHeld)
 	local goo = session.bossSlow -- a boss goo puddle (BossEvent)
 	local bossFactor = if goo and now < goo.untilTime then goo.factor else 1

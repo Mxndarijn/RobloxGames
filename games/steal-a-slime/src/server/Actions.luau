@@ -114,6 +114,9 @@ export type Context = {
 	-- The admin menu (AdminService.Context): the live admin events service and a move onto the hub spawn.
 	adminEvents: any?,
 	toHub: ((userId: number) -> boolean)?,
+	-- The obby course board's store (PeriodBoard.Store, server/ObbyBoardView): the shared MemoryStore live, an
+	-- in-memory store in memory mode and Studio. nil = no board.
+	obbyBoardStore: any?,
 }
 
 local Actions = {}

@@ -448,11 +448,11 @@ describe("ObbyCourse rotation with the section registry", function()
 		expect(ids(ObbyCourse.pick(4321)) ~= ids(ObbyCourse.pick(4322))).toBe(true)
 	end)
 
-	it("shows every variant (and every generator tier) within a week of rotations", function()
+	it("shows every variant (and every generator tier) within four weeks of 30-minute courses", function()
 		local seen = {}
 		local first = 4032
 		local slot = first
-		while slot < first + 7 * OBBY.CHAIN_SLOTS do
+		while slot < first + 28 * OBBY.CHAIN_SLOTS do
 			for _, p in ObbyCourse.pick(slot) do
 				seen[`{p.id}#{p.variant}#{p.tier}`] = true
 			end

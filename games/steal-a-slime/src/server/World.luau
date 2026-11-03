@@ -149,6 +149,7 @@ export type GuardEntry = {
 	plot: PlotVisit?, -- another player's jar the character is in (SlimeGuard.trackPlot)
 	logMinute: number,
 	logCount: number,
+	flaggedAt: number?, -- server time of this player's last movement flag (SlimeGuard.report; the obby board skips runs after one)
 }
 -- A completed steal (SlimeGuard.recordSteal), kept so a kick can undo it.
 export type StealRecord = {
@@ -301,6 +302,7 @@ export type World = {
 	stealLedger: { StealRecord }, -- SlimeGuard: completed steals of the last UNDO_SECONDS, runtime only
 	guardMode: ("off" | "watch" | "enforce")?, -- tests: overrides FEATURES.SlimeGuard / SLIME_GUARD.ENFORCE
 	obby: ObbyCourse.Course?, -- the Obby course standing now (ObbyService.setup); nil until the adapter builds it
+	obbyBoard: any?, -- the course's fastest-time board (server/ObbyBoard.State); nil = no board (finishes post nothing)
 }
 
 export type Options = {
