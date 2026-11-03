@@ -107,6 +107,12 @@ ObbyMoves.LANDING_DOT = 1.4
 ObbyMoves.CAM_BACK = 14 -- the seated camera: studs behind the barrel,
 ObbyMoves.CAM_UP = 6 -- above it,
 ObbyMoves.CAM_AHEAD = 24 -- and looking at a point this far ahead of it
+-- The seat: you lie along the barrel like a human cannonball, arms up, head and shoulders out of its mouth. The
+-- barrel (the cannon mesh, ObbyParts.SKINS.cannon) points SEAT_TILT degrees up from the barrel's centre, its lip
+-- SEAT_MOUTH studs along that axis; the root sits SEAT_OUT studs back from the lip. In flight you go head first.
+ObbyMoves.SEAT_TILT = 12
+ObbyMoves.SEAT_MOUTH = 1.9
+ObbyMoves.SEAT_OUT = 0.5
 
 -- dark
 ObbyMoves.DARK_SECONDS = 0.6 -- the fade in and out
@@ -588,6 +594,9 @@ function ObbyMoves.start(): Controller
 		end
 		cannon.item = nil
 		cannon.arc = nil
+		if hold == "cannon" or hold == "flight" then
+			armsUp(false)
+		end
 		if h then
 			platform(h, false)
 		end
@@ -1029,6 +1038,16 @@ function ObbyMoves.start(): Controller
 
 	------------------------------------------------------------------ cannon
 
+	-- A root lying along `up` (its head that way), face to the sky.
+	local function lying(at: Vector3, up: Vector3): CFrame
+		local face = Vector3.yAxis - up * Vector3.yAxis:Dot(up)
+		if face.Magnitude < 1e-3 then
+			face = -Vector3.xAxis
+		end
+		face = face.Unit
+		return CFrame.fromMatrix(at, face:Cross(up), up)
+	end
+
 	-- The barrel's aim now (its X axis, as ObbyFx sweeps it), its mouth and the shot's start velocity.
 	local function aim(item: Item): (Vector3, Vector3, Vector3)
 		local part = item.part
@@ -1127,7 +1146,7 @@ function ObbyMoves.start(): Controller
 				glide(v, m.clock)
 				return
 			end
-			m.root.CFrame = CFrame.lookAt(p, p + unitOr(flat(v), Vector3.xAxis))
+			m.root.CFrame = lying(p, unitOr(v, Vector3.yAxis)) -- head first, arms up
 			m.root.AssemblyLinearVelocity = v
 			m.root.AssemblyAngularVelocity = Vector3.zero
 			return
@@ -1152,6 +1171,7 @@ function ObbyMoves.start(): Controller
 					drive = nil
 					platform(m.humanoid, true)
 					holdCamera(true)
+					armsUp(true)
 					playSound("load", m.root)
 					break
 				end
@@ -1168,7 +1188,9 @@ function ObbyMoves.start(): Controller
 		local heading, mouth, velocity = aim(item :: Item)
 		local a = trace(mouth, velocity, feetDrop(m), g)
 		local centre = part.Position
-		m.root.CFrame = CFrame.lookAt(centre, centre + heading)
+		local tilt = math.rad(ObbyMoves.SEAT_TILT)
+		local axis = heading * math.cos(tilt) + Vector3.yAxis * math.sin(tilt)
+		m.root.CFrame = lying(centre + axis * (ObbyMoves.SEAT_MOUTH - ObbyMoves.SEAT_OUT), axis)
 		m.root.AssemblyLinearVelocity = Vector3.zero
 		m.root.AssemblyAngularVelocity = Vector3.zero
 		local cam = workspace.CurrentCamera
@@ -1184,7 +1206,7 @@ function ObbyMoves.start(): Controller
 			cannon.flightT = 0
 			hold = "flight"
 			m.humanoid.Jump = false
-			m.root.CFrame = CFrame.lookAt(mouth, mouth + heading)
+			m.root.CFrame = lying(mouth, velocity.Unit)
 			playSound("fire", m.root)
 			return
 		end
