@@ -236,8 +236,8 @@ function BossFight.step(state: State, now: number, dt: number, paused: boolean?)
 end
 
 --[[
-	Whether `userId` may grab the hauled boss now: only players who hit it (or popped a guard). `priorityPresent` = the
-	top contributor is still on the server (their head start ends early when they leave).
+	Whether `userId` may grab the hauled boss now. `priorityPresent` = the top contributor is still on the server
+	(their head start ends early when they leave).
 ]]
 function BossFight.canGrab(state: State, userId: number, now: number, priorityPresent: boolean): (boolean, string?)
 	if state.phase ~= "haul" then
@@ -245,9 +245,6 @@ function BossFight.canGrab(state: State, userId: number, now: number, priorityPr
 	end
 	if state.carrierUserId ~= nil then
 		return false, "someone is already carrying it"
-	end
-	if (state.contributions[userId] or 0) <= 0 then
-		return false, "only players who hit the boss can grab it"
 	end
 	local priority = state.priorityUserId
 	if
@@ -266,7 +263,7 @@ function BossFight.grab(state: State, userId: number)
 	state.carrierUserId = userId
 end
 
--- The carrier dropped it (slap, Drop, left): it lies there and any fighter may grab it. The deadline stays.
+-- The carrier dropped it (slap, Drop, left): it lies there and anyone may grab it. The deadline stays.
 function BossFight.drop(state: State)
 	state.carrierUserId = nil
 end

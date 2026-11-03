@@ -303,14 +303,13 @@ describe("BossEvent haul", function()
 		function()
 			local w = world(3)
 			local id = arrive(w)
-			BossEvent.hit(w, w.sessions[3], T0 + BOSS.WARNING_SECONDS) -- P3 hits once, so it may grab
-			local t = fill(w, 1, 2) -- P1 hits twice as often as P2
+			local t = fill(w, 1, 2) -- P1 hits twice as often as P2; P3 never hits
 			local p1, p2, p3 = w.sessions[1], w.sessions[2], w.sessions[3]
 			expect((Carry.grab(w, 3, id, 1, t + BOSS.PRIORITY_SECONDS))).toBe(true)
 			expect((Carry.deposit(w, 3, t + BOSS.PRIORITY_SECONDS + 2))).toBe(true)
 			expect(p1.data.boss.wins.goozilla).toBeNil() -- the top hitter didn't carry it
 			expect(p2.data.boss.wins.goozilla).toBeNil()
-			expect(p3.data.boss.wins.goozilla).toBe(1) -- the carrier wins, even with one hit
+			expect(p3.data.boss.wins.goozilla).toBe(1) -- the carrier wins, even with no hits
 			expect(p3.data.boss.hauls).toBe(1)
 			expect(p1.data.boss.hauls).toBe(0)
 			expect(p1.data.boss.mvps).toBe(1)

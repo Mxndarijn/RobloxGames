@@ -103,11 +103,10 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   `DROP_PICKUP_COOLDOWN`), a wild Mystery Egg smashes, a stolen slime bounces home. No extra toast or notice card: the
   hit's own toast is the only text. A blocked strike drops nothing. Each attack strikes a player once. The meter never drains during `windup`, `attack`, `hop`, `rise` or `land`. Every
   `BOSS.STAGE_EVERY` of the meter reached speeds its moves and attack gaps by `BOSS.STAGE_SPEEDUP`.
-- **Haul.** Only players who hit the boss or popped a guard (`contributions > 0`) may grab it ("only players who hit
-  the boss can grab it"). For the first `BOSS.PRIORITY_SECONDS` only the top contributor may (if still on the server);
-  then any of them. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms
+- **Haul.** For the first `BOSS.PRIORITY_SECONDS` only the top contributor may grab it (if still on the server); then
+  anyone, whether they hit it or not. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
-  spot; any player who hit it can grab it again (anyone may still slap the carrier). Dropping never resets the haul deadline.
+  spot; anyone can grab it again. Dropping never resets the haul deadline.
 - **Win.** The carrier reaches their HomeZone (`Carry.depositBoss`, no free pad needed): a server-wide toast names the
   winner, who alone gets the win (below) and the Boss Champion boost: `+BOSS.MVP_BONUS` income and `+BOSS.MVP_SPEED`
   walk speed for `BOSS.MVP_SECONDS` (`Shop.walkSpeed`). The top hitter counts an MVP toward the MVP badges. The boss slime is removed; it never
