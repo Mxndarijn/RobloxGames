@@ -117,6 +117,27 @@ describe("Obby run card", function()
 		expect(title).toBe("Start")
 	end)
 
+	it("the clock is this try's; the total of every try shows only once a fall started a new one", function()
+		-- the first try: no total (it would say the same as the clock)
+		local first = view({ run = { section = 2, at = 2, of = 6, startedAt = 940, firstAt = 940 } })
+		local _, clock = ObbyHud.runText(first, 1000)
+		expect(clock).toBe("1:00.0")
+		expect(ObbyHud.totalText(first, 1000)).toBeNil()
+		-- back on the start pad after a fall: the clock stands at zero, the total goes on
+		local reset = view({ run = { section = 3, at = 0, of = 6, firstAt = 880 } })
+		_, clock = ObbyHud.runText(reset, 1000)
+		expect(clock).toBe("0:00.0")
+		expect(ObbyHud.totalText(reset, 1000)).toBe("Total 2:00")
+		-- the next try
+		local again = view({ run = { section = 3, at = 1, of = 6, startedAt = 995, firstAt = 880 } })
+		_, clock = ObbyHud.runText(again, 1000)
+		expect(clock).toBe("0:05.0")
+		expect(ObbyHud.totalText(again, 1000.9)).toBe("Total 2:00")
+		-- before the first try, and off a run: nothing
+		expect(ObbyHud.totalText(view({ run = { section = 0, at = 0, of = 6 } }), 1000)).toBeNil()
+		expect(ObbyHud.totalText(view(), 1000)).toBeNil()
+	end)
+
 	it("the clock stands at 0:00.0 until the runner leaves the start pad", function()
 		local title, clock = ObbyHud.runText(view({ run = { section = 0, at = 0, of = 6 } }), 1000)
 		expect(title).toBe("Start")
@@ -191,8 +212,9 @@ describe("Obby run card layout", function()
 				local r = Layout.obbyCard(
 					s,
 					s.banners.y + Layout.NOTICE_CARD.icon + Layout.NOTICE_CARD.pad * 2 + Layout.GAP,
-					true, -- with the best-time row: the tallest card
-					split
+					true, -- with the best-time and total rows: the tallest card
+					split,
+					true
 				)
 				check.onScreen("ObbyRunCard", r, Layout.MARGIN)
 				check.noOverlap("ObbyRunCard", r, "Nav", s.nav)
@@ -233,7 +255,12 @@ describe("Obby run card layout", function()
 				if bestW > inner then
 					check.fail(`best row needs {bestW} px, has {inner}`)
 				end
-				for _, size in { C.titleSize, C.clockSize, C.pipText, C.lockSize, C.noteSize, C.bestSize } do
+				local total = ObbyHud.totalText(view({ run = { section = 1, of = 6, firstAt = 0 } }), 3599.9) :: string
+				local totalW = Layout.lineWidth(total, C.totalSize, true)
+				if totalW > inner then
+					check.fail(`total row needs {totalW} px, has {inner}`)
+				end
+				for _, size in { C.titleSize, C.clockSize, C.pipText, C.lockSize, C.noteSize, C.bestSize, C.totalSize } do
 					if size < Layout.MIN_TEXT then
 						check.fail(`text size {size} < MIN_TEXT {Layout.MIN_TEXT}`)
 					end
