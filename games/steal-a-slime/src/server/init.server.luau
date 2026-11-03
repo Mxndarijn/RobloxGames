@@ -165,17 +165,18 @@ local leaderboard = LeaderboardView.new(world, persistence.boardStore, leaderboa
 -- The obby (contract/obby.md): the portal once, this rotation's course (ServerLoop rebuilds it).
 safeCall("obby setup", function()
 	ObbyView.buildPortal()
+	ObbyBoardView.buildSign()
 	ObbyView.build(ObbyService.setup(world, now()))
 end)
 -- The course's fastest-time board, shared by every server (memory mode / Studio: this server only).
 local obbyBoardMode
 ctx.obbyBoardStore, obbyBoardMode = ObbyBoardView.store(persistence.memoryMode)
 safeCall("obby board", ObbyBoardView.start, world, ctx, obbyBoardMode, now)
--- The Goo Ring, its signpost and the board are kit meshes (MeshSwap fills their MeshAsset slots; it yields).
+-- The Goo Ring, the sign board and the course board are kit meshes (MeshSwap fills their MeshAsset slots; it yields).
 task.spawn(safeCall, "obby portal meshes", function()
 	local obby = workspace:FindFirstChild(Constants.OBBY_FOLDER)
 	local slots = {}
-	for _, name in { Constants.OBBY_PORTAL, Constants.OBBY_BOARD } do
+	for _, name in { Constants.OBBY_PORTAL, Constants.OBBY_SIGN, Constants.OBBY_BOARD } do
 		local slot = obby and obby:FindFirstChild(name)
 		if slot then
 			table.insert(slots, slot)

@@ -589,6 +589,9 @@ WorldLayout.OBBY = table.freeze({
 	-- sign stands at +11.5; `back` studs away from the plaza), turned `turn` degrees towards the path and scaled to
 	-- `scale`. `clear` = the keep-clear circle round it for props.
 	board = table.freeze({ side = -14, back = 1.5, turn = -22, scale = 0.8, clear = 8 }),
+	-- The OBBY sign board (server/ObbyBoardView.buildSign: the same Hall of Fame frame), the board's mirror image on
+	-- the ring's other side.
+	sign = table.freeze({ side = 14, back = 1.5, turn = 22, scale = 0.8, clear = 8 }),
 	world = table.freeze({
 		bearing = 180,
 		distance = 9000,
@@ -616,10 +619,11 @@ function WorldLayout.obbyPortal(): (Vec, number)
 	return { math.sin(a) * o.portalDistance, 0, math.cos(a) * o.portalDistance }, (o.bearing + 180) % 360
 end
 
--- The obby course board's foot on the ground (y = 0) and its yaw (its face looks along that yaw).
-function WorldLayout.obbyBoard(): (Vec, number)
+-- The obby course board's foot on the ground (y = 0) and its yaw (its face looks along that yaw); `spot` picks
+-- another board by the ring (WorldLayout.OBBY.sign), default the course board.
+function WorldLayout.obbyBoard(spot: { side: number, back: number, turn: number }?): (Vec, number)
 	local portal, toCentre = WorldLayout.obbyPortal()
-	local b = WorldLayout.OBBY.board
+	local b = spot or WorldLayout.OBBY.board
 	local a = math.rad(toCentre)
 	local fx, fz = math.sin(a), math.cos(a) -- towards the map centre (the way the ring faces)
 	local rx, rz = -fz, fx -- the ring's own +X (CFrame.lookAt towards the centre)

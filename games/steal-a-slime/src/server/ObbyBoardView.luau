@@ -16,6 +16,11 @@
 	the viewer's own "You" line (filled by each client, ui/ObbyHud) and the last course's #1. A SurfaceGui
 	(landmark, guides/roblox-world-labels.md): MaxDistance 200; at scale 0.8 the row text is ~0.55 studs (reads
 	from ~11 studs on a phone, ~20 on 720p), the title ~1 stud.
+
+	`buildSign()` puts the OBBY sign board on the ring's other side (WorldLayout.OBBY.sign): the same frame, title
+	"OBBY" over three cards: the boost status and "Course #N · m:ss left" (Constants.OBBY_SIGN_STATUS /
+	OBBY_SIGN_COURSE, filled per player by ui/ObbyHud) and the lock rule ("Base locks run 50% slower in a run", from
+	Config.OBBY.LOCK_RATE). Its card text is ~1.1 studs at scale 0.8 (twice the rows'), MaxDistance 200.
 ]]
 
 local MemoryStoreService = game:GetService("MemoryStoreService")
@@ -143,24 +148,11 @@ local function dress(content: Instance)
 	footer.Size = UDim2.fromScale(1, F.footer)
 end
 
--- Builds workspace.Obby.Board by the portal (once). Returns it, nil when the props can't be built.
-function ObbyBoardView.build(): Model?
-	local folder = workspace:FindFirstChild(Constants.OBBY_FOLDER)
-	if not folder then
-		return nil
-	end
-	local existing = folder:FindFirstChild(Constants.OBBY_BOARD)
-	if existing and existing:IsA("Model") then
-		return existing
-	end
+-- Stands a board Model by the ring at `spot` (a WorldLayout.OBBY board spot), anchored, skinned by MeshSwap later.
+local function stand(model: Model, spot: { side: number, back: number, turn: number, scale: number }, folder: Instance)
 	local F = ObbyBoardView.FACE
-	local model = Props().leaderboardBoard({ model = Constants.OBBY_BOARD, title = F.title, accent = F.accent })
-	local gui = model:FindFirstChild("BoardGui", true) :: SurfaceGui
-	gui.MaxDistance = F.maxDistance
-	dress(gui:FindFirstChild("Content") :: Instance)
-	local layout = WorldLayout.OBBY.board
-	model:ScaleTo(layout.scale)
-	local foot, yaw = WorldLayout.obbyBoard()
+	model:ScaleTo(spot.scale)
+	local foot, yaw = WorldLayout.obbyBoard(spot)
 	local ground = ObbyView.place().portal[2]
 	local a = math.rad(yaw)
 	local at = Vector3.new(foot[1], ground, foot[3])
@@ -176,6 +168,96 @@ function ObbyBoardView.build(): Model?
 		model:SetAttribute("MeshSize", size)
 	end
 	model.Parent = folder
+end
+
+-- Builds workspace.Obby.Board by the portal (once). Returns it, nil when the props can't be built.
+function ObbyBoardView.build(): Model?
+	local folder = workspace:FindFirstChild(Constants.OBBY_FOLDER)
+	if not folder then
+		return nil
+	end
+	local existing = folder:FindFirstChild(Constants.OBBY_BOARD)
+	if existing and existing:IsA("Model") then
+		return existing
+	end
+	local F = ObbyBoardView.FACE
+	local model = Props().leaderboardBoard({ model = Constants.OBBY_BOARD, title = F.title, accent = F.accent })
+	local gui = model:FindFirstChild("BoardGui", true) :: SurfaceGui
+	gui.MaxDistance = F.maxDistance
+	dress(gui:FindFirstChild("Content") :: Instance)
+	stand(model, WorldLayout.OBBY.board, folder)
+	return model
+end
+
+-- The OBBY sign's face: the title bar's height and the cards under it, as fractions of the padded face.
+ObbyBoardView.SIGN = table.freeze({
+	title = "OBBY",
+	header = 0.22,
+	cardGap = 0.04, -- between the cards
+	text = 0.62, -- a card's text, of its height
+})
+
+-- The sign's lock line: "Base locks run 50% slower in a run" (nil when the lock runs at full speed).
+function ObbyBoardView.lockLine(rate: number): string?
+	local slower = math.floor((1 - rate) * 100 + 0.5)
+	return if slower > 0 then `Base locks run {slower}% slower in a run` else nil
+end
+
+-- Builds workspace.Obby.SignBoard on the ring's other side (once). Returns it, nil when the props can't be built.
+function ObbyBoardView.buildSign(): Model?
+	local folder = workspace:FindFirstChild(Constants.OBBY_FOLDER)
+	if not folder then
+		return nil
+	end
+	local existing = folder:FindFirstChild(Constants.OBBY_SIGN)
+	if existing and existing:IsA("Model") then
+		return existing
+	end
+	local F, S = ObbyBoardView.FACE, ObbyBoardView.SIGN
+	local P = Props()
+	local palette = P.BOARD_PALETTE
+	local chrome = BoardFace.CHROME
+	local model = P.leaderboardBoard({ model = Constants.OBBY_SIGN, title = S.title, accent = F.accent })
+	local gui = model:FindFirstChild("BoardGui", true) :: SurfaceGui
+	gui.MaxDistance = F.maxDistance
+	local content = gui:FindFirstChild("Content") :: Frame
+	for _, name in { "Rows", "You" } do
+		local frame = content:FindFirstChild(name)
+		if frame then
+			frame:Destroy()
+		end
+	end
+	local stroke = chrome.headerStroke
+	local header = content:FindFirstChild("Header") :: Frame
+	header.Position = UDim2.fromOffset(stroke, stroke)
+	header.Size = UDim2.new(1, -2 * stroke, S.header, -stroke)
+	local lines: { { string } } = {
+		{ Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!" },
+		{ Constants.OBBY_SIGN_COURSE, ObbyView.everyText() },
+	}
+	local lock = ObbyBoardView.lockLine(Config.OBBY.LOCK_RATE)
+	if lock then
+		table.insert(lines, { "LockRule", lock })
+	end
+	local top = S.header
+	local each = (1 - top - S.cardGap * #lines) / #lines
+	for k, line in lines do
+		local card = Instance.new("Frame")
+		card.Name = `Card_{k}`
+		card.Position = UDim2.new(0, 0, top + S.cardGap + (k - 1) * (each + S.cardGap), stroke)
+		card.Size = UDim2.fromScale(1, each)
+		card.BackgroundColor3 = rgb(palette.RowAlt)
+		card.BorderSizePixel = 0
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.25, 0)
+		corner.Parent = card
+		BoardFace.pad(card, chrome.inset, 0)
+		local text = label(card, line[1], line[2], rgb(if k == 1 then palette.Value else palette.Text))
+		text.Position = UDim2.fromScale(0, (1 - S.text) / 2)
+		text.Size = UDim2.fromScale(1, S.text)
+		card.Parent = content
+	end
+	stand(model, WorldLayout.OBBY.sign, folder)
 	return model
 end
 

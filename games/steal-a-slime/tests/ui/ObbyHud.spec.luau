@@ -139,7 +139,7 @@ describe("Obby run card", function()
 	it("says the lock's time left and how much slower it runs, or that the base is open", function()
 		local time, note = ObbyHud.lockText(102, 0.5)
 		expect(time).toBe("🔒 1:42")
-		expect(note).toBe("50% slower")
+		expect(note).toBe("50% slower locks")
 		time, note = ObbyHud.lockText(102, 1)
 		expect(time).toBe("🔒 1:42")
 		expect(note).toBeNil()
@@ -164,10 +164,12 @@ describe("Obby run card layout", function()
 				local s = Layout.screen(vp.w, vp.h, { touch = touch })
 				local check = LayoutAssert.new(label, s)
 				-- under the tallest banner stack the card can meet (one notice card)
+				local split = ObbyHud.lockSplit(Layout.obbyCard(s).w)
 				local r = Layout.obbyCard(
 					s,
 					s.banners.y + Layout.NOTICE_CARD.icon + Layout.NOTICE_CARD.pad * 2 + Layout.GAP,
-					true -- with the best-time row: the tallest card
+					true, -- with the best-time row: the tallest card
+					split
 				)
 				check.onScreen("ObbyRunCard", r, Layout.MARGIN)
 				check.noOverlap("ObbyRunCard", r, "Nav", s.nav)
@@ -192,10 +194,10 @@ describe("Obby run card layout", function()
 					check.fail(`{of} pips need {pipsW} px, have {inner}`)
 				end
 				local time, note = ObbyHud.lockText(Config.LOCK_MAX_SECONDS, Config.OBBY.LOCK_RATE)
-				local lockW = Layout.lineWidth(time, C.lockSize, true)
-					+ Layout.lineWidth(note or "", C.noteSize, true)
-					+ C.chipPad * 4
-					+ C.gap
+				-- side by side, or one chip per line on a split card
+				local timeW = Layout.lineWidth(time, C.lockSize, true) + C.chipPad * 2
+				local noteW = Layout.lineWidth(note or "", C.noteSize, true) + C.chipPad * 2
+				local lockW = if split then math.max(timeW, noteW) else timeW + noteW + C.gap
 				if lockW > inner then
 					check.fail(`lock row needs {lockW} px, has {inner}`)
 				end

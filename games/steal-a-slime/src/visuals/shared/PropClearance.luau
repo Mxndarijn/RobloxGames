@@ -203,6 +203,11 @@ do
 		zones,
 		{ name = "Obby board", kind = "circle", x = board[1], z = board[3], radius = WorldLayout.OBBY.board.clear }
 	)
+	local sign = WorldLayout.obbyBoard(WorldLayout.OBBY.sign)
+	table.insert(
+		zones,
+		{ name = "Obby sign", kind = "circle", x = sign[1], z = sign[3], radius = WorldLayout.OBBY.sign.clear }
+	)
 	local path = WorldLayout.obbyPath()
 	table.insert(zones, {
 		name = "Obby path",

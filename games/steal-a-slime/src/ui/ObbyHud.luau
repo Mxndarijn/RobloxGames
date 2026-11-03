@@ -11,7 +11,7 @@
 	      - the base lock's time left (State.lockUntil) with a note that it runs slower meanwhile (run.lockRate);
 	        "Base open" when no lock runs. The server pushes lockUntil out every obby tick but sends it only now and
 	        then, so the card counts down at lockRate from the last value it saw (`lockLeft`)
-	  * the portal sign's two lines (workspace.Obby.Portal, server/ObbyView), filled locally for this player: their
+	  * the sign board's two lines (workspace.Obby.SignBoard, server/ObbyBoardView.buildSign), filled locally for this player: their
 	    boost status ("Step in: x1.5 income!", "Boost 3:12", "Boost ready in 1:40") and the course with its time
 	    left ("Course #1,204 · 12:34 left")
 	  * the course board's own line (workspace.Obby.Board, server/ObbyBoardView): this player's row tinted when they
@@ -189,7 +189,22 @@ function ObbyHud.lockText(left: number, rate: number): (string, string?)
 		return "🔓 Base open", nil
 	end
 	local slower = math.floor((1 - rate) * 100 + 0.5)
-	return `🔒 {clock(left)}`, if slower > 0 then `{slower}% slower` else nil
+	return `🔒 {clock(left)}`, if slower > 0 then `{slower}% slower locks` else nil
+end
+
+-- Whether the lock row needs two lines on a card `width` design px wide: true when the longest lock time and the
+-- note ("🔒 m:ss" + "50% slower locks") don't fit side by side; then the note sits under the time.
+function ObbyHud.lockSplit(width: number): boolean
+	local C = Layout.OBBY_CARD
+	local time, note = ObbyHud.lockText(Config.LOCK_MAX_SECONDS, Config.OBBY.LOCK_RATE)
+	if not note then
+		return false
+	end
+	local need = Layout.lineWidth(time, C.lockSize, true)
+		+ Layout.lineWidth(note, C.noteSize, true)
+		+ C.chipPad * 4
+		+ C.gap
+	return need > width - C.pad * 2
 end
 
 function ObbyHud.new(gui: Instance)
@@ -208,11 +223,12 @@ function ObbyHud.new(gui: Instance)
 		bestLabel: TextLabel,
 		rankChip: TextLabel,
 		lockRow: Frame,
+		lockList: UIListLayout,
 		lockChip: TextLabel,
 		noteChip: TextLabel,
 	}
 	local cardParts: Card? = nil
-	local box = { x = 0, y = 0, w = C.w }
+	local box = { x = 0, y = 0, w = C.w, split = false }
 	local heightOfBanners: () -> number = function()
 		return 0
 	end
@@ -257,7 +273,8 @@ function ObbyHud.new(gui: Instance)
 		Widgets.list(Enum.FillDirection.Horizontal, C.gap, Enum.HorizontalAlignment.Center).Parent = bestRow
 		bestRow.Visible = false
 		local lockRow = holder("Lock", C.pad + C.headH + C.gap + C.pip + C.gap, C.lockH, card)
-		Widgets.list(Enum.FillDirection.Horizontal, C.gap, Enum.HorizontalAlignment.Center).Parent = lockRow
+		local lockList = Widgets.list(Enum.FillDirection.Horizontal, C.gap, Enum.HorizontalAlignment.Center)
+		lockList.Parent = lockRow
 		local made = {
 			frame = card,
 			title = headLabel("Title", C.titleSize, Theme.Text, Enum.TextXAlignment.Left),
@@ -286,6 +303,7 @@ function ObbyHud.new(gui: Instance)
 				Parent = bestRow,
 			}, Theme.Gold),
 			lockRow = lockRow,
+			lockList = lockList,
 			lockChip = Widgets.chip({
 				Name = "LockTime",
 				TextSize = C.lockSize,
@@ -349,7 +367,7 @@ function ObbyHud.new(gui: Instance)
 	-- The lock end time the card counts from, when it first saw it, and the time it showed last tick.
 	local lockSeen: { untilAt: number?, at: number } = { untilAt = nil, at = 0 }
 	local lockShown: number? = nil
-	-- The portal sign's labels, one of each per face.
+	-- The sign board's labels.
 	local signStatus: { TextLabel } = {}
 	local signCourse: { TextLabel } = {}
 	-- The course board's face (workspace.Obby.Board) and the row this client tinted last.
@@ -363,8 +381,8 @@ function ObbyHud.new(gui: Instance)
 		table.clear(signStatus)
 		table.clear(signCourse)
 		local folder = workspace:FindFirstChild(Constants.OBBY_FOLDER)
-		local portal = folder and folder:FindFirstChild(Constants.OBBY_PORTAL)
-		for _, inst in if portal then portal:GetDescendants() else {} do
+		local sign = folder and folder:FindFirstChild(Constants.OBBY_SIGN)
+		for _, inst in if sign then sign:GetDescendants() else {} do
 			if inst:IsA("TextLabel") then
 				if inst.Name == Constants.OBBY_SIGN_STATUS then
 					table.insert(signStatus, inst)
@@ -437,7 +455,9 @@ function ObbyHud.new(gui: Instance)
 		card.rankChip.Text = rank or ""
 		local lockY = C.pad + C.headH + C.gap + C.pip + C.gap + (if best then C.bestH + C.gap else 0)
 		card.lockRow.Position = UDim2.fromOffset(C.pad, lockY)
-		card.frame.Size = UDim2.fromOffset(box.w, Layout.obbyCardHeight(best ~= nil))
+		card.lockRow.Size = UDim2.new(1, -C.pad * 2, 0, if box.split then C.lockH * 2 + C.gap else C.lockH)
+		card.lockList.FillDirection = if box.split then Enum.FillDirection.Vertical else Enum.FillDirection.Horizontal
+		card.frame.Size = UDim2.fromOffset(box.w, Layout.obbyCardHeight(best ~= nil, box.split))
 		if lockUntil ~= lockSeen.untilAt then
 			lockSeen.untilAt = lockUntil
 			lockSeen.at = now
@@ -458,9 +478,10 @@ function ObbyHud.new(gui: Instance)
 	function self.layout(screen: Layout.Screen, bannerHeight: (() -> number)?)
 		local r = Layout.obbyCard(screen)
 		box.x, box.y, box.w = r.x, r.y, r.w
+		box.split = ObbyHud.lockSplit(r.w)
 		heightOfBanners = bannerHeight or heightOfBanners
 		if cardParts then
-			cardParts.frame.Size = UDim2.fromOffset(box.w, Layout.obbyCardHeight(cardParts.bestRow.Visible))
+			cardParts.frame.Size = UDim2.fromOffset(box.w, Layout.obbyCardHeight(cardParts.bestRow.Visible, box.split))
 		end
 	end
 

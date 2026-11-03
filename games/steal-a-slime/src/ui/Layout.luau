@@ -799,17 +799,25 @@ Layout.OBBY_CARD = table.freeze({
 	transparency = 0.15,
 })
 
--- The run card's height (design px); `best` = with the best-time row.
-function Layout.obbyCardHeight(best: boolean?): number
+-- The run card's height (design px); `best` = with the best-time row, `split` = the lock note on its own line
+-- under the lock time (a card too narrow for both on one line, ui/ObbyHud.lockSplit).
+function Layout.obbyCardHeight(best: boolean?, split: boolean?): number
 	local C = Layout.OBBY_CARD
-	return C.pad * 2 + C.headH + C.gap + C.pip + C.gap + (if best then C.bestH + C.gap else 0) + C.lockH
+	return C.pad * 2
+		+ C.headH
+		+ C.gap
+		+ C.pip
+		+ C.gap
+		+ (if best then C.bestH + C.gap else 0)
+		+ C.lockH
+		+ (if split then C.gap + C.lockH else 0)
 end
 
 -- The run card's box on `s` (a Layout.screen), `top` design px from the top (default the banner strip's top).
-function Layout.obbyCard(s: Screen, top: number?, best: boolean?): Rect
+function Layout.obbyCard(s: Screen, top: number?, best: boolean?, split: boolean?): Rect
 	local b = s.banners
 	local w = math.min(Layout.OBBY_CARD.w, b.w)
-	return Layout.rect(b.x + math.floor((b.w - w) / 2), top or b.y, w, Layout.obbyCardHeight(best))
+	return Layout.rect(b.x + math.floor((b.w - w) / 2), top or b.y, w, Layout.obbyCardHeight(best, split))
 end
 
 -- How far the bottom row is lifted off the thumbstick / jump button: phones in portrait and tablets, but not a
