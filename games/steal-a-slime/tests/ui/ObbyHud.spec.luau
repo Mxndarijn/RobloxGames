@@ -26,7 +26,7 @@ describe("Obby HUD slot", function()
 		expect(slot.text).toBe("5:00")
 		local tip = HudClusters.tooltip(slot)
 		expect(tip.title).toBe("Obby")
-		expect(string.find(tip.body, "income for clearing the obby", 1, true) ~= nil).toBe(true)
+		expect(tip.body).toBe("x1.5 income from the obby sections you cleared.")
 		expect(HudClusters.obby(view(), 1000)).toBeNil()
 		expect(HudClusters.obby(view({ endsAt = 1000 }), 1000)).toBeNil()
 		expect(HudClusters.obby(nil, 1000)).toBeNil()
@@ -48,14 +48,14 @@ end)
 
 describe("Obby portal sign", function()
 	it("says what this player gets: ready, boosted, or cooling down", function()
-		expect(ObbyHud.statusText(view(), 1000)).toBe("Step in: x1.5 income!")
+		expect(ObbyHud.statusText(view({ bonus = 1 }), 1000)).toBe("Step in: up to x2 income!")
 		expect(ObbyHud.statusText(view({ endsAt = 1192, readyAt = 1492 }), 1000)).toBe("x1.5 income · 3:12 left")
 		expect(ObbyHud.statusText(view({ readyAt = 1100 }), 1000)).toBe("Boost ready in 1:40")
 		expect(ObbyHud.statusText(nil, 1000)).toBe("Step in to start!")
 	end)
 
 	it("keeps the boost status after a clear: the portal lets you in again to beat your time", function()
-		expect(ObbyHud.statusText(view({ best = 41.2 }), 1000)).toBe("Step in: x1.5 income!")
+		expect(ObbyHud.statusText(view({ best = 41.2, bonus = 1 }), 1000)).toBe("Step in: up to x2 income!")
 		expect(ObbyHud.statusText(view({ best = 41.2, endsAt = 1192, readyAt = 1492 }), 1000)).toBe(
 			"x1.5 income · 3:12 left"
 		)
@@ -138,6 +138,25 @@ describe("Obby run card", function()
 		expect(ObbyHud.totalText(view(), 1000)).toBeNil()
 	end)
 
+	it("shows the boost this run earned, one share per section; while ready, what a section adds", function()
+		-- ready (no endsAt / readyAt): a full clear's bonus is 1 over 6 sections
+		local ready = view({ bonus = 1, run = { section = 0, at = 0, of = 6, paid = 0 } })
+		expect(ObbyHud.boostText(ready, 1000)).toBe("+17% a section")
+		-- two sections paid: the boost runs at their shares
+		local two =
+			view({ bonus = 2 / 6, endsAt = 1300, readyAt = 1600, run = { section = 2, at = 3, of = 6, paid = 2 } })
+		expect(ObbyHud.boostText(two, 1000)).toBe("x1.3 income")
+		local all = view({ bonus = 1, endsAt = 1300, readyAt = 1600, run = { section = 6, at = 7, of = 6, paid = 6 } })
+		expect(ObbyHud.boostText(all, 1000)).toBe("x2 income")
+		-- a run that started while the boost was on or cooling down earns nothing: no boost part
+		local cooling = view({ bonus = 1, readyAt = 1100, run = { section = 1, at = 1, of = 6, paid = 0 } })
+		expect(ObbyHud.boostText(cooling, 1000)).toBeNil()
+		local boosted =
+			view({ bonus = 0.5, endsAt = 1100, readyAt = 1400, run = { section = 1, at = 1, of = 6, paid = 0 } })
+		expect(ObbyHud.boostText(boosted, 1000)).toBeNil()
+		expect(ObbyHud.boostText(view(), 1000)).toBeNil()
+	end)
+
 	it("the clock stands at 0:00.0 until the runner leaves the start pad", function()
 		local title, clock = ObbyHud.runText(view({ run = { section = 0, at = 0, of = 6 } }), 1000)
 		expect(title).toBe("Start")
@@ -212,7 +231,7 @@ describe("Obby run card layout", function()
 				local r = Layout.obbyCard(
 					s,
 					s.banners.y + Layout.NOTICE_CARD.icon + Layout.NOTICE_CARD.pad * 2 + Layout.GAP,
-					true, -- with the best-time and total rows: the tallest card
+					true, -- with the best-time row and the boost and total line: the tallest card
 					split,
 					true
 				)
@@ -255,12 +274,22 @@ describe("Obby run card layout", function()
 				if bestW > inner then
 					check.fail(`best row needs {bestW} px, has {inner}`)
 				end
+				-- the widest boost part next to the widest total
 				local total = ObbyHud.totalText(view({ run = { section = 1, of = 6, firstAt = 0 } }), 3599.9) :: string
-				local totalW = Layout.lineWidth(total, C.totalSize, true)
-				if totalW > inner then
-					check.fail(`total row needs {totalW} px, has {inner}`)
+				local boostW = 0
+				for _, b in
+					{
+						ObbyHud.boostText(view({ bonus = 1, run = { section = 0, of = 6, paid = 0 } }), 0),
+						ObbyHud.boostText(view({ bonus = 1, endsAt = 9, run = { section = 1, of = 6, paid = 5 } }), 0),
+					}
+				do
+					boostW = math.max(boostW, Layout.lineWidth(b :: string, C.extraSize, true))
 				end
-				for _, size in { C.titleSize, C.clockSize, C.pipText, C.lockSize, C.noteSize, C.bestSize, C.totalSize } do
+				local extraW = boostW + C.gap + Layout.lineWidth(total, C.extraSize, true)
+				if extraW > inner then
+					check.fail(`boost and total line needs {extraW} px, has {inner}`)
+				end
+				for _, size in { C.titleSize, C.clockSize, C.pipText, C.lockSize, C.noteSize, C.bestSize, C.extraSize } do
 					if size < Layout.MIN_TEXT then
 						check.fail(`text size {size} < MIN_TEXT {Layout.MIN_TEXT}`)
 					end

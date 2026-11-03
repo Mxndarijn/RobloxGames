@@ -39,7 +39,7 @@ describe("Obby status slot: cooldown", function()
 		local tip = HudClusters.tooltip(slot)
 		expect(tip.title).toBe("Obby")
 		expect(tip.time).toBe("Next boost ready in 3:12")
-		expect(string.find(tip.body, "x1.5 income boost", 1, true) ~= nil).toBe(true)
+		expect(tip.body).toBe("Run the obby again after this: every section adds income, up to x1.5.")
 	end)
 
 	it("shows the boost while it runs, even with readyAt set", function()

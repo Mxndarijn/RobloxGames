@@ -23,12 +23,16 @@
 	    moves the runner itself, as the backup. Wandering far off the course's ends or sides ends the run
 	  * the Goo Ring behind the start pad (ObbyCourse.inHome) ends the run and sets the runner down by the portal
 	  * the course stands in its own world (Place.zone): anyone there without a run is set down by the portal
-	  * the finish pad ends the run: the time, a best on this course, and the boost when ObbyRules says it is ready
-	    (data.obbyUntil / obbyReadyAt, saved); then the player is set down by the portal. A best that passes
+	  * every section a run clears for the first time (reaching the next part of the course; the last one on the
+	    finish pad) adds an equal share of the boost (ObbyRules.earn: OBBY.BONUS over the sections, BOOST_SECONDS
+	    again from then): the first share when the boost is ready, the rest because this run started it. A section
+	    counts once per run, so falls and retries of the same sections add nothing; an invalid run or a movement
+	    flag since the portal stops the shares. Saved as data.obbyUntil / obbyReadyAt / obbyEarned
+	  * the finish pad ends the run: the time and a best on this course; then the player is set down by the portal. A best that passes
 	    ObbyBoard.eligible goes to the course's shared board (`world.obbyBoard`, server/ObbyBoard) with its rank
 	  * a new rotation (ObbyCourse.slot) rebuilds the course once no one is running, or after OBBY.REBUILD_GRACE
 	    seconds, sending the runners still on it back to the portal
-	`refresh` keeps data.obbyBonus (read by Perks) in step with the saved timers, also across rejoins.
+	`refresh` keeps data.obbyBonus (read by Perks) in step with the saved boost, also across rejoins.
 	The one thing a player sends is the vine rope they hang on (`holdVine`, Request ObbyVine): looks only, so other
 	clients draw that rope carrying them (the Player's ObbyVine attribute, `heldVine`). Everything else the server reads.
 ]]
@@ -64,15 +68,24 @@ export type Result = { moves: { Move }, rebuilt: boolean, resets: { number } }
 
 -- State.obby
 export type View = {
-	bonus: number,
+	bonus: number, -- the boost's bonus while it runs, else what a full clear earns (OBBY.BONUS)
 	endsAt: number?, -- boost end while boosted (server time)
 	readyAt: number?, -- a finish earns the boost again (server time); nil = ready now
 	sections: { string }, -- the current course's section names, in order
 	rotatesAt: number, -- server time the next rotation starts
 	-- the run in progress: `section` = the furthest section reached, `at` = the one the runner is over now (0 = the
 	-- start pad, of + 1 = the finish pad), `startedAt` = when this try's clock started (nil = on the start pad),
-	-- `firstAt` = when the first try's started (the total time, shown but never counted), `lockRate` = how fast the runner's base lock counts down meanwhile (OBBY.LOCK_RATE)
-	run: { section: number, at: number, of: number, startedAt: number?, firstAt: number?, lockRate: number }?,
+	-- `firstAt` = when the first try's started (the total time, shown but never counted), `paid` = the sections that
+	-- added to the boost this run, `lockRate` = how fast the runner's base lock counts down meanwhile (OBBY.LOCK_RATE)
+	run: {
+		section: number,
+		at: number,
+		of: number,
+		startedAt: number?,
+		firstAt: number?,
+		paid: number,
+		lockRate: number,
+	}?,
 	best: number?, -- best counted finish on the current course, seconds (whole tenths)
 	rank: number?, -- that best's rank on the course board (OBBY.BOARD.RANK_DEPTH + 1 = deeper); nil = none yet
 	course: number, -- the course number players see (ObbyRules.courseNumber)
@@ -145,6 +158,8 @@ function ObbyService.enter(world: World, session: Session, place: Place, now: nu
 		section = 0,
 		attempt = 0,
 		at = 0,
+		cleared = 0,
+		paid = 0,
 		enteredAt = now,
 		settleUntil = now + OBBY.MOVE_GRACE,
 	}
@@ -156,7 +171,7 @@ function ObbyService.enter(world: World, session: Session, place: Place, now: nu
 	})
 	local status = ObbyRules.phase(session.data, now)
 	local hint = if status == "ready"
-		then "Reach the finish for x1.5 income!"
+		then `Every section adds income, up to x{1 + OBBY.BONUS}!`
 		else `Boost ready again in {clock(session.data.obbyReadyAt - now)}`
 	World.notify(world, session.userId, `Obby! {hint}`, "info", nil)
 	return true, nil, worldMove(place, session.userId, course.start)
@@ -168,6 +183,39 @@ function ObbyService.cancel(session: Session)
 		session.obbyRun = nil
 		World.markDirty(session)
 	end
+end
+
+-- "x1.5" for a bonus of 0.5 (one decimal, no trailing zero).
+function ObbyService.multText(bonus: number): string
+	local text = string.format("%.1f", 1 + bonus)
+	return "x" .. (string.gsub(text, "%.0$", ""))
+end
+
+-- Pays the sections a run has cleared up to `cleared` (in order, each once per run): each adds ObbyRules.share of
+-- the boost while this run may still earn (not invalid, no movement flag since the portal).
+local function reward(
+	world: World,
+	session: Session,
+	run: World.ObbyRun,
+	course: ObbyCourse.Course,
+	cleared: number,
+	now: number
+)
+	cleared = math.min(cleared, #course.spans)
+	if cleared <= run.cleared then
+		return
+	end
+	local guard = world.guard[session.userId]
+	local flagged = guard ~= nil and guard.flaggedAt ~= nil and guard.flaggedAt >= run.enteredAt
+	local share = ObbyRules.share(#course.spans)
+	while run.cleared < cleared do
+		run.cleared += 1
+		if not run.invalid and not flagged and ObbyRules.earn(session.data, now, share, run.paid > 0) then
+			run.paid += 1
+		end
+	end
+	session.data.obbyBonus = ObbyRules.bonus(session.data, now)
+	World.markDirty(session)
 end
 
 -- The ObbyNewBest field for a rank (RANK_DEPTH + 1 = deeper than the board reads).
@@ -229,13 +277,12 @@ local function finish(world: World, session: Session, run: World.ObbyRun, course
 	local tail = if counts
 		then ObbyService.bestText(newBest, if mine and mine.slot == course.slot then mine.seconds else nil, rank)
 		else nil
-	local earned = false
+	local earned = run.paid > 0
 	if run.invalid then
 		World.notify(world, session.userId, "That run didn't count. Try again!", "bad", nil)
-	elseif ObbyRules.grant(session.data, now) then
-		earned = true
-		session.data.obbyBonus = OBBY.BONUS
-		local boost = `x{1 + OBBY.BONUS} income for {math.floor(OBBY.BOOST_SECONDS / 60 + 0.5)} min`
+	elseif earned then
+		local boost =
+			`{ObbyService.multText(session.data.obbyEarned)} income for {math.floor(OBBY.BOOST_SECONDS / 60 + 0.5)} min`
 		World.notify(
 			world,
 			session.userId,
@@ -362,6 +409,10 @@ local function progress(world: World, session: Session, place: Place, pos: Vec, 
 		run.section = math.min(at, #course.spans)
 		World.markDirty(session)
 	end
+	if at > #course.spans and now - (run.startedAt or now) < OBBY.MIN_RUN_SECONDS then
+		run.invalid = true -- on the finish pad too fast: the last section pays nothing either
+	end
+	reward(world, session, run, course, at - 1, now) -- over part `at`: every section before it is cleared
 	if at > #course.spans and ObbyCourse.onFinish(course, p) then
 		finish(world, session, run, course, now)
 		return exitMove(place, session.userId), false
@@ -489,6 +540,7 @@ function ObbyService.view(world: World, session: Session, now: number): View?
 				of = #course.spans,
 				startedAt = run.startedAt,
 				firstAt = run.firstAt,
+				paid = run.paid,
 				lockRate = ObbyLock.rate(),
 			}
 			else nil,

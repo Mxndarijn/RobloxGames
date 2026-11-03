@@ -239,6 +239,7 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 		if obby == "boosted" then
 			profile.obbyUntil = t + Config.OBBY.BOOST_SECONDS
 			profile.obbyReadyAt = profile.obbyUntil + Config.OBBY.COOLDOWN_SECONDS
+			profile.obbyEarned = Config.OBBY.BONUS
 		elseif obby == "cooling" then
 			profile.obbyUntil = t - 1
 			profile.obbyReadyAt = t + 192
