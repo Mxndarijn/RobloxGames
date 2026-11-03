@@ -23,8 +23,9 @@
 	Where the clue is (`clueBoard`): one framed board centred over the door wall, facing the runner, in every room, so
 	you never hunt for it: head-on as you walk up, overhead at the doors, sized to read from 26 studs on a phone. Only
 	three rooms put it elsewhere on purpose, still centred in the lane: Floor Clue (painted on the pad you land on),
-	Remember It (over the first hole, none at the doors) and Two Rooms' second room (one board at the end of each
-	first-room corridor; only the right corridor's tells the truth).
+	Remember It (over the first hole, none at the doors; each runner's client hides it once they pass under it, Kit
+	`reveal`) and Two Rooms' second room (one board at the end of each first-room corridor; only the right corridor's
+	tells the truth).
 
 	The room (`room`): a 9-stud jelly door wall with 6-wide openings (3 doors, corridors 8 wide) or 8-wide ones (2 doors,
 	corridors 12 wide), a walk-through `pad` curtain in each opening (ghost, opaque) with the symbol on its face, 9-stud
@@ -818,16 +819,21 @@ local function standard(o: Std): (Kit.Section, { Room })
 	local bo: ClueBoardOpts = { s = o.s, w = o.w, h = o.h, look = o.look, blink = o.blink }
 	local h = o.h or 5
 	if o.where == "entry" then
-		-- Remember It: the one board stands centred over the hole after the entry pad, facing you; none at the doors
+		-- Remember It: the one board stands centred over the hole after the entry pad, facing you; none at the doors.
+		-- It is the route: each runner sees it until they pass under it (`reveal`), then it is gone until a reset.
 		local s
 		s, h = clueSize(o.clue, bo)
-		board(parts, floating(o.entry + 2, 0, h, 0, 5.5), clueRow(o.clue), {
+		local boardX, first = o.entry + 2, #parts + 1
+		board(parts, floating(boardX, 0, h, 0, 5.5), clueRow(o.clue), {
 			s = s,
 			w = o.w,
 			h = h,
 			look = o.look,
 			blink = o.blink,
 		})
+		for i = first, #parts do
+			parts[i].reveal = boardX
+		end
 	elseif o.where ~= "none" then
 		bo.lift = if o.where == "raised" then RAISED else nil
 		h = clueBoard(parts, D, o.top, o.clue, bo)

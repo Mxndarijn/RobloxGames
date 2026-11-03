@@ -456,6 +456,7 @@ type PartSpec = {
 	start: string?,
 	marker: string?,
 	beat: number?,
+	reveal: number?,
 	skin: string?, -- a kit mesh drawn in place of the part's own look (ObbyParts.SKINS key; decor only)
 }
 
@@ -1223,6 +1224,9 @@ local function makePart(data: ObbyCourse.Part, frameCf: CFrame, model: Instance)
 
 	if spec.id then
 		part:SetAttribute(Constants.OBBY_ID, spec.id)
+	end
+	if spec.reveal then
+		part:SetAttribute(Constants.OBBY_REVEAL, spec.reveal)
 	end
 	local behaviour = specOf(spec)
 	if behaviour then
