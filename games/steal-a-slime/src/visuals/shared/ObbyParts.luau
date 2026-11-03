@@ -737,7 +737,7 @@ end
 -- Kit meshes drawn over course parts (Merijn's picks, 2026-11-03): `asset` = the MeshAsset name. Each goes in a
 -- "Skin" slot under its part (ObbyParts.skinSlot); until its mesh has loaded on the client the part shows its own
 -- look, and a mesh that fails to load leaves that look in place. The kit models face kit -Y, so after the import yaw
--- they face the slot's -Z; TURN points that at the runner (course -X, the way they come from).
+-- they face the slot's -Z; SKIN_TURN points that at the runner (course -X, the way they come from; checked in Studio).
 ObbyParts.SKINS = table.freeze({
 	key = "obby_key_b", -- the slime key, on every key part, `keyScale` x the key box
 	lockBody = "obby_padlock_b_body", -- the round vault lock (addLocks), tinted per state
@@ -763,7 +763,7 @@ ObbyParts.SKIN_FIT = table.freeze({
 	finishBack = 3.71,
 	finishUp = 12.502,
 })
-ObbyParts.SKIN_TURN = CFrame.Angles(0, math.rad(90), 0) -- slot -Z = the host's -X
+ObbyParts.SKIN_TURN = CFrame.Angles(0, math.rad(-90), 0) -- slot -Z = the host's -X
 
 -- A "Skin" slot under `host`: kit mesh `asset` fitted into a `size` box (the slot's own axes: X across, Y up, Z
 -- along the runner's line) at host-relative `at` (its centre). ObbyCourseView hides the host's own look once the mesh

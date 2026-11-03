@@ -313,14 +313,20 @@ entries["obby_goo_swirl"] =
 entries["obby_goo_sign"] =
 	{ assetId = 108894535501924, meshId = "rbxassetid://131064329268854", size = { 10.516, 7.67, 3.066 } }
 -- Obby course skins (visuals/shared/ObbyParts.SKINS, Merijn's picks 2026-11-03): the client fills their slots on
--- the course it builds (visuals/client/ObbyCourseView), so not map slots and not in NAMES. No meshId yet = the part
--- keeps its own look.
-entries["obby_key_b"] = { size = { 0.97, 1.56, 0.766 } }
-entries["obby_padlock_b_body"] = { size = { 2.2, 2.2, 1.952 } }
-entries["obby_padlock_b_shackle"] = { size = { 1.72, 1.91, 1.64 } }
-entries["obby_drip_c_nozzle"] = { size = { 2.8, 2.089, 2.8 } }
-entries["obby_drip_c_drain"] = { size = { 2.8, 2.6, 2.8 } }
-entries["obby_finish_a"] = { size = { 33.504, 29.004, 7.558 } }
+-- the course it builds (visuals/client/ObbyCourseView), so not map slots and not in NAMES. A mesh that fails to load
+-- leaves the part's own look.
+entries["obby_key_b"] =
+	{ assetId = 128823423513407, meshId = "rbxassetid://130043451150182", size = { 0.97, 1.56, 0.766 } }
+entries["obby_padlock_b_body"] =
+	{ assetId = 106477036942615, meshId = "rbxassetid://99354882314456", size = { 2.2, 2.2, 1.952 } }
+entries["obby_padlock_b_shackle"] =
+	{ assetId = 126740401580492, meshId = "rbxassetid://133998779215476", size = { 1.72, 1.91, 1.64 } }
+entries["obby_drip_c_nozzle"] =
+	{ assetId = 87085946686822, meshId = "rbxassetid://100392926143388", size = { 2.8, 2.089, 2.8 } }
+entries["obby_drip_c_drain"] =
+	{ assetId = 85726466406318, meshId = "rbxassetid://110118381726587", size = { 2.8, 2.6, 2.8 } }
+entries["obby_finish_a"] =
+	{ assetId = 94330459949352, meshId = "rbxassetid://75383157603777", size = { 33.504, 29.004, 7.558 } }
 entries["ranch_goo_sign"] =
 	{ assetId = 77535983276457, meshId = "rbxassetid://128222132547695", size = { 8.8, 8.205, 3.746 } }
 entries["ranch_hitching_post"] =

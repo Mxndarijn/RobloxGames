@@ -116,7 +116,7 @@ local function drip(
 		}),
 		-- the nozzle: the grumpy goo the drop squeezes out of (ObbyParts.SKINS.drip; the dark block until it loads)
 		Kit.prop({ 2.6, 1.4, 2.6 }, { x, top + DRIP / 2 + 0.7, z }, "post", { ghost = true, skin = "drip" }),
-		Kit.prop({ 2.8, 2.6, 2.8 }, { x, bottom, z }, "post", { ghost = true })
+		Kit.prop({ 2.8, 2.6, 2.8 }, { x, bottom, z }, "post", { ghost = true, skin = "drain" }) -- its drain tub
 	)
 end
 

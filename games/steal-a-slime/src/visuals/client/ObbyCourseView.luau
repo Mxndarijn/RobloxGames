@@ -86,6 +86,10 @@ local function fill(slot: BasePart, name: string)
 		-- a skin: the mesh is the part's look now; its own block and icon adornments hide (only on this client, so
 		-- ObbyFx keeps driving the part's Transparency and fades the mesh with it)
 		host.LocalTransparencyModifier = 1
+		local tint = slot:GetAttribute("ObbyShutColor") -- a vault lock piece: its shut tint (ObbyFx sets it per key)
+		if typeof(tint) == "Color3" then
+			mesh.Color = tint
+		end
 		for _, a in host:GetChildren() do
 			if a:IsA("HandleAdornment") or a:IsA("SelectionBox") then
 				(a :: any).Visible = false
