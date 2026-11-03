@@ -119,7 +119,7 @@ end
 
 --[[
 	The rules a counted finish of `run` must also pass to post at `now`: within its course's window plus
-	REBUILD_GRACE, no movement flag since the run started, and a save this server may write. Returns ok and the
+	REBUILD_GRACE, no movement flag since the runner entered the portal, and a save this server may write. Returns ok and the
 	reason ("late", "flagged", "unsaved").
 ]]
 function ObbyBoard.eligible(world: World, session: Session, run: World.ObbyRun, now: number): (boolean, string?)
@@ -127,7 +127,7 @@ function ObbyBoard.eligible(world: World, session: Session, run: World.ObbyRun, 
 		return false, "late"
 	end
 	local guard = world.guard[session.userId]
-	if guard and guard.flaggedAt and guard.flaggedAt >= run.startedAt then
+	if guard and guard.flaggedAt and guard.flaggedAt >= run.enteredAt then
 		return false, "flagged"
 	end
 	if not World.canSave(world, session.userId) then

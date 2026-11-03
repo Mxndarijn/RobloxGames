@@ -21,7 +21,7 @@ src/visuals/client/ObbyFx.luau      plays motions, triggers, keys, hazards (clie
 src/visuals/client/ObbyMoves.luau   character controllers: boost, slide, vine, cannon, moon, dark (client)
 src/visuals/client/ObbyFall.luau    fall + hazard reset (exposes ObbyFall.reset(reason))
 src/visuals/shared/ObbyParts.luau   Part -> Instance, looks, attributes, readability decor
-tests/ObbyCheck.luau                reusable checks (makeable path, reach, part count, widths, fairness runner)
+tests/ObbyCheck.luau                reusable checks (makeable path, timing run, reach, part count, widths, fairness runner)
 tests/ObbySections.spec.luau        runs ObbyCheck over every variant of every idea; rotation tests
 tests/obby/<Id>.spec.luau           optional idea-specific specs (generators, fairness)
 ```
@@ -287,6 +287,22 @@ adult non-gamer and an icon designer):
 * Makeable path per route: every step reachable from the one before by walk/jump (gap <= GAP_MAX, rise <=
   RISE_MAX), launch (`launchReach`), lift, climb, vine release, cannon arc or boost jump, measured
   at the worst point of any motion (moving parts: closest-gap over 32 samples of a period).
+* **Timed floors give a person time (Merijn, 2026-11-03, after Moon Pulse's second island went out before the
+  first).** `ObbyCheck.timing` runs every section with a step that comes and goes (`flip` without `solid`, `drop`,
+  `melt` started by landing) through time: from the first step at 0 it tries every take-off (0.05 s ticks, waiting
+  on a floor that stays as long as the longest period + 3 s) onto any reachable step up to 6 ahead, with the real
+  air time of the move, and passes when some run reaches the last step of every route on which each such floor is
+  there from **the moment you take off towards it** (you see what you jump at and it doesn't go out under your float:
+  `TIME_SEEN`; at least 0.25 s before you land) **until 0.25 s after you take off from it** (`TIME_SLACK`; a melting
+  tile, which starts when you land, until 0.2 s after: `MELT_SLACK`, MeltingFloor's hard slack). A blinking boost
+  strip lying on a walkway is no vanishing floor; you take off within its `carry` of 0.25 s on it lit. Air times: a jump goes up at
+  `Kit.JUMP_SPEED` under the gravity of the bubble you take off in (0.54 s on the flat, 1.55 s in a 35 % moon
+  bubble); walking on (gap <= 1.5, step <= 2) takes no air time; a walk-off drop its fall; a pad launches on
+  landing with its power and throw; a cannon its arc; a ladder its height at 11.1 studs/s. Time on a floor: 0.1 s
+  re-jump plus the walk across it that the jumps in and out don't carry (each carries 0.9 of its reach). Geometry is
+  `makeable`'s; moving floors are taken where they are at the take-off; hazards are fairness's. A variant whose
+  floors line up only for a blind or split-second jump fails here even when `makeable` passes it, and is re-timed,
+  not dropped. `ObbyCheck.timingPlan` returns the run it found (the legs a Studio bot can replay).
 * No straight-forward walk crosses the section (the existing check, routes included).
 * Hazard fairness: a runner at 16 studs/s who loses 0.15 s per jump must find every hazard open for at least
   `WINDOW[tier]` seconds (easy 1.4, medium 1.0, hard 0.75) in some cycle; flood/collapse leave at least 1 s spare.

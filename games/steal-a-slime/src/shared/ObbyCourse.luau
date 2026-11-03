@@ -91,8 +91,9 @@ ObbyCourse.LINK_MIN_WIDTH = 4 -- the connector spans the path's ends next to it,
 ObbyCourse.LINK_MARGIN = 0.5 -- studs past those ends on either side
 ObbyCourse.FALL_REACH = 10 -- studs along the course a falling runner can still drift onto a platform
 ObbyCourse.FINISH_LENGTH = 12
-ObbyCourse.HOME_AT = 6 -- studs behind the start pad where the Goo Ring home stands: a full-width apron, so it sits
--- on the back edge well clear of where a runner appears
+ObbyCourse.HOME_AT = 26 -- studs behind the sections' start where the Goo Ring home stands, on the start pad's back
+-- edge: a long full-width apron, so a runner spawned in the pad's middle stands 18 studs in front of the ring and
+-- the camera behind them (about 12.5 studs at the default zoom) stays clear of it, looking at the course
 ObbyCourse.HOME_DEPTH = 2 -- the Goo Ring home's half depth (ObbyParts.GOO.ringSize.Z x HOME.scale / 2, 1.96): the
 -- start pad ends flush with the ring's back, so the floor stops where the ring does
 ObbyCourse.HOME_BACK = 0.5 -- studs behind the ring's middle that the walk-in circle sits, on the pad's last stretch
@@ -752,7 +753,7 @@ function ObbyCourse.build(slot: number, picks: { Pick }?): Course
 		picks = chosen,
 		parts = parts,
 		floors = floorsOf(parts),
-		start = { ObbyCourse.START_LENGTH / 3, OBBY.RESPAWN_LIFT, 0 },
+		start = { (ObbyCourse.START_LENGTH - A - ObbyCourse.HOME_DEPTH) / 2, OBBY.RESPAWN_LIFT, 0 }, -- the pad's middle
 		startTop = 0,
 		home = { pos = { -A - ObbyCourse.HOME_BACK, 0, 0 }, radius = ObbyCourse.HOME_RADIUS },
 		spans = spans,

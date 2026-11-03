@@ -4,9 +4,11 @@
 
 	The Obby on this player's screen, from State.obby:
 	  * a run card at the top of the screen while a run is on (Layout.OBBY_CARD, under the banner stack):
-	      - "Section x/6": the furthest section reached this run (a fall keeps it), "Start" on the start pad,
-	        and the run clock
-	      - one pip per section: passed (a check), the furthest one (a mint ring), still to come (an Ink well)
+	      - "Section x/6": the section the runner is over now (run.at), "Start" on the start pad, "Finish" on the
+	        finish pad, and the run clock (0:00.0 until they leave the start pad: run.startedAt)
+	      - one pip per section, from where they are now: behind them (a check), the one they are on (a mint ring
+	        on a light fill), the furthest reached this run when a fall put them behind it (a mint ring on the dark
+	        well), still to come (an Ink well)
 	      - "Best 0:51.4" and the rank chip "#23" once this player has a time on this course (`bestText`)
 	      - the base lock's time left (State.lockUntil) with a note that it runs slower meanwhile (run.lockRate);
 	        "Base open" when no lock runs. The server pushes lockUntil out every obby tick but sends it only now and
@@ -30,7 +32,7 @@ local WorldLeaderboard = if script then require(script.Parent.WorldLeaderboard) 
 -- Drawing only runs in Roblox (the specs use the pure functions).
 local Widgets: any = if script then require(script.Parent.Widgets) else nil
 
-export type Run = { section: number, of: number, startedAt: number, lockRate: number? }
+export type Run = { section: number, at: number?, of: number, startedAt: number?, lockRate: number? }
 
 export type View = {
 	bonus: number,
@@ -44,7 +46,7 @@ export type View = {
 	course: number?, -- the course number ("Course #1,204")
 }
 
-export type Pip = "done" | "here" | "ahead"
+export type Pip = "done" | "here" | "best" | "ahead"
 
 local ObbyHud = {}
 
@@ -131,28 +133,38 @@ function ObbyHud.boardYou(view: View?, size: number): { row: number?, name: stri
 	}
 end
 
--- The run card's head row while a run is on: the furthest section and the run clock; nil when not running.
+-- The section the runner is over now (0 = the start pad, of + 1 = the finish pad).
+local function hereOf(run: Run): number
+	local at = if type(run.at) == "number" then run.at else run.section
+	return math.clamp(at, 0, run.of + 1)
+end
+
+-- The run card's head row while a run is on: the section the runner is over now and the run clock (standing still at
+-- 0:00.0 until they leave the start pad); nil when not running.
 function ObbyHud.runText(view: View?, now: number): (string?, string?)
 	local run = runOf(view)
 	if not run then
 		return nil, nil
 	end
-	local elapsed = math.max(0, now - run.startedAt)
-	local title = if run.section <= 0 then "Start" else `Section {math.min(run.section, run.of)}/{run.of}`
+	local elapsed = if type(run.startedAt) == "number" then math.max(0, now - run.startedAt) else 0
+	local at = hereOf(run)
+	local title = if at <= 0 then "Start" elseif at > run.of then "Finish" else `Section {at}/{run.of}`
 	local m = math.floor(elapsed / 60)
 	return title, string.format("%d:%04.1f", m, elapsed - m * 60)
 end
 
--- One pip per section of the run: passed, the furthest reached, or still to come. Empty when not running.
+-- One pip per section of the run, from where the runner is now: behind them, the one they are on, the furthest they
+-- reached this run (when a fall put them behind it), or still to come. Empty when not running.
 function ObbyHud.pips(view: View?): { Pip }
 	local run = runOf(view)
 	local out: { Pip } = {}
 	if not run then
 		return out
 	end
-	local at = math.clamp(run.section, 0, run.of)
+	local at = hereOf(run)
+	local furthest = math.clamp(math.max(run.section, at), 0, run.of + 1)
 	for i = 1, run.of do
-		local kind: Pip = if i < at then "done" elseif i == at then "here" else "ahead"
+		local kind: Pip = if i < at then "done" elseif i == at then "here" elseif i == furthest then "best" else "ahead"
 		table.insert(out, kind)
 	end
 	return out
@@ -357,7 +369,8 @@ function ObbyHud.new(gui: Instance)
 		pip.BackgroundColor3 = if here then Theme.BgLight else Theme.Ink
 		pip.TextColor3 = if here then Theme.Text else Theme.Muted
 		pip.Text = if kind == "done" then "" else tostring(i)
-		stroke.Color = if here then Theme.Accent else Theme.Ink
+		-- the furthest reached keeps the mint ring on its dark well; the one the runner is on also gets a light fill
+		stroke.Color = if here or kind == "best" then Theme.Accent else Theme.Ink
 		stroke.Thickness = if here then C.ring else Widgets.KIT.stroke
 		Widgets.showCheck(pip, kind == "done", C.pip, { ZIndex = Z })
 	end
