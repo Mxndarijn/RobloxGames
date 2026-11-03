@@ -423,6 +423,33 @@ end
 -- Setting a part's state
 ---------------------------------------------------------------------------
 
+-- The kit mesh in a "Skin" slot (visuals/shared/ObbyParts.skinSlot), once ObbyCourseView has loaded it.
+local function skinMesh(slot: BasePart): BasePart?
+	if slot.Name ~= "Skin" or not slot:GetAttribute(Constants.OBBY_SKIN) then
+		return nil
+	end
+	local mesh = slot:FindFirstChild("Mesh")
+	return if mesh and mesh:IsA("BasePart") then mesh else nil
+end
+
+-- Keeps a skin's mesh on its slot (it is a child of the slot, not moved with it) and at transparency `t`.
+local function syncSkin(slot: BasePart, t: number?)
+	local mesh = skinMesh(slot)
+	if not mesh then
+		return
+	end
+	local rel = mesh:GetAttribute(Constants.OBBY_MESH_REL)
+	if typeof(rel) == "CFrame" then
+		local cf = slot.CFrame * rel
+		if mesh.CFrame ~= cf then
+			mesh.CFrame = cf
+		end
+	end
+	if t and mesh.Transparency ~= t then
+		mesh.Transparency = t
+	end
+end
+
 -- Moves the part (and its decor) to `cf` with surface velocity `vel`; `twist` turns the decor round the part.
 local function place(m: Mover, cf: CFrame, vel: Vector3?, twist: CFrame?)
 	local part = m.part
@@ -433,6 +460,7 @@ local function place(m: Mover, cf: CFrame, vel: Vector3?, twist: CFrame?)
 	local at = if twist then cf * twist else cf
 	for _, d in m.decor do
 		d.part.CFrame = at * d.rel
+		syncSkin(d.part, nil)
 	end
 end
 
@@ -459,6 +487,7 @@ local function look(m: Mover, solid: boolean, transparency: number)
 		m.fade = fade
 		for _, d in m.decor do
 			d.part.Transparency = d.transparency + (1 - d.transparency) * fade
+			syncSkin(d.part, fade) -- a skin's mesh shows fully at rest and hides with its part
 		end
 	end
 end
@@ -1109,6 +1138,21 @@ local function setLock(lock: BasePart, open: boolean)
 			end
 			if a.Transparency ~= lock.Transparency then
 				a.Transparency = lock.Transparency
+			end
+		elseif a:IsA("BasePart") and a:GetAttribute(Constants.OBBY_SKIN) then
+			-- a vault lock mesh (ObbyParts lockSkins): its pose and tint, faded with the lock
+			local cf = a:GetAttribute(if open then "ObbyOpen" else "ObbyShut")
+			if typeof(cf) == "CFrame" then
+				local at = lock.CFrame * cf
+				if a.CFrame ~= at then
+					a.CFrame = at
+				end
+			end
+			syncSkin(a, lock.Transparency)
+			local mesh = skinMesh(a)
+			local color = if open then ObbyFx.LOCK_FULL else a:GetAttribute("ObbyShutColor")
+			if mesh and typeof(color) == "Color3" and mesh.Color ~= color then
+				mesh.Color = color
 			end
 		end
 	end

@@ -93,6 +93,9 @@ return table.freeze({
 	OBBY_BACKDROP = "ObbyBackdrop", -- client-only Folder in workspace: the obby world's islands and clouds (decor only)
 	OBBY_SIGN_STATUS = "Status", -- TextLabel on the portal sign the client fills with its own boost status
 	OBBY_SIGN_COURSE = "CourseInfo", -- TextLabel on the portal sign the client fills with the course and rotation
+	-- Obby course "Skin" slot attribute (visuals/shared/ObbyParts.skinSlot): its kit mesh replaces its parent part's look
+	OBBY_SKIN = "ObbySkin",
+	OBBY_MESH_REL = "ObbyMeshRel", -- a filled slot's Mesh attribute: its CFrame in the slot's (ObbyCourseView.fill)
 	GOO_SPIN = "GooSpin", -- Goo Ring swirl part attribute: radians a second it turns (visuals/client/ObbyFx)
 	GOO_PIVOT = "GooPivot", -- Goo Ring swirl part attribute: CFrame of the ring centre it turns round (its Z axis)
 	-- Course part attributes (ObbyCourse.Motion, played by visuals/client/ObbyFx)

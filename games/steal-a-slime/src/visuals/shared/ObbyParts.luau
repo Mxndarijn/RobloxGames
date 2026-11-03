@@ -35,6 +35,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
 local Kit = require(Shared:WaitForChild("ObbySections"):WaitForChild("Kit"))
+local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local ObbyCourse = require(Shared:WaitForChild("ObbyCourse"))
 local ObbySigns = require(script.Parent:WaitForChild("ObbySigns"))
 
@@ -455,6 +456,7 @@ type PartSpec = {
 	start: string?,
 	marker: string?,
 	beat: number?,
+	skin: string?, -- a kit mesh drawn in place of the part's own look (ObbyParts.SKINS key; decor only)
 }
 
 -- The course frame as a CFrame: X forward, Y up, Z right (ObbyCourse's course-local axes).
@@ -722,6 +724,56 @@ end
 --------------------------------------------------------------------------------------------------------------------
 -- Markers: small anchored ghost parts directly under their host (see the header)
 
+local lockSkins: (lock: BasePart, depth: number) -> () -- defined with addLocks
+local meshSlot: (name: string, asset: string, size: Vector3, cf: CFrame, parent: Instance) -> Part -- with gooRing
+
+-- A kit mesh's native size (studs, Roblox axes) from its MeshAssets entry, nil without one.
+local function nativeSize(name: string): Vector3?
+	local e = MeshAssets.get(name)
+	local s = e and e.size
+	return if s then Vector3.new(s[1], s[2], s[3]) else nil
+end
+
+-- Kit meshes drawn over course parts (Merijn's picks, 2026-11-03): `asset` = the MeshAsset name. Each goes in a
+-- "Skin" slot under its part (ObbyParts.skinSlot); until its mesh has loaded on the client the part shows its own
+-- look, and a mesh that fails to load leaves that look in place. The kit models face kit -Y, so after the import yaw
+-- they face the slot's -Z; TURN points that at the runner (course -X, the way they come from).
+ObbyParts.SKINS = table.freeze({
+	key = "obby_key_b", -- the slime key, on every key part, `keyScale` x the key box
+	lockBody = "obby_padlock_b_body", -- the round vault lock (addLocks), tinted per state
+	lockShackle = "obby_padlock_b_shackle", -- its shackle, which swings open once its key is in
+	drip = "obby_drip_c_nozzle", -- the grumpy goo a Climb drip squeezes out of (Kit.prop skin = "drip")
+	drain = "obby_drip_c_drain", -- the tub a Climb drip drains into (Kit.prop skin = "drain")
+	finish = "obby_finish_a", -- the goo finish arch over the finish pad (not a skin: the pad keeps its look)
+})
+-- Where each skin sits, from the kit models (shared/modeling-kit models obby_*; sizes = MeshAssets entries).
+ObbyParts.SKIN_FIT = table.freeze({
+	keyScale = 1.3, -- the key mesh is slimmer than the old cube, so it fills a box a bit bigger than the pick-up box
+	-- Drip nozzle: the drop leaves its neck, modelled so the waiting drop's centre is 0.831 under the mesh's bottom;
+	-- the nozzle part's centre is DRIP / 2 + 0.7 (1.7) over that drop centre (sections/Climb).
+	dripUp = 0.831 + 2.089 / 2 - 1.7,
+	-- Lock: the shackle's centre over the body's (shut), its open pose (lift, then a turn round its long leg's top,
+	-- `pivot` from the shackle's centre in the slot's X / Y) and the shut and open tints (the meshes are white).
+	shackleUp = 0.905,
+	shackleLift = 0.35,
+	shackleTurn = -24, -- degrees round the runner's line
+	shackleBodyShut = Color3.fromRGB(92, 80, 138), -- lifted from MARK.lockOff: the dial body reads darker in Roblox
+	shackleSteel = Color3.fromRGB(215, 215, 230),
+	-- Finish arch: its box centre from the finish pad's centre (back along the course, up from the pad's top).
+	finishBack = 3.71,
+	finishUp = 12.502,
+})
+ObbyParts.SKIN_TURN = CFrame.Angles(0, math.rad(90), 0) -- slot -Z = the host's -X
+
+-- A "Skin" slot under `host`: kit mesh `asset` fitted into a `size` box (the slot's own axes: X across, Y up, Z
+-- along the runner's line) at host-relative `at` (its centre). ObbyCourseView hides the host's own look once the mesh
+-- is in; ObbyFx moves and fades the mesh with the host.
+function ObbyParts.skinSlot(host: BasePart, asset: string, size: Vector3, at: CFrame): Part
+	local slot = meshSlot("Skin", asset, size, host.CFrame * at * ObbyParts.SKIN_TURN, host)
+	slot:SetAttribute(Constants.OBBY_SKIN, true)
+	return slot
+end
+
 -- An anchored decor part directly under `host`, at world CFrame `cf` (ObbyFx moves it with the host).
 local function stuck(
 	host: BasePart,
@@ -959,6 +1011,41 @@ local function lockAdorn(
 	a.Parent = lock
 end
 
+-- The vault lock meshes on a lock icon (ObbyParts.SKINS lockBody / lockShackle): one body and shackle through a
+-- thin wall (the body shows a dial on both faces), one on each face of a thicker gate. Each slot carries its shut and
+-- open pose (lock-local CFrames) and tints as attributes, like lockAdorn; ObbyFx applies them per key.
+lockSkins = function(lock: BasePart, depth: number)
+	local K = ObbyParts.SKIN_FIT
+	local body = nativeSize(ObbyParts.SKINS.lockBody)
+	local shackle = nativeSize(ObbyParts.SKINS.lockShackle)
+	if not body or not shackle then
+		return
+	end
+	local inset = depth / 2 - body.Z / 2
+	local faces: { number } = if inset <= 0.05 then { 0 } else { -inset, inset }
+	local skinTurn = ObbyParts.SKIN_TURN
+	for _, x in faces do
+		local bodyAt = CFrame.new(x, 0, 0)
+		local b = ObbyParts.skinSlot(lock, ObbyParts.SKINS.lockBody, body, bodyAt)
+		b:SetAttribute("ObbyShut", bodyAt * skinTurn)
+		b:SetAttribute("ObbyOpen", bodyAt * skinTurn)
+		b:SetAttribute("ObbyShutColor", K.shackleBodyShut)
+		local shut = bodyAt * CFrame.new(0, K.shackleUp, 0) * skinTurn
+		-- open: lift, then turn round the runner's line about the top of the long leg (kit -x: the slot's +X after
+		-- the import yaw)
+		local pivot = CFrame.new(shackle.X / 2, shackle.Y / 2, 0)
+		local open = shut
+			* CFrame.new(0, K.shackleLift, 0)
+			* pivot
+			* CFrame.Angles(0, 0, math.rad(K.shackleTurn))
+			* pivot:Inverse()
+		local s = ObbyParts.skinSlot(lock, ObbyParts.SKINS.lockShackle, shackle, bodyAt * CFrame.new(0, K.shackleUp, 0))
+		s:SetAttribute("ObbyShut", shut)
+		s:SetAttribute("ObbyOpen", open)
+		s:SetAttribute("ObbyShutColor", K.shackleSteel)
+	end
+end
+
 -- Lock icons on a gate, one per key it needs, across the face the runner meets (the thinner horizontal axis). Each is
 -- a padlock: a chunky body through the gate (so it shows on both faces) with a keyhole through it, and on each face a
 -- thin arch shackle standing on the body in the gate's plane (a half-ring adornment plus two leg bars that sink into
@@ -1012,11 +1099,33 @@ local function addLocks(host: BasePart, need: number, ref: CFrame, s: Vector3)
 		slot.Size = Vector3.new(through, MARK.keyholeSlot.Y, MARK.keyholeSlot.X)
 		local slotAt = CFrame.new(0, 0.15 - MARK.keyholeSlot.Y / 2, 0)
 		lockAdorn(lock, slot, slotAt, slotAt, MARK.keyholeShut, MARK.keyholeOpen)
+		lockSkins(lock, depth)
 	end
 end
 
 --------------------------------------------------------------------------------------------------------------------
 -- Parts
+
+-- The kit meshes on a course part (ObbyParts.SKINS): the key, a Climb drip's nozzle and drain, the finish arch.
+local function addSkins(part: BasePart, spec: PartSpec, lookId: string, s: Vector3, ref: CFrame, model: Instance)
+	local K = ObbyParts.SKIN_FIT
+	local S = ObbyParts.SKINS
+	if lookId == "key" then
+		ObbyParts.skinSlot(part, S.key, Vector3.new(s.Z, s.Y, s.X) * K.keyScale, CFrame.identity)
+	elseif spec.skin == "drip" or spec.skin == "drain" then
+		local asset = if spec.skin == "drip" then S.drip else S.drain
+		local size = nativeSize(asset)
+		if size then
+			ObbyParts.skinSlot(part, asset, size, CFrame.new(0, if spec.skin == "drip" then K.dripUp else 0, 0))
+		end
+	elseif lookId == "finish" then
+		local size = nativeSize(S.finish)
+		if size then
+			local at = ref * CFrame.new(-K.finishBack, s.Y / 2 + K.finishUp, 0) * ObbyParts.SKIN_TURN
+			meshSlot("FinishArch", S.finish, size, at, model)
+		end
+	end
+end
 
 local function makePart(data: ObbyCourse.Part, frameCf: CFrame, model: Instance)
 	local spec = (data :: any) :: PartSpec
@@ -1100,6 +1209,7 @@ local function makePart(data: ObbyCourse.Part, frameCf: CFrame, model: Instance)
 	part.Parent = model
 
 	lookFx(part, lookId, s, if spec.shape == "disc" then Enum.NormalId.Right else Enum.NormalId.Top, spec.motion == nil)
+	addSkins(part, spec, lookId, s, ref, model)
 	if spec.gate then
 		addLocks(part, math.max(1, spec.gate.need), ref, s)
 	end
@@ -1150,7 +1260,7 @@ ObbyParts.GOO = table.freeze({
 })
 
 -- An invisible, non-colliding box the mesh swap fills with kit mesh `name` (attribute MeshAsset).
-local function meshSlot(name: string, asset: string, size: Vector3, cf: CFrame, parent: Instance): Part
+meshSlot = function(name: string, asset: string, size: Vector3, cf: CFrame, parent: Instance): Part
 	local part = Instance.new("Part")
 	part.Name = name
 	part.Size = size
