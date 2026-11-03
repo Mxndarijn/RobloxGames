@@ -1762,6 +1762,16 @@ local Config = {
 			SHOW_PAST = 0,
 			SECONDS = 0.15,
 		}),
+		-- Roblox's camera only stops at solid parts, so it would slide into non-collide course parts (the lava floors) and
+		-- show straight through them from inside. The obby stops it in front of a part like this one too
+		-- (visuals/shared/ObbyCameraClip): no collision, Transparency under MAX_TRANSPARENCY, every side at least
+		-- MIN_THICK studs and its largest face at least MIN_FACE square studs (keys, blobs and banners stay see-past).
+		CAMERA_CLIP = table.freeze({
+			MIN_THICK = 0.5,
+			MIN_FACE = 40,
+			MAX_TRANSPARENCY = 0.5,
+			MARGIN = 0.5, -- studs the camera stops in front of the part's face
+		}),
 	}),
 
 	-- Boss event (server/BossEvent, Shared.BossFight, contract/boss-event.md). Seconds unless noted.
