@@ -10,6 +10,8 @@
 	  fields        only the motion kinds and fields of the contract; start groups have triggers; gates have keys
 	  makeable      every step of every route is reachable from an earlier one (walk / jump, launch, lift, climb,
 	                vine, cannon, boost jump), moving parts at their closest of SAMPLES points a period
+	  timing        a run exists where every floor that comes and goes (flip, drop, melt) is there from TIME_SLACK s
+	                before you land on it until TIME_SLACK s after you take off, with the real air times (moon floats too)
 	  straightWalk  holding forward with no jumping never clears it, on any line across the lane, at any start time
   masher        holding forward and jumping on every landing clears it from at most MASHER_SHARE of the start times
                 on any line (the walk model below the straightWalk header, matched to a Studio walk bot)
@@ -1138,11 +1140,20 @@ local function vineReach(bodies: { Body }, a: Body, b: Body, _t: number?): boole
 	return ok
 end
 
--- nil when step `b` can be reached from step `a` at time `t`; otherwise why not.
-local function reachAt(bodies: { Body }, a: Body, b: Body, t: number?): string?
-	local started = if t then STARTED_ALL :: any else nil
+-- nil when step `b` can be reached from step `a` at time `t`; otherwise why not. `started` (the timing check) gives
+-- the real start times of the `start` groups (default: all at 0); `anyOn` skips the "both are there now" test (the
+-- timing check asks that one itself, at landing and take-off).
+local function reachAt(
+	bodies: { Body },
+	a: Body,
+	b: Body,
+	t: number?,
+	startedAt: { [string]: number }?,
+	anyOn: boolean?
+): string?
+	local started = if t then (startedAt or STARTED_ALL) :: any else nil
 	local pa, pb = poseOf(a, t, started), poseOf(b, t, started)
-	if not pa.on or not pb.on then
+	if not anyOn and (not pa.on or not pb.on) then
 		return "not there"
 	end
 	local g = polyGap(pa.poly, pb.poly)
@@ -1292,6 +1303,503 @@ function ObbyCheck.makeable(section: Section): string?
 		end
 	end
 	return nil
+end
+
+---------------------------------------------------------------------------
+-- timing: a run where every floor you jump to is there from your take-off until after you leave it
+---------------------------------------------------------------------------
+
+--[[
+	makeable asks about each pair of steps at one moment; it never follows a runner through time. So a route whose
+	floors come and go (flip, drop, melt) could pass with no run a person can make: Moon Pulse's second island went out
+	before the first while the moon float onto it takes 1.55 s. `timing` runs the route: from the first step at time 0
+	it tries every take-off time (TIME_DT ticks) onto every reachable step up to TIME_AHEAD ahead, with the real air
+	time of the move, and keeps a landing only when that floor is there from the take-off (TIME_SEEN; at least
+	TIME_SLACK s before the landing) until TIME_SLACK s after the next take-off (a melting tile, which starts on
+	landing: until MELT_SLACK s after the take-off). It passes when some run reaches the last step of every route.
+	Waiting on a floor that stays is free (up to the longest period plus TIME_WAIT s), so the start time does not
+	matter. Only sections with such a floor on a step are searched (or a blinking boost strip: take off within its
+	`carry` of TIME_SLACK s on it lit; one lying on a walkway is no vanishing floor, OVERLAY).
+
+	The moves (the geometry is makeable's, reachAt; only the times are new):
+	  * walk on: a gap up to 1.5 and up or down up to STEP_UP; no time in the air, no re-jump.
+	  * walk off: down more than STEP_UP, within 0.8 of the fall's reach; the fall's time.
+	  * jump: Kit.JUMP_SPEED up at the gravity of the bubble you take off in (ObbyMoves' moon force carries 1 - gravity
+	    of your weight), down to the target's top: 0.54 s on the flat (Studio: 0.55), 1.55 s at 35 % gravity; REJUMP s
+	    on the floor first (Studio: 0.10).
+	  * a pad: launched the moment you land, its power and throw; a cannon: its arc; a ladder: its height at
+	    CLIMB_SPEED (Studio: 11.1), then the drop; a wind column or a rope: LIFT_TIME / ROPE_TIME s.
+	  Time on a floor: the re-jump plus the walk (Kit.WALK, a boost strip's speed) across it, from where you come on to
+	  where you leave (its points nearest the steps before and after), that neither jump carries you over: each jump
+	  carries REACH_SHARE of its reach, what is left past the gap lands you (or takes you off) further in.
+	Not modelled: where a moving floor is when you land (makeable samples it), hazards on the way (fairness), gravity
+	changing mid-flight (the take-off's is used for the whole move).
+]]
+
+ObbyCheck.TIME_DT = 0.05 -- seconds a tick
+ObbyCheck.TIME_SLACK = 0.25 -- s a coming and going floor is there before you land and after you take off
+-- s a melting tile outlasts your take-off: MeltingFloor's hard SLACK (a Studio bot needs at least 0.1)
+ObbyCheck.MELT_SLACK = 0.2
+ObbyCheck.REJUMP = 0.1 -- s from landing to the next jump (Studio)
+ObbyCheck.REACH_SHARE = 0.9 -- share of a jump's full reach a runner counts on (MeltingFloor's REACH)
+ObbyCheck.CLIMB_SPEED = 11.1 -- studs / s up a ladder (Studio)
+ObbyCheck.ROPE_TIME = 1 -- s from a rope to the next floor
+ObbyCheck.LIFT_TIME = 1 -- s up a wind column
+ObbyCheck.TIME_AHEAD = 6 -- steps ahead a runner may jump to
+ObbyCheck.TIME_WAIT = 3 -- s past the longest period a runner waits on a floor that stays
+ObbyCheck.TIME_HORIZON = 120 -- s of run looked at
+-- The floor you jump to is there from the moment you take off (you see what you jump at, and it doesn't go out under
+-- your float), not only from TIME_SLACK s before you land: Merijn could not run Moon Pulse, whose one 0.95 s window
+-- was a float at an island that went out mid-air and came back just before the landing.
+ObbyCheck.TIME_SEEN = true
+ObbyCheck.TIME_BUDGET = 60000 -- landings looked at per route before the search gives up (a fail)
+
+type Move = { air: number, spare: number, hop: boolean, launch: boolean, extra: number }
+
+-- Steps lying on another floor that stays (a blinking boost strip on a walkway): they come and go, the floor doesn't.
+local OVERLAY: { [Part]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
+-- How a step comes and goes: "clock" (flip, drop: Kit's clock), "melt" (from landing), nil (always there).
+local function vanishKind(b: Body): string?
+	local m = b.part.motion
+	if m == nil or OVERLAY[b.part] then
+		return nil
+	end
+	if (m.kind == "flip" and m.solid ~= true) or m.kind == "drop" then
+		return "clock"
+	elseif m.kind == "melt" and m.on ~= "leave" and not Kit.isTrap(m) then
+		return "melt"
+	end
+	return nil
+end
+
+-- The ways from `a` onto `b` taking off at `t` (nil: b can't be reached then), with their air time and spare reach.
+local function movesOf(bodies: { Body }, a: Body, b: Body, t: number, started: { [string]: number }): { Move }?
+	if reachAt(bodies, a, b, t, started, true) ~= nil then
+		return nil
+	end
+	local pa, pb = poseOf(a, t, started), poseOf(b, t, started)
+	local g = polyGap(pa.poly, pb.poly)
+	local ax, az = a.cx + pa.dx, a.cz + pa.dz
+	local bx, bz = b.cx + pb.dx, b.cz + pb.dz
+	local topA = topAt(a, bx, bz, pa.dy)
+	local topB = topAt(b, ax, az, pb.dy)
+	local am = a.part.motion
+	if am and am.kind == "sink" then
+		topA -= math.abs(am.depth or 0)
+	end
+	local rise = topB - topA
+	local sa = special(a.part)
+	local G = Kit.GRAVITY
+	local function one(air: number, extra: number, launch: boolean): { Move }
+		return { { air = air, spare = 0, hop = false, launch = launch, extra = extra } }
+	end
+	local sb = special(b.part)
+	if sa == "vine" then
+		return one(ObbyCheck.ROPE_TIME, 0, false)
+	elseif sa == "climb" or sa == "lift" then
+		local exitY = topOf(a, pa.dy)
+		if sa == "lift" and am and am.cap then
+			exitY = bottomOf(a, pa.dy) + am.cap
+		end
+		local up = if sa == "climb"
+			then (topOf(a, pa.dy) - bottomOf(a, pa.dy)) / ObbyCheck.CLIMB_SPEED
+			else ObbyCheck.LIFT_TIME
+		return one(math.sqrt(2 * math.max(exitY - topB, 0) / G), up, false)
+	elseif sb == "climb" or sb == "lift" then
+		-- walk (or hop) into a ladder or a column: its climb counts as time on it
+		return one(g / Kit.WALK, 0, false)
+	elseif sb == "vine" then
+		return one(Kit.JUMP_SPEED / G, 0, false) -- a jump up to the knob
+	elseif sa == "cannon" then
+		local cannon = a.part.cannon :: any
+		local arc = math.rad(cannon.arc)
+		return one(fallTime(cannon.power * math.sin(arc), a.cy - topB, G) or 1, 0, false)
+	end
+	local grav = gravityAt(bodies, ax, topA, az)
+	if am and am.kind == "bounce" and am.power then
+		local throw = am.throw or { 0, 0, 0 }
+		return one(fallTime(am.power + throw[2], -rise, G * grav) or 1, 0, true)
+	end
+	local speed = Kit.WALK
+	if a.part.boost then
+		speed = a.part.boost.speed
+	elseif a.part.slide then
+		speed = math.max(a.part.slide.cap, Kit.WALK)
+	end
+	local out: { Move } = {}
+	if g <= 1.5 and math.abs(rise) <= ObbyCheck.STEP_UP then
+		table.insert(out, { air = g / speed, spare = 0, hop = false, launch = false, extra = 0 })
+	end
+	if rise < -ObbyCheck.STEP_UP then
+		local fall = math.sqrt(-2 * rise / (G * grav))
+		local reach = 0.8 * speed * fall
+		if reach >= g then
+			table.insert(out, { air = fall, spare = reach - g, hop = false, launch = false, extra = 0 })
+		end
+	end
+	local air = fallTime(Kit.JUMP_SPEED, -rise, G * grav)
+	if air then
+		local reach = ObbyCheck.REACH_SHARE * speed * air
+		table.insert(out, { air = air, spare = math.max(reach - g, 0), hop = true, launch = false, extra = 0 })
+	end
+	return out
+end
+
+type Run = {
+	i: number, -- position in the route
+	at: number, -- landing time
+	prev: number, -- route position it came from (0 = the start)
+	spare: number, -- studs the move in carried past the gap
+	started: { [string]: number },
+	melt: { [number]: number }, -- section part index -> time it starts melting
+	from: Run?, -- the landing before
+	off: number, -- when it took off from there
+	hop: boolean, -- with a jump
+}
+
+-- One leg of a run ObbyCheck.timingPlan found: off step `from` (section part index) at `off`, a jump or not, onto
+-- `to` at `at` (seconds from standing on the first step at 0, on Kit's clocks).
+export type Leg = { from: number, to: number, off: number, at: number, hop: boolean }
+
+local function mapKey(m: { [any]: number }): string
+	local list = {}
+	for k, v in m do
+		table.insert(list, `{k}={math.floor(v / ObbyCheck.TIME_DT + 0.5)}`)
+	end
+	table.sort(list)
+	return table.concat(list, ",")
+end
+
+-- Whether body `b` is there (solid) at `t` in run `r`.
+local function thereAt(b: Body, t: number, r: Run): boolean
+	local kind = vanishKind(b)
+	if kind == "clock" then
+		local _, _, _, _, _, on = Kit.offsetAt(b.part, clockOf(b, t, r.started))
+		return on
+	elseif kind == "melt" then
+		local at = r.melt[b.index]
+		local m = b.part.motion :: Kit.Motion
+		if at == nil or t < at then
+			return true
+		end
+		local gone = at + (m.delay or 0.7)
+		local away = m.away or 2.5
+		return t < gone or (away >= 0 and t >= gone + away)
+	end
+	return true
+end
+
+local function thereFor(b: Body, t0: number, t1: number, r: Run): boolean
+	local t = t0
+	while t < t1 do
+		if not thereAt(b, t, r) then
+			return false
+		end
+		t += ObbyCheck.TIME_DT / 2
+	end
+	return thereAt(b, t1, r)
+end
+
+-- A melt tile starts melting at `at` (or earlier if it already has): its `next` tiles start `spread` s after it is gone.
+local function startMelt(bodies: { Body }, melt: { [number]: number }, b: Body, at: number)
+	local known = melt[b.index]
+	if known and known <= at then
+		return
+	end
+	melt[b.index] = at
+	local m = b.part.motion :: Kit.Motion
+	if type(m.next) == "table" then
+		local after = at + (m.delay or 0.7) + (m.spread or 0)
+		for _, id in m.next do
+			local n = if type(id) == "number" then bodies[id] else nil
+			if n and vanishKind(n) == "melt" then
+				startMelt(bodies, melt, n, after)
+			end
+		end
+	end
+end
+
+-- Marks the steps lying on another floor that stays (OVERLAY).
+local function markOverlays(bodies: { Body })
+	for _, s in bodies do
+		local m = s.part.motion
+		if s.part.step and m and not s.moving and (m.kind == "flip" or m.kind == "drop" or m.kind == "melt") then
+			local top = topOf(s, 0)
+			for _, f in bodies do
+				if f ~= s and f.floor and f.part.motion == nil and not f.moving then
+					local fTop = topOf(f, 0)
+					if fTop <= top + 0.01 and fTop >= top - 1.5 and covers(f, s.cx, s.cz, 0, 0, 0, 0, 1) then
+						OVERLAY[s.part] = true
+					end
+				end
+			end
+		end
+	end
+end
+
+local function timeRoute(bodies: { Body }, steps: { Body }, longest: number): (string?, { Leg }?)
+	local n = #steps
+	if n < 2 then
+		return nil, {}
+	end
+	local DT, S = ObbyCheck.TIME_DT, ObbyCheck.TIME_SLACK
+	local wait = longest + ObbyCheck.TIME_WAIT
+	-- the groups landing on each step starts: its own trigger, and trigger plates lying on it
+	local triggers: { { string } } = {}
+	for i, s in steps do
+		local list = {}
+		if s.part.trigger then
+			table.insert(list, s.part.trigger)
+		end
+		local top = topOf(s, 0)
+		for _, p in bodies do
+			if
+				p.part.trigger
+				and not p.part.step
+				and covers(s, p.cx, p.cz, 0.5, 0, 0, 0, 1)
+				and p.cy - p.hy <= top + 1
+				and p.cy + p.hy >= top - 1
+			then
+				table.insert(list, p.part.trigger :: string)
+			end
+		end
+		triggers[i] = list
+	end
+	local rest: { { Pt } } = {}
+	for i, s in steps do
+		rest[i] = poseOf(s, nil, nil).poly
+	end
+	-- A blinking boost strip only speeds you up while it is lit: take off from it within its `carry` of being on it
+	-- lit for TIME_SLACK s.
+	local function boosted(a: Body, from: number, t: number, r: Run): boolean
+		local m = a.part.motion
+		if not (a.part.boost and m and m.kind == "flip" and m.solid ~= true) then
+			return true
+		end
+		local carry = a.part.boost.carry or 0
+		local u = math.max(from, t - carry - S)
+		while u + S <= t + 1e-9 do
+			local _, _, _, _, _, on0 = Kit.offsetAt(a.part, clockOf(a, u, r.started))
+			if on0 then
+				local ok = true
+				local v = u
+				while v <= u + S + 1e-9 do
+					local _, _, _, _, _, on = Kit.offsetAt(a.part, clockOf(a, v, r.started))
+					if not on then
+						ok = false
+						break
+					end
+					v += DT / 2
+				end
+				if ok then
+					return true
+				end
+			end
+			u += DT
+		end
+		return false
+	end
+	-- The point of footprint P nearest (x, z) (itself when inside).
+	local function nearest(P: { Pt }, x: number, z: number): (number, number)
+		if pointGap(x, z, P) == 0 then
+			return x, z
+		end
+		local bx, bz, best = x, z, math.huge
+		for k = 1, #P do
+			local a, b = P[k], P[k % #P + 1]
+			local ex, ez = b[1] - a[1], b[2] - a[2]
+			local len = ex * ex + ez * ez
+			local u = if len > 0 then math.clamp(((x - a[1]) * ex + (z - a[2]) * ez) / len, 0, 1) else 0
+			local px, pz = a[1] + ex * u, a[2] + ez * u
+			local d = (px - x) ^ 2 + (pz - z) ^ 2
+			if d < best then
+				bx, bz, best = px, pz, d
+			end
+		end
+		return bx, bz
+	end
+	local function centre(P: { Pt }): (number, number)
+		local x, z = 0, 0
+		for _, c in P do
+			x += c[1] / #P
+			z += c[2] / #P
+		end
+		return x, z
+	end
+	-- Studs across step i from where you come on (its point nearest the middle of step `p`) to where you leave for
+	-- step `q` (its point nearest q's middle): 0 on the first step, where you start anywhere.
+	local function span(p: number, i: number, q: number): number
+		if p == 0 then
+			return 0
+		end
+		local ix, iz = nearest(rest[i], centre(rest[p]))
+		local ox, oz = nearest(rest[i], centre(rest[q]))
+		return math.sqrt((ox - ix) ^ 2 + (oz - iz) ^ 2)
+	end
+	local cache: { [string]: { Move } | false } = {}
+	local function moves(i: number, j: number, t: number, r: Run): { Move }?
+		local a, b = steps[i], steps[j]
+		local key = `{i},{j}`
+		local timedA = a.moving or (a.kind ~= nil and FLOODS[a.kind] == true)
+		local timedB = b.moving or (b.kind ~= nil and FLOODS[b.kind] == true)
+		if timedA or timedB or a.part.start or b.part.start then
+			local period = math.max(if timedA then a.period else 0, if timedB then b.period else 0)
+			local tick = if period > 0 then math.floor((t % period) / DT + 0.5) else math.floor(t / DT + 0.5)
+			key = `{key},{tick},{mapKey(r.started)}`
+		end
+		local hit = cache[key]
+		if hit == nil then
+			hit = movesOf(bodies, a, b, t, r.started) or false
+			cache[key] = hit
+		end
+		return if hit then hit else nil
+	end
+	local function land(r: Run)
+		local b = steps[r.i]
+		for _, g in triggers[r.i] do
+			if r.started[g] == nil then
+				r.started[g] = r.at
+			end
+		end
+		if vanishKind(b) == "melt" then
+			startMelt(bodies, r.melt, b, r.at)
+		end
+	end
+	local first: Run = { i = 1, at = 0, prev = 0, spare = 0, started = {}, melt = {}, off = 0, hop = false }
+	land(first)
+	local stack: { Run } = { first }
+	local seen: { [string]: boolean } = {}
+	local looked, furthest = 0, 1
+	while #stack > 0 do
+		local r = table.remove(stack) :: Run
+		if r.i == n then
+			local legs: { Leg } = {}
+			local at: Run? = r
+			while at and at.from do
+				local from = at.from :: Run
+				table.insert(legs, 1, {
+					from = steps[from.i].index,
+					to = steps[at.i].index,
+					off = at.off,
+					at = at.at,
+					hop = at.hop,
+				})
+				at = from
+			end
+			return nil, legs
+		end
+		looked += 1
+		if looked > ObbyCheck.TIME_BUDGET then
+			return `search gave up after {ObbyCheck.TIME_BUDGET} landings (furthest step {steps[furthest].index})`
+		end
+		furthest = math.max(furthest, r.i)
+		local a = steps[r.i]
+		local kindA = vanishKind(a)
+		local after = if kindA == "melt" then ObbyCheck.MELT_SLACK elseif kindA then S else 0
+		local am = a.part.motion
+		local pad = am ~= nil and am.kind == "bounce" and am.power ~= nil
+		local last = if pad then r.at else r.at + wait
+		local children: { Run } = {}
+		local t = r.at
+		while t <= last + 1e-9 and t <= ObbyCheck.TIME_HORIZON do
+			if not thereAt(a, t + after, r) or not thereAt(a, t, r) then
+				break -- gone under you: no later take-off from this landing
+			end
+			for j = math.min(n, r.i + ObbyCheck.TIME_AHEAD), r.i + 1, -1 do
+				local list = moves(r.i, j, t, r)
+				for _, mv in list or {} do
+					local stay = if pad
+						then 0
+						else (if mv.hop then ObbyCheck.REJUMP else 0) + mv.extra + math.max(
+							span(r.prev, r.i, j) - r.spare - mv.spare,
+							0
+						) / (if a.part.boost then a.part.boost.speed else Kit.WALK)
+					if t - r.at >= stay - 1e-9 and boosted(a, r.at, t, r) then
+						local arrive = t + mv.air
+						local b = steps[j]
+						-- there the slack before you land (a melting tile only starts when you do), and the one you
+						-- leave from there all the time you stood on it
+						local seenFrom = if ObbyCheck.TIME_SEEN then math.min(t, arrive - S) else arrive - S
+						if thereFor(b, math.max(seenFrom, 0), arrive, r) and thereFor(a, r.at, t + after, r) then
+							local tick = math.floor(arrive / DT + 0.5) * DT
+							local nr: Run = {
+								i = j,
+								at = tick,
+								prev = r.i,
+								spare = mv.spare,
+								started = table.clone(r.started),
+								melt = table.clone(r.melt),
+								from = r,
+								off = t,
+								hop = mv.hop,
+							}
+							land(nr)
+							local key = `{j}:{math.floor(tick / DT + 0.5)}:{r.i}:{math.floor(mv.spare + 0.5)}:{mapKey(
+								nr.started
+							)}:{mapKey(nr.melt)}`
+							if not seen[key] then
+								seen[key] = true
+								table.insert(children, nr)
+							end
+						end
+					end
+				end
+			end
+			t += DT
+		end
+		-- the earliest take-offs and the furthest steps on top of the stack
+		for k = #children, 1, -1 do
+			table.insert(stack, children[k])
+		end
+	end
+	local s = steps[furthest]
+	local what = if vanishKind(s) then `, {s.kind}` else ""
+	return `no run gets past step {furthest} (part {s.index}, {s.part.look}{what}) with every coming and going floor there {S} s before landing and after take-off`,
+		nil
+end
+
+-- nil when every route has a run on which each floor that comes and goes is there from TIME_SLACK s before you land on
+-- it until TIME_SLACK s after you leave it (see above); otherwise why not.
+function ObbyCheck.timing(section: Section): string?
+	local bodies = bodiesOf(section)
+	markOverlays(bodies)
+	local any = false
+	local longest = 0
+	for _, b in bodies do
+		local m = b.part.motion
+		if b.part.step and (vanishKind(b) or (b.part.boost and m and m.kind == "flip" and m.solid ~= true)) then
+			any = true
+		end
+		if b.moving or b.timed then
+			longest = math.max(longest, b.period)
+		end
+	end
+	if not any then
+		return nil
+	end
+	for _, route in ObbyCheck.routes(section) do
+		local why = timeRoute(bodies, routeSteps(bodies, route), longest)
+		if why then
+			return `{route}: {why}`
+		end
+	end
+	return nil
+end
+
+-- The run `timing` finds on `route` (default "main"): its legs, or nil and why not. The search takes the earliest
+-- take-off that works, so every leg is at the early end of its window (TIME_SLACK inside it).
+function ObbyCheck.timingPlan(section: Section, route: string?): ({ Leg }?, string?)
+	local bodies = bodiesOf(section)
+	markOverlays(bodies)
+	local longest = 0
+	for _, b in bodies do
+		if b.moving or b.timed then
+			longest = math.max(longest, b.period)
+		end
+	end
+	local why, legs = timeRoute(bodies, routeSteps(bodies, route or "main"), longest)
+	return legs, why
 end
 
 ---------------------------------------------------------------------------
@@ -2447,6 +2955,7 @@ function ObbyCheck.run(case: Case): { string }
 				{ "fields", ObbyCheck.fields },
 				{ "challenge", ObbyCheck.challenge },
 				{ "makeable", ObbyCheck.makeable },
+				{ "timing", ObbyCheck.timing },
 				{ "straightWalk", ObbyCheck.straightWalk },
 				{ "masher", ObbyCheck.masher },
 				{ "timers", ObbyCheck.timers },

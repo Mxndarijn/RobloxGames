@@ -265,6 +265,79 @@ describe("ObbyCheck models", function()
 		expect(#ObbyCheck.routes(s)).toBe(2)
 	end)
 
+	-- Moon Pulse as Merijn met it (2026-11-03): two islands blinking on a 3.6 s bar in a 35 % bubble, the second
+	-- going out before the first; a float between them takes 1.55 s.
+	local function pulse(phase2: number, period: number, duty: number): Kit.Section
+		local function blinker(x0: number, phase: number): Kit.Part
+			return part({ 8, 1, 9 }, { x0 + 4, -0.5, 0 }, {
+				motion = { kind = "flip", duty = duty, period = period, phase = phase },
+			})
+		end
+		local bubble = part({ 87, 40, Kit.WIDTH }, { 43.5, 9, 0 }, {
+			step = false,
+			ghost = true,
+			look = "moon",
+			zone = { kind = "moon", gravity = 0.35 },
+		})
+		return section(
+			{ floor(0, 10), blinker(27, 0), blinker(52, phase2), part({ 10, 1, 9 }, { 82, -0.5, 0 }), bubble },
+			87
+		)
+	end
+
+	it("timing: blinking floors must be there round every landing and take-off, moon floats timed", function()
+		-- the old Moon Pulse: makeable, and a 0.95 s window a bot lands in (a float at the second island while it
+		-- goes out and comes back), but no float at an island that stays lit from take-off to landing: it fails
+		local old = pulse(1 / 6, 3.6, 4 / 6)
+		expect(ObbyCheck.makeable(old)).toBeNil()
+		expect(ObbyCheck.timing(old) ~= nil).toBe(true)
+		local keep = ObbyCheck.TIME_SLACK
+		ObbyCheck.TIME_SEEN = false
+		expect(ObbyCheck.timing(old)).toBeNil()
+		ObbyCheck.TIME_SLACK = 0.5
+		expect(ObbyCheck.timing(old) ~= nil).toBe(true)
+		ObbyCheck.TIME_SLACK = keep
+		ObbyCheck.TIME_SEEN = true
+		-- lit 1.44 s a bar, the second lighting 3 s after the first: no float off the first lands on it, though
+		-- makeable (both lit at some moment) passes it
+		local apart = pulse(1 / 6, 3.6, 0.4)
+		expect(ObbyCheck.makeable(apart)).toBeNil()
+		expect(ObbyCheck.timing(apart) ~= nil).toBe(true)
+		-- the new bar (8 beats, the second half a bar behind): a run with 1 s to spare a side
+		local new = pulse(0.5, 4.8, 0.75)
+		ObbyCheck.TIME_SLACK = 1
+		expect(ObbyCheck.timing(new)).toBeNil()
+		ObbyCheck.TIME_SLACK = keep
+		-- the run found: entry, the two islands, the exit, each float 1.55 s
+		local legs = ObbyCheck.timingPlan(new) :: { any }
+		expect(#legs).toBe(3)
+		expect(legs[2].at - legs[2].off).toBeCloseTo(2 * Kit.JUMP_SPEED / (Kit.GRAVITY * 0.35), 0.06)
+	end)
+
+	it("timing: a melting tile must outlast the walk across it, a drop the run to it", function()
+		local function melt(delay: number): Kit.Section
+			return section({
+				floor(0, 10),
+				part({ 12, 1, 10 }, { 18, -0.5, 0 }, { motion = { kind = "melt", delay = delay, away = 3 } }),
+				floor(28, 40),
+			}, 40)
+		end
+		-- 12 studs across between a 2- and a 4-stud hop: about 0.25 s on it (the hops carry you most of the way), plus
+		-- MELT_SLACK
+		expect(ObbyCheck.timing(melt(1.2))).toBeNil()
+		expect(ObbyCheck.timing(melt(0.4)) ~= nil).toBe(true)
+		local function bridge(at: number): Kit.Section
+			return section({
+				floor(0, 10, { trigger = "b" }),
+				part({ 30, 1, 10 }, { 25, -0.5, 0 }, { start = "b", motion = { kind = "drop", at = at } }),
+				floor(40, 50),
+			}, 50)
+		end
+		-- 30 studs at 16 / s from the trigger: about 1.9 s
+		expect(ObbyCheck.timing(bridge(2.5))).toBeNil()
+		expect(ObbyCheck.timing(bridge(1.5)) ~= nil).toBe(true)
+	end)
+
 	it("widths: a 6-wide floor fails, a 3-wide beam passes, a 2-wide one fails", function()
 		expect(ObbyCheck.widths(section({ floor(0, 10), part({ 10, 1, 6 }, { 15, -0.5, 0 }) }, 20)) ~= nil).toBe(true)
 		local beam = part({ 10, 1, 3 }, { 15, -0.5, 0 }, { look = "beam" })
