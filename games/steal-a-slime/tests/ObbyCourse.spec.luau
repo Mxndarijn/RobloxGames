@@ -83,6 +83,34 @@ describe("ObbyCourse layout", function()
 		end
 	end)
 
+	it("moves a memory route's reveal line with its section, to the entry sign", function()
+		-- Glow Memory's lit tiles hide once the runner passes the entry sign (ObbySignFade, ROUTE_REVEAL.HIDE_PAST past
+		-- the line), Remember It's board once they pass under it: lines are course-local like `pos`.
+		local course = ObbyCourse.build(1, {
+			{ id = "GlowMemory", tier = "easy", variant = 1, seed = 3 },
+			{ id = "ClueDoors", tier = "hard", variant = 16, seed = 2 },
+		})
+		local banners: { [number]: number } = {}
+		for _, part in course.parts do
+			local i = string.match(part.id :: string, "^p(%d+)%-1$")
+			if i then
+				banners[tonumber(i) :: number] = part.pos[1]
+			end
+		end
+		local lines: { [number]: number } = {}
+		for _, part in course.parts do
+			if part.reveal then
+				local i = tonumber(string.match(part.id :: string, "^(%d+)%.")) :: number
+				expect(lines[i] == nil or lines[i] == part.reveal).toBe(true)
+				lines[i] = part.reveal
+			end
+		end
+		local hide = Config.OBBY.ROUTE_REVEAL.HIDE_PAST
+		expect(lines[1]).toBe(course.spans[1].from)
+		expect(math.abs(lines[1] + hide - banners[1]) <= 1).toBe(true)
+		expect(lines[2] > course.spans[2].from and lines[2] < course.spans[2].to).toBe(true)
+	end)
+
 	it("connectors are within a jump of the sections next to them", function()
 		for slot = 4100, 4140 do
 			local course = ObbyCourse.build(slot)

@@ -1754,6 +1754,14 @@ local Config = {
 			SHOW_PAST = 0.5,
 			SECONDS = 0.25, -- a full fade out or in
 		}),
+		-- A memory section's route (Glow Memory's lit safe tiles, Remember It's clue board): shown while the runner's
+		-- root is before its line (the entry sign, the board), hidden once HIDE_PAST studs past it, back once within
+		-- SHOW_PAST again (a fall or reset to the start, a walk back). visuals/client/ObbySignFade.
+		ROUTE_REVEAL = table.freeze({
+			HIDE_PAST = 1,
+			SHOW_PAST = 0,
+			SECONDS = 0.15,
+		}),
 	}),
 
 	-- Boss event (server/BossEvent, Shared.BossFight, contract/boss-event.md). Seconds unless noted.

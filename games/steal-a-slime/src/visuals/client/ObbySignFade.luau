@@ -7,6 +7,11 @@
 	again (a reset to the start, a walk back). Which banners hide is visuals/shared/ObbyBannerFade (course x of the
 	root against each banner's rest x, Config.OBBY.BANNER_FADE). Outside the obby world every banner shows.
 
+	A memory section's route fades the same way: every course part with an OBBY_REVEAL attribute (its course x line:
+	Glow Memory's lit safe tiles hide at the entry sign, Remember It's clue board at the board) shows only while the
+	local runner is before that line and hides once past it (Config.OBBY.ROUTE_REVEAL), so each runner sees the route
+	until they pass it and gets it back after a fall or reset to the start. Other runners' views are their own.
+
 	It finds the built course (ObbyCourseView) at most every FIND_EVERY seconds and caches each banner (a `banner`
 	part with its SignGui), its course x and the shown transparency of the part, its booster adornments and every
 	picture shape, so a frame without a fade in progress touches nothing. A banner stays a ghost (no collision, no
@@ -33,6 +38,7 @@ type Prop = { inst: any, key: string, base: number }
 type Banner = {
 	part: BasePart,
 	x: number,
+	tune: ObbyBannerFade.Tune,
 	hidden: boolean,
 	alpha: number,
 	props: { Prop },
@@ -70,17 +76,28 @@ local function propsOf(part: BasePart): ({ Prop }, { SurfaceGui }, { ParticleEmi
 	return props, guis, flames
 end
 
--- The course's banners, their course x from `frame` (the Course model's ObbyFrame).
+-- The course's banners and route parts, their course x from `frame` (the Course model's ObbyFrame).
 local function scan(course: Instance, frame: CFrame): { Banner }
 	local out: { Banner } = {}
 	for _, child in course:GetChildren() do
-		if child:IsA("BasePart") and child.Name == ObbySignFade.BANNER and child:FindFirstChild(ObbySignFade.GUI) then
+		if not child:IsA("BasePart") then
+			continue
+		end
+		local x: number?, tune = nil, ObbyBannerFade.BANNER
+		local reveal = child:GetAttribute(Constants.OBBY_REVEAL)
+		if type(reveal) == "number" then
+			x, tune = reveal, ObbyBannerFade.ROUTE
+		elseif child.Name == ObbySignFade.BANNER and child:FindFirstChild(ObbySignFade.GUI) then
 			local base = child:GetAttribute(Constants.OBBY_BASE)
 			local at = if typeof(base) == "CFrame" then base.Position else child.Position
+			x = frame:PointToObjectSpace(at).X
+		end
+		if x then
 			local props, guis, flames = propsOf(child)
 			table.insert(out, {
 				part = child,
-				x = frame:PointToObjectSpace(at).X,
+				x = x,
+				tune = tune,
 				hidden = false,
 				alpha = 0,
 				props = props,
@@ -152,14 +169,14 @@ function ObbySignFade.start(): Controller
 		local root = if ObbyLook.isInside() then localRoot() else nil
 		local rootX = if root then frame:PointToObjectSpace(root.Position).X else nil
 		for _, b in banners do
-			local hidden = ObbyBannerFade.hidden(b.hidden, rootX, b.x)
+			local hidden = ObbyBannerFade.hidden(b.hidden, rootX, b.x, b.tune)
 			if hidden ~= b.hidden then
 				b.hidden = hidden
 				for _, f in b.flames do
 					f.Enabled = not hidden
 				end
 			end
-			local alpha = ObbyBannerFade.step(b.alpha, hidden, dt)
+			local alpha = ObbyBannerFade.step(b.alpha, hidden, dt, b.tune)
 			if alpha ~= b.alpha then
 				b.alpha = alpha
 				paint(b)
