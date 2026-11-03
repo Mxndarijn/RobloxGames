@@ -745,6 +745,7 @@ ObbyParts.SKINS = table.freeze({
 	drip = "obby_drip_c_nozzle", -- the grumpy goo a Climb drip squeezes out of (Kit.prop skin = "drip")
 	drain = "obby_drip_c_drain", -- the tub a Climb drip drains into (Kit.prop skin = "drain")
 	finish = "obby_finish_a", -- the goo finish arch over the finish pad (not a skin: the pad keeps its look)
+	cannon = "obby_cannon_a", -- the goo cannon on every Aim the Cannon barrel, its open back hatch where you walk in
 })
 -- Where each skin sits, from the kit models (shared/modeling-kit models obby_*; sizes = MeshAssets entries).
 ObbyParts.SKIN_FIT = table.freeze({
@@ -762,6 +763,11 @@ ObbyParts.SKIN_FIT = table.freeze({
 	-- Finish arch: its box centre from the finish pad's centre (back along the course, up from the pad's top).
 	finishBack = 3.71,
 	finishUp = 12.502,
+	-- Cannon: the mesh turned so its mouth points along the barrel's +X (the aim, ObbyMoves), and chevrons on the
+	-- floor behind it pointing into its back hatch, `cannonChevrons` studs behind the barrel's back (they sweep with it).
+	cannonTurn = CFrame.Angles(0, math.pi, 0),
+	cannonChevrons = { 0.9, 2.1 },
+	cannonChevronLength = 1.2,
 })
 ObbyParts.SKIN_TURN = CFrame.Angles(0, math.rad(-90), 0) -- slot -Z = the host's -X
 
@@ -1106,7 +1112,8 @@ end
 --------------------------------------------------------------------------------------------------------------------
 -- Parts
 
--- The kit meshes on a course part (ObbyParts.SKINS): the key, a Climb drip's nozzle and drain, the finish arch.
+-- The kit meshes on a course part (ObbyParts.SKINS): the key, a Climb drip's nozzle and drain, the finish arch, the
+-- cannon (with its walk-in chevrons).
 local function addSkins(part: BasePart, spec: PartSpec, lookId: string, s: Vector3, ref: CFrame, model: Instance)
 	local K = ObbyParts.SKIN_FIT
 	local S = ObbyParts.SKINS
@@ -1123,6 +1130,22 @@ local function addSkins(part: BasePart, spec: PartSpec, lookId: string, s: Vecto
 		if size then
 			local at = ref * CFrame.new(-K.finishBack, s.Y / 2 + K.finishUp, 0) * ObbyParts.SKIN_TURN
 			meshSlot("FinishArch", S.finish, size, at, model)
+		end
+	elseif lookId == "cannon" then
+		local size = nativeSize(S.cannon)
+		if size then
+			ObbyParts.skinSlot(part, S.cannon, size, K.cannonTurn)
+		end
+		-- the way in: chevrons on the floor behind the barrel, pointing at its back hatch
+		local floor = ref * CFrame.new(0, -s.Y / 2, 0)
+		local length = K.cannonChevronLength
+		for _, back in K.cannonChevrons do
+			local tx = -s.X / 2 - back
+			for _, side in { 3 * math.pi / 4, -3 * math.pi / 4 } do
+				local ax, az = turn(1, 0, side)
+				local half = length * 0.5
+				flatStroke(part, "Chevron", floor, tx + ax * half * 0.9, az * half * 0.9, ax, az, length, MARK.ink)
+			end
 		end
 	end
 end

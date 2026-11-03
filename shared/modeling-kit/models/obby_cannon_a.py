@@ -1,8 +1,8 @@
 # obby_cannon_a (option A): a chunky cartoon cannon on a goo puddle (steal-a-slime obby, Aim the Cannon).
 # A fat, short slate barrel with orange bands and a big flared orange mouth (a deep dark bore you climb into),
-# goo dripping off the lower lip, held between two cheek plates with orange trunnion hubs. It all stands on an
-# orange swivel turntable (bolted rim, dark seam) sitting in a green goo puddle: the turntable is the pivot the
-# barrel sweeps round. Fits the old 4 x 3 x 4 cannon box; the swivel axis is x = y = 0, the mouth aims at -Y.
+# goo dripping off the lower lip, held between two cheek plates with orange trunnion hubs. Its back end is an open
+# hatch in a bright orange rim: you walk into the cannon from behind. It all stands on an orange swivel turntable
+# (bolted rim, dark seam) sitting in a green goo puddle: the turntable is the pivot the barrel sweeps round. Fits the old 4 x 3 x 4 cannon box; the swivel axis is x = y = 0, the mouth aims at -Y.
 import math
 from mathutils import Vector
 from lib import *
@@ -45,17 +45,17 @@ for s in (-1, 1):
 
 # -- the barrel: breech -> body -> neck -> flared mouth with a rolled orange lip -> dark bore back inside
 prof = [
-    (0.0, -1.62), (0.62, -1.62), (0.88, -1.45), (0.94, -1.1),   # breech
+    (0.0, -1.3), (0.7, -1.3), (0.74, -1.66),                     # open back hatch (you walk in here): dark floor, wall
+    (0.96, -1.66), (1.0, -1.45), (0.94, -1.1),                   # its bright orange rim, breech
     (0.86, 0.35), (0.9, 0.95), (1.1, 1.45),                      # body, neck, flare
     (1.2, 1.72), (1.12, 1.9), (0.92, 1.88),                      # rolled lip
     (0.78, 1.62), (0.72, -0.5), (0.0, -0.62),                    # bore
 ]
-cols = [METAL_LO, METAL_LO, METAL, METAL, METAL, ORANGE, ORANGE, ORANGE_HI, ORANGE_LO, BORE_HI, BORE, BORE]
+cols = [BORE, BORE_HI, ORANGE_HI, ORANGE, METAL_LO, METAL, METAL, ORANGE, ORANGE, ORANGE_HI, ORANGE_LO, BORE_HI,
+        BORE, BORE]
 parts.append(lathe("Barrel", prof, cols, segs=18, pos=C, rot=barrel_rot(TILT)))
-parts.append(band("BandBack", 0.86, 1.04, -1.25, -0.9, ORANGE, ORANGE_LO, segs=18, pos=C, rot=barrel_rot(TILT)))
+parts.append(band("BandBack", 0.86, 1.04, -1.0, -0.7, ORANGE, ORANGE_LO, segs=18, pos=C, rot=barrel_rot(TILT)))
 parts.append(band("BandMid", 0.8, 0.96, 0.55, 0.85, ORANGE, ORANGE_LO, segs=18, pos=C, rot=barrel_rot(TILT)))
-knob = C - D * 1.72
-parts.append(blob("Knob", 0.3, knob, METAL, subdiv=2, jitter=0))
 
 # -- goo oozing over the lower lip and two drips hanging off it
 lip = C + D * 1.8
