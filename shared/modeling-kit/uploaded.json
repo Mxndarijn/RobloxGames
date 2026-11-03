@@ -6761,6 +6761,19 @@
     "uploadedAt": "2026-10-19T21:36:47Z",
     "versions": 1
   },
+  "obby_cannon_a": {
+    "assetId": "84869404619459",
+    "assetType": "Model",
+    "sha256": "e452d711065ad53c",
+    "uploadedAt": "2026-11-03T19:20:41Z",
+    "versions": 1,
+    "meshId": "rbxassetid://140393265012296",
+    "meshSize": [
+      3.927,
+      3.094,
+      4.272
+    ]
+  },
   "obby_cloud_puff": {
     "assetId": "89419260882283",
     "assetType": "Model",

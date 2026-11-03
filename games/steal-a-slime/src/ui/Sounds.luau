@@ -17,6 +17,7 @@
 	  Sounds.TRIM[name]      seconds: stop (with a short fade) after this, for library files with long tails
 	  Sounds.LAYERS[name]    extra names played together with it
 	  Sounds.VARIANTS[group] names one of which plays (SoundController.playVariant)
+	  Sounds.BOSS_EVENT[name] the boss fight's own sounds: silent while the player is in the obby world
 ]]
 
 local Sounds = {}
@@ -195,6 +196,18 @@ Sounds.VARIANTS = table.freeze({
 	BossHit = table.freeze({ "BossHit1", "BossHit2" }),
 	StepGrass = table.freeze({ "StepGrass1", "StepGrass2", "StepGrass3" }),
 	StepSnow = table.freeze({ "StepSnow1", "StepSnow2" }),
+})
+
+-- The boss fight's sounds (contract/boss-event.md): the warning, its attacks, the hits and the win. Not BossMvp:
+-- the obby clear plays it too.
+Sounds.BOSS_EVENT = table.freeze({
+	BossWarn = true,
+	BossWindup = true,
+	BossSlam = true,
+	BossGoo = true,
+	BossHit1 = true,
+	BossHit2 = true,
+	BossDefeat = true,
 })
 
 local function valid(id: any): boolean

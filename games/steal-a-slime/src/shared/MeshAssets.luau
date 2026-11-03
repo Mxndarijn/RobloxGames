@@ -325,6 +325,8 @@ entries["obby_drip_c_nozzle"] =
 	{ assetId = 87085946686822, meshId = "rbxassetid://100392926143388", size = { 2.8, 2.089, 2.8 } }
 entries["obby_drip_c_drain"] =
 	{ assetId = 85726466406318, meshId = "rbxassetid://110118381726587", size = { 2.8, 2.6, 2.8 } }
+entries["obby_cannon_a"] =
+	{ assetId = 84869404619459, meshId = "rbxassetid://140393265012296", size = { 3.927, 3.094, 4.272 } }
 entries["obby_finish_a"] =
 	{ assetId = 94330459949352, meshId = "rbxassetid://75383157603777", size = { 33.504, 29.004, 7.558 } }
 entries["ranch_goo_sign"] =

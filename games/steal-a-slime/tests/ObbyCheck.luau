@@ -123,6 +123,7 @@ local PART_FIELDS = set({
 	"start",
 	"marker",
 	"beat",
+	"reveal",
 	"id",
 	"skin",
 })
@@ -727,6 +728,11 @@ function ObbyCheck.fields(section: Section): string?
 		end
 		if part.zone and not ZONE_KINDS[part.zone.kind] then
 			return `{label}: unknown zone kind {part.zone.kind}`
+		end
+		-- a route part each client hides once its runner is past the line: a still ghost, so ObbyFx never moves or
+		-- fades it while ObbySignFade does
+		if part.reveal ~= nil and (not finite(part.reveal) or not part.ghost or part.motion ~= nil) then
+			return `{label}: a reveal part must be a still ghost with a number line`
 		end
 		if part.marker then
 			local m = part.marker

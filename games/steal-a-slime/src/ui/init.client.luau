@@ -431,10 +431,15 @@ local stealFx = StealAlertFx.new(gui, {
 })
 local carry = CarryPanel.new(gui, ctx)
 local bossMeter = BossMeterPanel.new(gui, ctx, hud.stealCards)
--- The boss card hides while the local player is in the obby world (Visuals' ObbyLook inside flag).
+-- The boss card hides and the boss fight goes silent while the local player is in the obby world (Visuals'
+-- ObbyLook inside flag).
 local ObbyLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("ObbyLook"))
-bossMeter.setAway(ObbyLook.isInside())
-ObbyLook.onInsideChanged(bossMeter.setAway)
+local function setAway(away: boolean)
+	bossMeter.setAway(away)
+	SoundController.setAway(away)
+end
+setAway(ObbyLook.isInside())
+ObbyLook.onInsideChanged(setAway)
 local obbyHud = require(script.ObbyHud).new(gui) -- Obby run card and portal sign lines
 local tutorial = TutorialCard.new(gui, ctx, 2) -- just above the hotbar
 ctx.tutorial = tutorial -- the Guide offers "Show the tutorial again" and Skip

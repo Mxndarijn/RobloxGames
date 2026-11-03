@@ -83,6 +83,7 @@ Existing: `size, pos, look, shape, ghost, motion, conveyor, ice, step, tone, lin
 | `start` | string | this part's motion runs on the per-player clock of group G instead of server time (§5). |
 | `marker` | string | readability decor kind to add (§8): "rings1".."rings3", "chevrons", "arrows", "handprints", "cracks", "star", "rail", "ghostStop", "pic:<id>[,<id>...]" (asks for a picture sign banner over the part, §8b). |
 | `beat` | number | snap this part's motion period to the beat clock: period = `beat` beats at `Kit.BPM`. |
+| `reveal` | number | a memory section's route (Merijn, 2026-11-03: "if the user is before the board he should be able to see the route, once he passes the board it should be hidden"): x of a line (section-local; ObbyCourse.build shifts it with the section, course-local after). Each runner's own client shows the part only while their root is before the line and hides it once they pass it, back after a fall or reset to the start (`visuals/client/ObbySignFade`, `Config.OBBY.ROUTE_REVEAL`; attribute `Constants.OBBY_REVEAL`). Only on still ghosts (no `motion`; ObbyCheck). Glow Memory: a lit slab on every safe tile (the fakes in Pink Traps) with the line at the entry pad's back edge, under the entry sign: no flash timers, no button, no map board. Clue Doors' Remember It: every part of the entry board, the line at the board.
 
 ## 4. Motions (ObbyCourse.Motion `kind`)
 
@@ -162,7 +163,12 @@ when it ends (WalkSpeed 16, gravity, camera) and on every reset.
   grab, a whoosh and a puff on a let go, a Beam from the knob to your hands. "Jump to let go" the first 3 grabs.
 * **cannon**: walking into the barrel snaps you in (PlatformStand, camera behind the barrel); jump fires: your root
   follows the fixed arc for the barrel's current aim (`power`, `arc` degrees up) and is handed back to physics 2
-  studs above the landing. A dotted aim line shows the arc (red where it would hit a hazard or miss).
+  studs above the landing. A dotted aim line shows the arc (red where it would hit a hazard or miss). In the seat you
+  lie along the barrel (`ObbyMoves.SEAT_TILT` up, root `SEAT_MOUTH - SEAT_OUT` along it from the barrel's centre),
+  arms up (`ObbyVinePose`), head and shoulders out of the mouth; the flight goes head first. The barrel wears the
+  `obby_cannon_a` mesh (`ObbyParts.SKINS.cannon`, its mouth along the aim, an open hatch in an orange rim at its back)
+  and two chevrons on the floor behind it point into that hatch (`SKIN_FIT.cannonChevrons`, sweeping with it). The
+  arm pose is local: other clients see the lying root but not the raised arms.
 * **moon**: inside a `moon` zone a VectorForce cancels `(1 - gravity)` of workspace gravity on the character.
   "Inside" is the bubble dome the zone draws (the ellipsoid inscribed in its box, `ObbyZone` shape `"ellipsoid"`),
   not the box: its ends and corners are outside, so size the box so the dome holds the route (tests/ObbyCheck and

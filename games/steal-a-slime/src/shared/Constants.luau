@@ -112,6 +112,8 @@ return table.freeze({
 	OBBY_SPEC = "ObbySpec",
 	OBBY_FRAME = "ObbyFrame",
 	OBBY_ID = "ObbyId",
+	-- a memory route part's course-local x: each client hides it once its runner is past that x (ObbySignFade)
+	OBBY_REVEAL = "ObbyReveal",
 	OBBY_AXIS = "ObbyAxis", -- slide / punch: world direction (Vector3); gust: the way it blows
 	OBBY_AMP = "ObbyAmp", -- slide / punch: studs; swing / rock: degrees
 	OBBY_PERIOD = "ObbyPeriod", -- slide / spin / roll / flip / shrink / punch / gust: seconds (negative = the other way)

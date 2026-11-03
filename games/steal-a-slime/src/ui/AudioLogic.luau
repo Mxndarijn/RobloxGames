@@ -20,6 +20,8 @@
 	  AudioLogic.jitter(base, spread, rng)         base +- spread (PlaybackSpeed variation for repeated SFX)
 	  AudioLogic.playSpeed(cfg, name, speed?, rng) PlaybackSpeed for one play (Sounds.SPEED, Sounds.VARY jitter)
 	  AudioLogic.pick(list, rng)                   one entry of a variant list
+	  AudioLogic.silentAway(name, away)            true for a boss fight sound (Sounds.BOSS_EVENT) while `away` (the
+	                                               local player is in the obby world)
 ]]
 
 local Sounds = if script then require(script.Parent.Sounds) else require("./Sounds")
@@ -220,6 +222,7 @@ end
 export type LayerInput = {
 	clockTime: number,
 	boss: boolean?, -- a boss fight is on: the boss track replaces the day / night music
+	away: boolean?, -- the local player is in the obby world: no boss track there, the day / night music plays
 	weather: string?, -- Constants.WEATHER_ATTRIBUTE value; nil / "Clear" = no weather bed
 }
 export type Layer = { id: string, volume: number, fade: number }
@@ -229,7 +232,7 @@ export type Layer = { id: string, volume: number, fade: number }
 function AudioLogic.layerTargets(input: LayerInput, cfg: any, dayNight: any): { [string]: Layer }
 	local out: { [string]: Layer } = {}
 	local night = AudioLogic.isNight(input.clockTime, dayNight)
-	local track = if input.boss then "boss" elseif night then "night" else "day"
+	local track = if input.boss and not input.away then "boss" elseif night then "night" else "day"
 	local musicId = validId(cfg.MUSIC[track])
 	if musicId then
 		out["music_" .. track] = { id = musicId, volume = cfg.MUSIC_VOLUME, fade = cfg.MUSIC_FADE_SECONDS }
@@ -246,6 +249,11 @@ function AudioLogic.layerTargets(input: LayerInput, cfg: any, dayNight: any): { 
 			{ id = weatherId, volume = cfg.WEATHER_BED_VOLUME, fade = cfg.AMBIENT_FADE_SECONDS }
 	end
 	return out
+end
+
+-- The boss fight is the map's: in the obby world (`away`) none of its sounds play.
+function AudioLogic.silentAway(name: string, away: boolean?): boolean
+	return away == true and Sounds.BOSS_EVENT[name] == true
 end
 
 return AudioLogic
