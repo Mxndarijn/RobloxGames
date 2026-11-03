@@ -155,15 +155,17 @@ describe("Obby picture signs: data", function()
 			Kit.slab(24, 0, 10, 32, 4, "jelly", { marker = "pic:low" }),
 			Kit.slab(24, 0, 11, 32, 2, "jelly", { marker = "pic:high" }),
 		})
-		local slots = ObbyCourse.slotsOf(ObbyCourse.signs(s)[1].marker)
-		local edge = SIGN.width / 2 - SIGN.pad - SIGN.slot / 2
-		expect(slots[2].z - slots[1].z >= SIGN.slot + SIGN.pad - 0.01).toBe(true)
+		local banner = ObbyCourse.signs(s)[1]
+		local slots = ObbyCourse.slotsOf(banner.marker)
+		local side = banner.size[2] - 2 * SIGN.pad
+		local edge = SIGN.width / 2 - SIGN.pad - side / 2
+		expect(slots[2].z - slots[1].z >= side + SIGN.pad - 0.01).toBe(true)
 		expect(slots[2].z <= edge + 0.01).toBe(true)
 	end)
 end)
 
 describe("Obby picture signs: pictograms", function()
-	it("every pictogram builds in one slot, shows only digits as text, and the cannon board fits the lane", function()
+	it("every pictogram builds in one slot, shows only digits as text, and every board size fits the lane", function()
 		for _, id in ObbySigns.IDS do
 			local root = paint({ id })
 			expect(root.Name).toBe("Picture")
@@ -176,7 +178,13 @@ describe("Obby picture signs: pictograms", function()
 			end
 		end
 		expect(SIGN.width).toBe(Kit.WIDTH)
-		expect(4 * SIGN.slot + 5 * SIGN.pad <= SIGN.width).toBe(true)
+		expect(3 * SIGN.slot + 4 * SIGN.pad <= SIGN.width).toBe(true)
+		expect(3 * SIGN.small + 4 * SIGN.pad <= SIGN.width).toBe(true)
+		expect(4 * SIGN.four + 3 * SIGN.step + 2 * SIGN.pad <= SIGN.width).toBe(true)
+		expect((ObbyCourse.slotSize(1))).toBe(SIGN.slot)
+		expect((ObbyCourse.slotSize(3))).toBe(SIGN.slot)
+		expect((ObbyCourse.slotSize(3, true))).toBe(SIGN.small)
+		expect((ObbyCourse.slotSize(4))).toBe(SIGN.four)
 	end)
 
 	it("every pictogram has a main shape a phone reads at 26 studs, and no stroke too thin to see", function()
@@ -196,29 +204,41 @@ describe("Obby picture signs: pictograms", function()
 		end
 	end)
 
-	it("puts the cannon's four steps on one banner, numbered 1 to 4", function()
+	it("puts the cannon's four steps on one banner, left to right with an arrow between each and no numbers", function()
 		local root = paint(string.split(ObbySections.ENTRY_SIGNS.AimTheCannon, ","))
-		local slots, numbers = 0, {}
+		local slots, arrows, texts = 0, 0, 0
 		for _, child in root:GetChildren() do
 			if child:IsA("Frame") then
-				slots += 1
-				for _, d in child:GetChildren() do
+				if child.Name == "Then" then
+					arrows += 1
+				else
+					slots += 1
+				end
+				for _, d in child:GetDescendants() do
 					if d:IsA("TextLabel") then
-						table.insert(numbers, d.Text)
+						texts += 1
 					end
 				end
 			end
 		end
 		expect(slots).toBe(4)
-		table.sort(numbers)
-		expect(table.concat(numbers, ",")).toBe("1,2,3,4")
+		expect(arrows).toBe(3)
+		expect(texts).toBe(0)
+		-- a board of other pictures gets no arrows
+		local plain = 0
+		for _, child in paint({ "safe", "fast" }):GetChildren() do
+			if child.Name == "Then" then
+				plain += 1
+			end
+		end
+		expect(plain).toBe(0)
 	end)
 end)
 
 describe("Obby picture signs: boosters", function()
 	it("hangs a flaming booster under each end, all within the banner's hang and reach, and adds no parts", function()
 		local banner = roblox.Instance.new("Part")
-		banner.Size = roblox.Vector3.new(SIGN.thick, ObbyCourse.bannerHeight(), SIGN.width)
+		banner.Size = roblox.Vector3.new(SIGN.thick, ObbyCourse.bannerHeight(SIGN.four), SIGN.width)
 		ObbySigns.boosters(banner, DEPS)
 		local flames, adorns = 0, 0
 		for _, d in banner:GetDescendants() do
@@ -287,12 +307,15 @@ describe("Obby picture signs: in the course", function()
 			local placed = {}
 			for _, b in banners do
 				local label = `{case.name} {b.id}`
-				-- lane-wide, the one size, a hover
+				-- lane-wide, its board's size (or the small fallback), a hover
+				local slots = ObbyCourse.slotsOf(b.marker)
+				local big = ObbyCourse.bannerHeight((ObbyCourse.slotSize(#slots)))
+				local small = ObbyCourse.bannerHeight((ObbyCourse.slotSize(#slots, true)))
 				if
 					b.pos[3] ~= 0
 					or b.size[3] ~= SIGN.width
 					or b.size[1] ~= SIGN.thick
-					or math.abs(b.size[2] - ObbyCourse.bannerHeight()) > EPS
+					or (math.abs(b.size[2] - big) > EPS and math.abs(b.size[2] - small) > EPS)
 				then
 					table.insert(problems, `{label}: not the lane-wide banner`)
 				end
@@ -314,13 +337,13 @@ describe("Obby picture signs: in the course", function()
 					table.insert(problems, `{label}: its bottom is not {SIGN.lift} over its floor`)
 				end
 				-- slots on the banner, apart
-				local slots = ObbyCourse.slotsOf(b.marker)
-				local edge = SIGN.width / 2 - SIGN.slot / 2
+				local side = b.size[2] - 2 * SIGN.pad
+				local edge = SIGN.width / 2 - side / 2
 				for k, slot in slots do
 					if math.abs(slot.z) > edge + EPS then
 						table.insert(problems, `{label}: slot {k} off the banner`)
 					end
-					if k > 1 and slot.z - slots[k - 1].z < SIGN.slot - EPS then
+					if k > 1 and slot.z - slots[k - 1].z < side - EPS then
 						table.insert(problems, `{label}: slots {k - 1} and {k} overlap`)
 					end
 				end
@@ -348,7 +371,7 @@ describe("Obby picture signs: in the course", function()
 		expect(#problems).toBe(0)
 	end)
 
-	it("hangs Two Roads' fork banner with the shield over the left road and the lightning over the right", function()
+	it("hangs Two Roads' fork banner with the shield over the left road and the speed pad over the right", function()
 		local course = ObbyCourse.build(1, { { id = "TwoRoads", tier = "easy", variant = 1, seed = 1 } })
 		local found = false
 		for _, part in course.parts do

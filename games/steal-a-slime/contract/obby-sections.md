@@ -197,9 +197,48 @@ else `rbxasset://sounds/...` built-ins; never upload audio. Every sound is quiet
 
 ## 8b. Picture signs (docs/obby-signs-proposal.html; Merijn, 2026-11-01)
 
-Signs are pictures only: no words (no FAST, SAFE, LOW GRAVITY, ...). Digits and arrows only where the proposal uses
-them (a stopwatch's seconds, Rising Goo's 3 2 1, the cannon's step numbers). A multi-step mechanic shows all its
-steps on one board (the cannon: walk in from behind, it swings, jump when the dots are mint, land on the star).
+Signs are pictures only: no words (no FAST, SAFE, LOW GRAVITY, ...). Digits only where the number is the message
+(a stopwatch's seconds, Rising Goo's 3 2 1); no step numbers. A multi-step mechanic shows all its steps on one board,
+left to right with an arrow in the gap between each (the cannon: walk in, it swings with you inside, jump when its
+green aim line hits the green target ring, land in the ring).
+
+One visual language for every picture (two blind tests of every picture by three judges: a 10-year-old player, an
+adult non-gamer and an icon designer):
+
+* Fixed colours, one meaning each: hazard red (215, 20, 25) is danger only (a hazard, a fake or breaking tile);
+  green is safe / the target only (a safe tile, the lit pad in the dark, the cannon's aim line on target and its
+  target ring); yellow is a thing you use (spring pads, buttons, keys, live vents, vines, the speed pad); lilac is an
+  ordinary platform (belts, planks, ledges, ladders, beat pads, floors). Yellow never draws "the path" or a crumbling
+  floor. Other colours only where they are that thing's own look (ice, wind, the cannon, Glow Memory's pink fakes).
+  White is the runner, its jumps and the arrows.
+* The mechanic is the biggest thing on the board (no corner icons carrying the message), and the runner is on every
+  board that asks you to do something (status boards excepted: the shield, the speed pad, a stopwatch or countdown).
+  Nothing is cropped at the slot's edge.
+* White dots are only ever the runner's own jump path, evenly spaced along it; a launch (cannon, geyser vent, spring
+  pad) draws the runner's path the same way. A falling or rolling hazard is a solid shape with motion streaks behind
+  it, never dots.
+* No lightning bolt. Speed is the yellow pad with chevrons (Speed Strip, Two Roads' fast road); chevrons mean nothing
+  else. One danger tile: red with a dark rim and a crack (Glow Memory's pink fakes: the same tile in pink, rimmed
+  red). "Watch" is an almond eye with a pupil.
+* One arrow style (round-ended white stroke, open head) in three weights; one motion cue per picture (no arc plus
+  arrow for the same move); no leftward arrow unless the message is "go back" (crossing is a two-headed arrow). A
+  stopwatch shows big white bold digits with a thick dark outline (the glyph about two thirds of the dial) and a sweep
+  as big as its seconds on a ten-second dial.
+* One of each, everywhere (third blind test): one runner size (20 x 42 on the 100 grid; only Glow Memory's runner on
+  a tile is drawn small); one ghost for "where it was / where it goes" (the same shape as a faded lilac outline: the
+  cannon's other swing, Rolling Blobs' step aside, the ride's stop, the cannon's launch point, Moon Jump's normal
+  hop); one crack (a thick near-black zigzag with a thin white edge, on lilac, green, red and pink tiles alike);
+  motion streaks only on the trailing side, uneven in length (above a falling tile, drop or crusher; never below or
+  as two equal upright bars, which read as a pause sign); one cannon (side view: a wooden wheel with spokes over a
+  tapered dark barrel with a muzzle ring) on every cannon step, and the cannon's flight is the runner's white jump
+  arc (green only for the target ring); "look" is always the eye. A geyser is a pale water jet with an up arrow
+  lifting the runner, a dead vent an hourglass (wait). Terraced roads are a side view of three stepped ledges, this
+  road's solid lilac with the runner on it, the others dashed outlines at their heights.
+* Safe margin: every picture draws inside `ObbySigns.SIZE.margin` (5%) of its slot and keeps within 3..97 of its
+  grid, so nothing comes nearer than about 8% to the slot's edge.
+* Same idea, same drawing: the crumbling floor (Melting Floor: tiles, Collapsing Bridge: planks, Glow Memory's hot
+  feet: green tiles) is one layout, the floor's shape telling them apart; Two Moons' picture is Moon Jump's (a
+  see-through dome over the floor, a big floaty jump beside a faded small hop).
 
 * One design for every sign (Merijn: "the boards should be overhanging, so from the most left side to the right
   side ... give it boosters or something so it can fly and look nice and place higher"): a ghost `banner` part
@@ -207,14 +246,17 @@ steps on one board (the cannon: walk in from behind, it swings, jump when the do
   over the floor at its spot, held up by a cartoon booster under each end (adornments plus a built-in fire-particle
   flame blowing down, `ObbySigns.boosters`), hovering `SIGN.bob` up and down over `SIGN.bobPeriod` s (a `slide`
   motion on the y axis, played by ObbyFx on the shared clock: no loop of its own). No posts.
-* One picture = one square slot (`SIGN.slot`). A sign's slots sit across the banner, each over the part of the lane
-  it is about (`pic:<id>@<z>` on the banner; Two Roads: the shield over the left road, the lightning over the right;
-  terraces low / middle / high left to right), kept `SIGN.pad` apart and on the banner. Entry signs space their slots
-  evenly round the middle; the cannon's four steps are four slots (`cannon1..cannon4`).
+* One picture = one square slot, its size set by the board (`ObbyCourse.slotSize`): a board of up to three pictures
+  draws them `SIGN.slot` (7.2) studs big, so the banner is 8 studs tall; where that banner finds no clear spot it falls
+  back to `SIGN.small` (5.4). A board of four (the cannon's steps) draws them `SIGN.four` (5) big, `SIGN.step` (1)
+  apart, with an arrow in each gap (`ObbySigns.paint`, steps listed in its `THEN`). A sign's slots sit across the
+  banner, each over the part of the lane it is about (`pic:<id>@<z>` on the banner; Two Roads: the shield over the
+  left road, the speed pad over the right; floors low / middle / high left to right), kept `SIGN.pad` apart (the
+  step gap on a board of four) and on the banner. Entry signs space their slots evenly round the middle.
 * Pictograms live in `src/visuals/shared/ObbySigns.luau` (ids `ObbySigns.IDS`): Frames, UICorner, UIStroke, rotated
   Frames and digit TextLabels on a SurfaceGui on the banner's face towards the runner, no uploads. How they are drawn
   in `ObbySigns.SIZE` (50 px/stud, MaxDistance 200, main shapes >= 1.3 studs; the booster sizes); the banner's
-  geometry in `ObbyCourse.SIGN`.
+  geometry in `ObbyCourse.SIGN`; `ObbySigns.paint(gui, slots, deps, height)` takes the banner's height.
 * Entry signs: `ObbySections.ENTRY_SIGNS` names the pictures for every idea (Merijn, 2026-11-02: every section
   shows its board; the ten the proposal had skipped got crusher, melt, ride, bounce, ice, spin, fork, rising,
   collapse and panels). A section can name its own with `Section.sign` (`Kit.signed`): Glow Memory's modes, and the

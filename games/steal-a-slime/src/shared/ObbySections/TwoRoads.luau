@@ -5,7 +5,7 @@
 	The lane splits into roads you can study from the fork: a short, hard road (route "fast", on the right, z > 0)
 	and a long, safe one (the main path, on the left, z < 0), with a see-through divider between them where they run
 	side by side. Some variants stack the roads (a miss on the high road lands on the low one), add a third road
-	("top" / "bottom"), a hidden one ("secret") or a crossing plank ("bail"). A picture sign (`pic:` marker: lightning,
+	("top" / "bottom"), a hidden one ("secret") or a crossing plank ("bail"). A picture sign (`pic:` marker: speed pad,
 	shield, a terrace, ...) on each road's first pad says which is which.
 
 	Walk-forward rule (contract §9, §11): every walking line needs a same-height hole of 4.4 or more, a ledge over 2

@@ -930,7 +930,7 @@ local function addMarker(
 		gui.LightInfluence = 0
 		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 		gui.Adornee = board
-		ObbySigns.paint(gui, ObbyCourse.slotsOf(kind) :: { ObbyCourse.Slot })
+		ObbySigns.paint(gui, ObbyCourse.slotsOf(kind) :: { ObbyCourse.Slot }, nil, board.Size.Y)
 		gui.Parent = board
 		ObbySigns.boosters(board)
 	end
