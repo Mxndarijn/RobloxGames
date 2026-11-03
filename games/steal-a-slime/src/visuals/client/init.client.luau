@@ -25,6 +25,8 @@
 	  * the Goo Gauntlet obby's moving parts (ObbyFx): slides, spinners, melting, flipping and shrinking pads
 	  * the obby world's own look (ObbyWorld): Lighting, Atmosphere and a tint swap while the local player is there
 	  * the obby's picture sign banners fade out once the local runner has passed them (ObbySignFade)
+	  * the camera stops in front of non-collide course parts such as lava floors instead of showing through them
+	    (ObbyCameraGuard)
 	  * the obby's fall reset (ObbyFall): a runner who drops off the course is put back on the start pad at once
 	  * the obby's character controllers (ObbyMoves): boost, slide, vines, cannons, moon and dark zones
 	  * the obby's vine ropes for everyone (ObbyVineSync): sends the rope the local player holds, draws the others'
@@ -632,6 +634,15 @@ do
 		warn(`[VisualsClient] obby sign fade disabled: {err}`)
 	end
 end
+local obbyCameraGuard: any = nil
+do
+	local ok, err = pcall(function()
+		obbyCameraGuard = require(script:WaitForChild("ObbyCameraGuard")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] obby camera guard disabled: {err}`)
+	end
+end
 local shopDisplayFx: any = nil
 do
 	local ok, err = pcall(function()
@@ -713,6 +724,9 @@ applyRain()
 RunService.RenderStepped:Connect(function(dt: number)
 	if obbyWorld then
 		obbyWorld.tick(dt)
+	end
+	if obbyCameraGuard then
+		obbyCameraGuard.tick() -- after the camera module and ObbyWorld's cut have placed the camera
 	end
 	if obbyCourse then
 		obbyCourse.tick()
