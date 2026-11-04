@@ -24,8 +24,9 @@
 	  * the Goo Ring behind the start pad (ObbyCourse.inHome) ends the run and sets the runner down by the portal
 	  * the course stands in its own world (Place.zone): anyone there without a run is set down by the portal
 	  * every section a run clears for the first time (reaching the next part of the course; the last one on the
-	    finish pad) adds an equal share of the boost (ObbyRules.earn: OBBY.BONUS over the sections, BOOST_SECONDS
-	    again from then): the first share when the boost is ready, the rest because this run started it. A section
+	    finish pad) adds an equal share to this run's total (OBBY.BONUS over the sections), and the best run counts
+	    (ObbyRules.earn): the total starts the boost when it is ready, and raises it while it runs only once it beats
+	    the boost already running (BOOST_SECONDS again from then); nothing while it cools down. A section
 	    counts once per run, so falls and retries of the same sections add nothing; an invalid run or a movement
 	    flag since the portal stops the shares. Saved as data.obbyUntil / obbyReadyAt / obbyEarned
 	  * the finish pad ends the run: the time and a best on this course; then the player is set down by the portal. A best that passes
@@ -159,6 +160,7 @@ function ObbyService.enter(world: World, session: Session, place: Place, now: nu
 		attempt = 0,
 		at = 0,
 		cleared = 0,
+		tally = 0,
 		paid = 0,
 		enteredAt = now,
 		settleUntil = now + OBBY.MOVE_GRACE,
@@ -191,8 +193,9 @@ function ObbyService.multText(bonus: number): string
 	return "x" .. (string.gsub(text, "%.0$", ""))
 end
 
--- Pays the sections a run has cleared up to `cleared` (in order, each once per run): each adds ObbyRules.share of
--- the boost while this run may still earn (not invalid, no movement flag since the portal).
+-- Counts the sections a run has cleared up to `cleared` (in order, each once per run): each adds ObbyRules.share to
+-- the run's total while it may still earn (not invalid, no movement flag since the portal), and the boost takes the
+-- total when the best run counts (ObbyRules.earn).
 local function reward(
 	world: World,
 	session: Session,
@@ -210,8 +213,11 @@ local function reward(
 	local share = ObbyRules.share(#course.spans)
 	while run.cleared < cleared do
 		run.cleared += 1
-		if not run.invalid and not flagged and ObbyRules.earn(session.data, now, share, run.paid > 0) then
-			run.paid += 1
+		if not run.invalid and not flagged then
+			run.tally += 1
+			if ObbyRules.earn(session.data, now, run.tally * share) then
+				run.paid += 1
+			end
 		end
 	end
 	session.data.obbyBonus = ObbyRules.bonus(session.data, now)
@@ -297,6 +303,9 @@ local function finish(world: World, session: Session, run: World.ObbyRun, course
 			if newBest
 				then `Cleared in {time}! {tail}`
 				elseif tail then `Cleared in {time}. {tail}`
+				elseif ObbyRules.phase(session.data, now) == "boosted" then `Cleared in {time}! {ObbyService.multText(
+					session.data.obbyEarned
+				)} income still on`
 				else `Cleared in {time}! Boost ready again in {clock(session.data.obbyReadyAt - now)}`,
 			"good",
 			nil

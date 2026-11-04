@@ -39,35 +39,44 @@ describe("ObbyRules", function()
 		expect(ObbyRules.view(data, data.obbyUntil + 1).readyAt).toBe(data.obbyReadyAt)
 	end)
 
-	it("each section adds a share; the first needs the boost ready, the rest continue this run's boost", function()
+	it("the best run counts: a run's total starts the boost, and raises it only when it beats it", function()
 		local data = { obbyUntil = 0, obbyReadyAt = 0, obbyEarned = 0 }
 		local share = ObbyRules.share(6)
 		expect(share).toBeCloseTo(OBBY.BONUS / 6, 1e-12)
-		expect(ObbyRules.earn(data, 1000, share, false)).toBe(true)
+		-- ready: this run's first section starts the boost
+		expect(ObbyRules.earn(data, 1000, share)).toBe(true)
 		expect(ObbyRules.bonus(data, 1001)).toBeCloseTo(share, 1e-12)
 		expect(data.obbyUntil).toBe(1000 + OBBY.BOOST_SECONDS)
-		-- another run while boosted: no new start
-		expect(ObbyRules.earn(data, 1010, share, false)).toBe(false)
-		-- this run's next sections: the boost grows and runs BOOST_SECONDS from the latest
-		for k = 2, 6 do
-			expect(ObbyRules.earn(data, 1000 + k * 10, share, true)).toBe(true)
+		-- the same run's next sections raise it, and every raise runs BOOST_SECONDS from then
+		for k = 2, 4 do
+			expect(ObbyRules.earn(data, 1000 + k * 10, k * share)).toBe(true)
 		end
-		expect(ObbyRules.bonus(data, 1061)).toBe(OBBY.BONUS) -- six sixths land exactly on the full bonus
-		expect(data.obbyUntil).toBe(1060 + OBBY.BOOST_SECONDS)
-		expect(data.obbyReadyAt).toBe(1060 + OBBY.BOOST_SECONDS + OBBY.COOLDOWN_SECONDS)
-		-- never past the full bonus
-		ObbyRules.earn(data, 1070, share, true)
+		expect(ObbyRules.bonus(data, 1041)).toBeCloseTo(4 * share, 1e-12)
+		expect(data.obbyUntil).toBe(1040 + OBBY.BOOST_SECONDS)
+		-- another run while that boost runs: its first four sections add nothing (no farming by re-entering) ...
+		for k = 1, 4 do
+			expect(ObbyRules.earn(data, 1100 + k * 10, k * share)).toBe(false)
+		end
+		expect(data.obbyUntil).toBe(1040 + OBBY.BOOST_SECONDS)
+		-- ... its fifth and sixth beat the running boost: a full clear always ends on the full bonus
+		expect(ObbyRules.earn(data, 1150, 5 * share)).toBe(true)
+		expect(ObbyRules.earn(data, 1160, 6 * share)).toBe(true)
+		expect(ObbyRules.bonus(data, 1161)).toBe(OBBY.BONUS) -- six sixths land exactly on the full bonus
+		expect(data.obbyUntil).toBe(1160 + OBBY.BOOST_SECONDS)
+		expect(data.obbyReadyAt).toBe(1160 + OBBY.BOOST_SECONDS + OBBY.COOLDOWN_SECONDS)
+		-- never past the full bonus, and a full boost can't be raised
+		expect(ObbyRules.earn(data, 1170, 7 * share)).toBe(false)
 		expect(data.obbyEarned).toBe(OBBY.BONUS)
-		-- continuing after the boost ran out is a new start, and that needs ready
-		expect(ObbyRules.earn(data, data.obbyUntil + 1, share, true)).toBe(false)
-		expect(ObbyRules.earn(data, data.obbyReadyAt, share, true)).toBe(true)
+		-- while it cools down nothing; once ready a run starts again from its own total
+		expect(ObbyRules.earn(data, data.obbyUntil + 1, 6 * share)).toBe(false)
+		expect(ObbyRules.earn(data, data.obbyReadyAt, share)).toBe(true)
 		expect(data.obbyEarned).toBeCloseTo(share, 1e-12)
 	end)
 
 	it("the view's bonus is the running boost while boosted, else a full clear's", function()
 		local data = { obbyUntil = 0, obbyReadyAt = 0, obbyEarned = 0 }
 		expect(ObbyRules.view(data, 5).bonus).toBe(OBBY.BONUS)
-		ObbyRules.earn(data, 10, ObbyRules.share(6), false)
+		ObbyRules.earn(data, 10, ObbyRules.share(6))
 		expect(ObbyRules.view(data, 11).bonus).toBeCloseTo(OBBY.BONUS / 6, 1e-12)
 		expect(ObbyRules.view(data, data.obbyUntil).bonus).toBe(OBBY.BONUS)
 	end)

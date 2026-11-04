@@ -48,27 +48,30 @@ function ObbyRules.share(sections: number): number
 end
 
 --[[
-	A cleared section adds `add` to the boost: returns true when it did. The first share of a run needs the boost
-	ready and starts it from zero; `continuing` (this run already earned a share) adds to it while it runs. Either way
-	the boost runs BOOST_SECONDS from now, the cooldown after it, and the bonus never passes OBBY.BONUS.
+	The best run counts. `total` is what this run's cleared sections are worth so far (its shares added up); returns
+	true when the boost changed. While the boost is ready the run's total starts it; while it runs the total raises
+	it only when it beats what the boost gives already (a run that clears fewer sections adds nothing, so re-entering
+	can't farm it, and finishing the whole course always ends on the full bonus); while it cools down nothing. When it
+	lands, the boost runs BOOST_SECONDS from now and the cooldown after it; the bonus never passes OBBY.BONUS.
 ]]
-function ObbyRules.earn(data: Timers, now: number, add: number, continuing: boolean): boolean
-	local base = 0
-	if continuing and now < data.obbyUntil then
-		base = data.obbyEarned
-	elseif not ObbyRules.ready(data, now) then
+function ObbyRules.earn(data: Timers, now: number, total: number): boolean
+	local phase = ObbyRules.phase(data, now)
+	if phase == "cooling" then
 		return false
 	end
-	local earned = base + math.max(0, add)
-	data.obbyEarned = if earned > OBBY.BONUS - 1e-9 then OBBY.BONUS else earned -- the last share lands on the full bonus
+	local bonus = if total > OBBY.BONUS - 1e-9 then OBBY.BONUS else math.max(0, total) -- the last share lands on the full bonus
+	if bonus <= 0 or (phase == "boosted" and bonus <= data.obbyEarned + 1e-9) then
+		return false
+	end
+	data.obbyEarned = bonus
 	data.obbyUntil = now + OBBY.BOOST_SECONDS
 	data.obbyReadyAt = data.obbyUntil + OBBY.COOLDOWN_SECONDS
 	return true
 end
 
--- A full clear in one go (every share at once): returns true when it earned (the player was ready).
+-- A full clear in one go (every share at once): returns true when the boost changed.
 function ObbyRules.grant(data: Timers, now: number): boolean
-	return ObbyRules.earn(data, now, OBBY.BONUS, false)
+	return ObbyRules.earn(data, now, OBBY.BONUS)
 end
 
 -- State.obby's boost part: `bonus` = the bonus running now while boosted, else what a full clear earns.
