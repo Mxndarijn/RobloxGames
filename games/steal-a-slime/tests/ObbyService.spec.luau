@@ -233,9 +233,36 @@ describe("ObbyService runs", function()
 		ObbyService.step(world, PLACE, at(ObbyCourse.toWorld(PLACE.frame, { home.pos[1], 3, 0 })), T + 30)
 		expect(session.obbyRun).toBeNil()
 		expect(session.data.obbyBonus).toBeCloseTo(2 * share, 1e-12)
-		-- a new run while that boost runs earns nothing
+		-- the best run counts: a new run while that boost runs adds nothing for its first two sections, then raises
+		-- it, and finishing the whole course ends on the full bonus
 		enter(world, T + 40)
-		runAll(world, T + 40, 8)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 48)
+		ObbyService.step(world, PLACE, at(onPad(world, 2)), T + 56)
+		ObbyService.step(world, PLACE, at(onPad(world, 3)), T + 64)
+		expect(session.data.obbyBonus).toBeCloseTo(2 * share, 1e-12)
+		expect(session.data.obbyUntil).toBe(T + 24 + OBBY.BOOST_SECONDS)
+		expect(session.obbyRun.paid).toBe(0)
+		runAll(world, T + 64, 8)
+		expect(session.data.obbyBonus).toBe(OBBY.BONUS)
+		local texts = ServerFixtures.notifications(world, 1)
+		expect(string.find(texts[#texts], "x2 income for 5 min", 1, true) ~= nil).toBe(true)
+	end)
+
+	it("a new run that clears no more than the running boost leaves it as it is", function()
+		local world, session = setup()
+		enter(world, T)
+		local share = ObbyRules.share(#world.obby.spans)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 8)
+		ObbyService.step(world, PLACE, at(onPad(world, 2)), T + 16)
+		ObbyService.step(world, PLACE, at(onPad(world, 3)), T + 24) -- two shares
+		local home = world.obby.home
+		ObbyService.step(world, PLACE, at(ObbyCourse.toWorld(PLACE.frame, { home.pos[1], 3, 0 })), T + 30)
+		for _, now in { T + 40, T + 60 } do -- re-entering and clearing section 1 again, twice
+			enter(world, now)
+			ObbyService.step(world, PLACE, at(onPad(world, 1)), now + 4)
+			ObbyService.step(world, PLACE, at(onPad(world, 2)), now + 8)
+			ObbyService.step(world, PLACE, at(ObbyCourse.toWorld(PLACE.frame, { home.pos[1], 3, 0 })), now + 12)
+		end
 		expect(session.data.obbyBonus).toBeCloseTo(2 * share, 1e-12)
 		expect(session.data.obbyUntil).toBe(T + 24 + OBBY.BOOST_SECONDS)
 	end)

@@ -69,7 +69,8 @@ export type ObbyRun = {
 	firstAt: number?, -- server time the first try's clock started (the total time on the course); nil = not yet
 	invalid: boolean?, -- skipped a section or finished too fast: the finish counts no time and no more sections pay
 	cleared: number, -- sections this run has cleared, in order (each counts once per run, ObbyService.reward)
-	paid: number, -- of those, the ones that added a share to the boost
+	tally: number, -- of those, the ones this run counts (before it turned invalid or flagged): its total in shares
+	paid: number, -- of those, the ones that raised the boost (the best run counts, ObbyRules.earn)
 	settleUntil: number?, -- the server just moved the runner: fall and off-course checks wait until then
 	lastX: number?, -- course-local x at the last check (a jump back onto the start pad = the client's fall reset)
 	lockAt: number?, -- server time the base lock was last slowed for this run (server/ObbyLock); nil = enteredAt
