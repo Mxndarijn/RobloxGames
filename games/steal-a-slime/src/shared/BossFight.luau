@@ -5,9 +5,11 @@
 	One boss event as plain data: the phase ("warning" -> "fight" -> "haul" -> "won" | "failed"), its deadline, the goo
 	meter, every player's hits, the stages reached and the haul (top-contributor head start, carrier, winner).
 
-	The meter target scales with the players on the server (Config.BOSS.POINTS_PER_PLAYER x players, read live), so a
-	fight takes about as long on any server. `step` advances time and returns what the caller must do (spawn the boss,
-	a new stage, start the haul, fail). No Roblox APIs, no randomness, no World: server/BossEvent wires it up.
+	The meter is a share, 0..1. A hit adds its points / (Config.BOSS.POINTS_PER_PLAYER x fighters), where fighters are
+	the players with at least FIGHTER_MIN_HITS counted hits in the last FIGHTER_WINDOW seconds (at least one). Players
+	who stay away never make it harder, so one player can clear it alone, and the bar never jumps when a fighter joins
+	or leaves. `step` advances time and returns what the caller must do (spawn the boss, a new stage, start the haul,
+	fail). No Roblox APIs, no randomness, no World: server/BossEvent wires it up.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -18,9 +20,10 @@ export type State = {
 	species: string,
 	phase: Phase,
 	endsAt: number, -- deadline of the current phase (warning: the arrival)
-	points: number, -- goo meter points (drains, may be fractional)
+	meter: number, -- goo meter share 0..1 (drains, never below the last stage reached)
 	contributions: { [number]: number }, -- userId -> hits on this boss (never drains)
 	lastHitAt: { [number]: number }, -- userId -> last counted hit
+	recent: { [number]: { number } }, -- userId -> times of their counted hits within FIGHTER_WINDOW
 	lastAnyHitAt: number, -- last counted hit by anyone (the drain waits DRAIN_GRACE after it)
 	stage: number, -- stages reached so far (one per STAGE_EVERY of the meter; it speeds up with each)
 	priorityUserId: number?, -- haul: the top contributor's head start
@@ -42,9 +45,10 @@ function BossFight.new(species: string, now: number): State
 		species = species,
 		phase = "warning",
 		endsAt = now + BOSS.WARNING_SECONDS,
-		points = 0,
+		meter = 0,
 		contributions = {},
 		lastHitAt = {},
+		recent = {},
 		lastAnyHitAt = -math.huge,
 		stage = 0,
 		priorityUserId = nil,
@@ -55,17 +59,56 @@ function BossFight.new(species: string, now: number): State
 	}
 end
 
--- Meter points needed with `players` on the server (at least one).
-function BossFight.target(players: number): number
-	return BOSS.POINTS_PER_PLAYER * math.max(1, math.floor(players))
+-- Players fighting at `now`: FIGHTER_MIN_HITS counted hits or more in the last FIGHTER_WINDOW seconds (at least one).
+function BossFight.fighters(state: State, now: number): number
+	local n = 0
+	for _, times in state.recent do
+		local count = 0
+		for _, t in times do
+			if now - t <= BOSS.FIGHTER_WINDOW then
+				count += 1
+			end
+		end
+		if count >= BOSS.FIGHTER_MIN_HITS then
+			n += 1
+		end
+	end
+	return math.max(1, n)
+end
+
+-- Meter share one point is worth at `now`.
+function BossFight.pointValue(state: State, now: number): number
+	return 1 / (BOSS.POINTS_PER_PLAYER * BossFight.fighters(state, now))
 end
 
 -- Goo meter 0..1 (1 from the haul on).
-function BossFight.meter(state: State, players: number): number
+function BossFight.meter(state: State): number
 	if state.phase == "haul" or state.phase == "won" then
 		return 1
 	end
-	return math.clamp(state.points / BossFight.target(players), 0, 1)
+	return math.clamp(state.meter, 0, 1)
+end
+
+-- The meter share no drain takes it below: the last STAGE_EVERY reached.
+function BossFight.floor(state: State): number
+	return state.stage * BOSS.STAGE_EVERY
+end
+
+-- Takes `share` of the meter back (Queen Jelly's guards held); this may go below the stage floor.
+function BossFight.heal(state: State, share: number)
+	state.meter = math.max(0, state.meter - share)
+end
+
+local function credit(state: State, userId: number, points: number, now: number)
+	local times = state.recent[userId] or {}
+	state.recent[userId] = times
+	table.insert(times, now)
+	while #times > 0 and now - times[1] > BOSS.FIGHTER_WINDOW do
+		table.remove(times, 1)
+	end
+	state.lastAnyHitAt = now
+	state.meter += points * BossFight.pointValue(state, now)
+	state.contributions[userId] = (state.contributions[userId] or 0) + points
 end
 
 -- True while the event is on (warning, fight or haul).
@@ -116,11 +159,8 @@ function BossFight.hit(state: State, userId: number, now: number, amount: number
 	if last and now - last < BOSS.HIT_GAP - 1e-6 then
 		return false, "too fast"
 	end
-	local points = math.max(0, amount or 1)
 	state.lastHitAt[userId] = now
-	state.lastAnyHitAt = now
-	state.points += points
-	state.contributions[userId] = (state.contributions[userId] or 0) + points
+	credit(state, userId, math.max(0, amount or 1), now)
 	return true, nil
 end
 
@@ -129,9 +169,7 @@ function BossFight.add(state: State, userId: number, points: number, now: number
 	if state.phase ~= "fight" then
 		return
 	end
-	state.lastAnyHitAt = now
-	state.points += points
-	state.contributions[userId] = (state.contributions[userId] or 0) + points
+	credit(state, userId, points, now)
 end
 
 -- Stage 0..3: how many STAGE_EVERY of the meter have been reached (the boss speeds up with each).
@@ -148,11 +186,11 @@ local function fail(state: State, now: number, reason: string, events: { Event }
 end
 
 --[[
-	Advances the fight to `now` (`dt` seconds since the last step) with `players` on the server. Returns the events
+	Advances the fight to `now` (`dt` seconds since the last step). Returns the events
 	for the caller, in order: "fight" (the boss arrives), "stage" (it reached the next STAGE_EVERY of the meter), "haul" (the meter is full;
 	priority goes to the top contributor), "fail".
 ]]
-function BossFight.step(state: State, now: number, dt: number, players: number, paused: boolean?): { Event }
+function BossFight.step(state: State, now: number, dt: number, paused: boolean?): { Event }
 	local events: { Event } = {}
 	if state.phase == "warning" then
 		if now >= state.endsAt then
@@ -163,14 +201,19 @@ function BossFight.step(state: State, now: number, dt: number, players: number, 
 		return events
 	end
 	if state.phase == "fight" then
-		local target = BossFight.target(players)
 		-- `paused`: the boss is winding up or attacking, so dodging never costs the meter.
-		if not paused and now - state.lastAnyHitAt >= BOSS.DRAIN_GRACE and dt > 0 then
-			state.points = math.max(0, state.points - BOSS.DRAIN_PER_SECOND * target * dt)
+		if
+			not paused
+			and now - state.lastAnyHitAt >= BOSS.DRAIN_GRACE
+			and dt > 0
+			and state.meter > BossFight.floor(state)
+		then
+			state.meter = math.max(BossFight.floor(state), state.meter - BOSS.DRAIN_PER_SECOND * dt)
 		end
-		local meter = math.clamp(state.points / target, 0, 1)
+		-- The epsilon lets a run of 1 / target shares add up to a full meter.
+		local meter = math.clamp(state.meter + 1e-9, 0, 1)
 		-- A stage at every STAGE_EVERY crossed for the first time, below the full meter (that one pops the haul).
-		local reached = math.min(math.floor(meter / BOSS.STAGE_EVERY + 1e-9), math.ceil(1 / BOSS.STAGE_EVERY) - 1)
+		local reached = math.min(math.floor(meter / BOSS.STAGE_EVERY), math.ceil(1 / BOSS.STAGE_EVERY) - 1)
 		if reached > state.stage then
 			table.insert(events, { kind = "stage" })
 			state.stage = reached
