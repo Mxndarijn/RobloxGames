@@ -6,7 +6,7 @@
 	item's real 3D model turning on the turntable instead of its icon, or a bundle's items side by side.
 
 	  * `of(detail, config)` (pure): the preview for an ExclusiveShopView.Detail, or nil to keep the icon.
-	    Clouds carry a slime at their seat height, hats sit on a slime the way SlimeHatsFx fits them on a pad,
+	    Clouds carry a slime at their seat height, hats sit on a slime,
 	    lock stoppers, Bat skins and base-skin decor turn on their own. Plot bases (whole buildings), trails
 	    (particles, which a ViewportFrame can't draw), passes and boosts keep their icon.
 	  * `new(stage, ctx)` (Roblox): a ViewportFrame and an item row over the stage. `set(preview)` swaps what
@@ -18,7 +18,9 @@
 	(lock stoppers, Bat skins) load once per client through `ctx.loadMesh`.
 ]]
 
-local SlimeHatsFx = if script then require(script.Parent.SlimeHatsFx) else require("./SlimeHatsFx")
+local MeshAssets = if script
+	then require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("MeshAssets"))
+	else require("../shared/MeshAssets")
 
 export type Pose = "seat" | "hat" | "stopper" | "bat" | "decor"
 
@@ -49,8 +51,10 @@ ShopPreview.STYLE = table.freeze({
 	pitch = 14, -- degrees the camera looks down
 	margin = 1.12, -- framing room around the model's turning circle
 	slimeColor = { 110, 226, 120 }, -- the slime that wears a hat or rides a cloud
-	riderShare = 0.55, -- rider width over the cloud's width
-	riderSink = 0.15, -- share of the rider sunk into the seat
+	riderShare = 0.4, -- rider width over the cloud's width
+	riderSink = 0.2, -- share of the rider sunk into the seat
+	hatShare = 0.85, -- hat width over the slime's width (the preview's ball slime has no dome to hide a brim)
+	hatSink = 0.22, -- share of the slime's height the hat sits below its top
 	batTilt = 24, -- degrees a Bat skin leans
 	itemsMax = 4, -- bundle items shown side by side
 	itemGap = 6,
@@ -154,6 +158,13 @@ function ShopPreview.rider(seatSize: { number }, seat: number): (number, number)
 	return diameter, seat + diameter / 2 - diameter * STYLE.riderSink
 end
 
+-- A hat `hatSize` (studs, X Y Z) on a round slime `diameter` across: its scale and the height of its centre over
+-- the slime's centre (pure; tests).
+function ShopPreview.hat(diameter: number, hatSize: { number }): (number, number)
+	local scale = diameter * STYLE.hatShare / math.max(hatSize[1], hatSize[3], 1e-3)
+	return scale, diameter / 2 - diameter * STYLE.hatSink + hatSize[2] * scale / 2
+end
+
 -- Camera distance that fits a model whose turning circle is `radius` and height `height` in a STYLE.fov view
 -- of aspect `aspect` (width / height) (pure; tests).
 function ShopPreview.distance(radius: number, height: number, aspect: number): number
@@ -209,12 +220,16 @@ local function compose(preview: Preview, part: BasePart, ctx: Context): Model
 	part.Anchored = true
 	part.CanCollide = false
 	part.CastShadow = false
+	-- The model's own vertex colours (a MeshPart's Color multiplies them; templates keep the default grey).
+	part.Color = Color3.new(1, 1, 1)
 	local size = part.Size
 	local pose = preview.pose
+	-- Kit meshes face the camera after the import turn, like the slime's eyes.
+	local face = CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
 	if pose == "bat" then
-		part.CFrame = CFrame.Angles(0, 0, math.rad(STYLE.batTilt))
+		part.CFrame = CFrame.Angles(0, 0, math.rad(STYLE.batTilt)) * face
 	else
-		part.CFrame = CFrame.new(0, size.Y / 2, 0)
+		part.CFrame = CFrame.new(0, size.Y / 2, 0) * face
 	end
 	part.Parent = m
 	if pose == "seat" or pose == "hat" then
@@ -227,9 +242,9 @@ local function compose(preview: Preview, part: BasePart, ctx: Context): Model
 		else
 			local b = body.Size
 			slime:PivotTo(CFrame.new(0, b.Y / 2, 0))
-			local fitted, up = SlimeHatsFx.fit({ b.X, b.Y, b.Z }, { size.X, size.Y, size.Z })
-			part.Size = Vector3.new(fitted[1], fitted[2], fitted[3])
-			part.CFrame = body.CFrame * CFrame.new(0, up, 0)
+			local scale, up = ShopPreview.hat(b.X, { size.X, size.Y, size.Z })
+			part.Size = size * scale
+			part.CFrame = body.CFrame * CFrame.new(0, up, 0) * face
 		end
 		slime.Parent = m
 	end
