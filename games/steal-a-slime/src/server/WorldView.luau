@@ -2150,7 +2150,8 @@ function WorldView.updatePlayer(
 	if math.abs(humanoid.WalkSpeed - target) > 0.01 then
 		humanoid.WalkSpeed = target
 	end
-	if carry and character and character:FindFirstChildOfClass("Tool") then
+	-- Nothing in hand while carrying or on an obby run (no items in the obby, contract/obby.md).
+	if (carry or session.obbyRun ~= nil) and character and character:FindFirstChildOfClass("Tool") then
 		humanoid:UnequipTools()
 	end
 end

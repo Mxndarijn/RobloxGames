@@ -431,12 +431,13 @@ local stealFx = StealAlertFx.new(gui, {
 })
 local carry = CarryPanel.new(gui, ctx)
 local bossMeter = BossMeterPanel.new(gui, ctx, hud.stealCards)
--- The boss card hides and the boss fight goes silent while the local player is in the obby world (Visuals'
+-- The boss card and the hotbar hide and the boss fight goes silent while the local player is in the obby world (Visuals'
 -- ObbyLook inside flag).
 local ObbyLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("ObbyLook"))
 local function setAway(away: boolean)
 	bossMeter.setAway(away)
 	SoundController.setAway(away)
+	inventory.setAway(away) -- no items in the obby: the hotbar hides
 end
 setAway(ObbyLook.isInside())
 ObbyLook.onInsideChanged(setAway)

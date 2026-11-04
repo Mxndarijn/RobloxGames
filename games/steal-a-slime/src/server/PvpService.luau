@@ -8,7 +8,8 @@
 	  * one PvpRules.State per session (control immunity, cooldowns), kept in a weak table keyed by the
 	    session and never saved; the lines (knockback, traps, blasters, fun items) read it through `state`
 	  * `hitCarrier`: the one way a PvP item makes a carrier drop their slime (CarryDrop.knockLoose, the Bat's path)
-	There are no safe zones. No code here ever lowers Humanoid health.
+	The one safe place is an obby run: a runner can't use an item or be targeted (`use`, BatTool). No code here ever
+	lowers Humanoid health.
 
 	PvpEvents go into world.outbox (World.Event type "PvpEvent"); init.server fires the remote when it drains it.
 	Engine access (positions, plot checks, launches) comes in a `Context` per call, never from module state.
@@ -319,6 +320,9 @@ function PvpService.use(
 	if not tool then
 		return false, "unknown item"
 	end
+	if session.obbyRun then
+		return false, "not in the obby" -- no items or hits on an obby run (contract/obby.md)
+	end
 	if extra.equipped ~= id or not PvpRules.owns(session.data, id) then
 		return false, "not equipped"
 	end
@@ -344,6 +348,9 @@ function PvpService.use(
 		end
 		if target == session then
 			return false, "can't target yourself"
+		end
+		if target.obbyRun then
+			return false, "not in the obby"
 		end
 	end
 	if target or tool.cosmetic then
