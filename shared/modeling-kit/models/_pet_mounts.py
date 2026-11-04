@@ -60,18 +60,52 @@ def sunset_cloud():
 
 
 # ---------------------------------------------------------------- ice cloud
+ICE_LIGHT = Vector((-0.45, -0.6, 0.66)).normalized()
+
+
+def paint_facets(o, fn):
+    """one colour per face from fn(face centre, face normal): crisp, sparkly facets on a flat-shaded crystal."""
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    bm.normal_update()
+    col = bm.loops.layers.color.get("Col") or bm.loops.layers.color.new("Col")
+    sm = bm.faces.layers.int.get("keep_smooth") or bm.faces.layers.int.new("keep_smooth")
+    mw = o.matrix_world
+    for f in bm.faces:
+        f.smooth = False
+        f[sm] = 0
+        c = fn(mw @ f.calc_center_median(), (mw.to_3x3() @ f.normal).normalized())
+        for lp in f.loops:
+            lp[col] = c
+    bm.to_mesh(o.data)
+    bm.free()
+    return o
+
+
+def ice_crystal_colour(co, n):
+    """saturated ice blue facets, lighter toward the tip, the facets facing the light near white (sparkle)."""
+    h = clamp((co.z - 0.45) / 1.2)
+    c = mixn([(0, rgb(64, 168, 248)), (0.55, rgb(110, 210, 255)), (1, rgb(196, 244, 255))], h)
+    lit = n.dot(ICE_LIGHT)
+    c = mix(c, rgb(240, 252, 255), sstep(0.35, 0.8, lit) * 0.85)
+    return mix(c, rgb(52, 140, 232), sstep(0.1, 0.6, -lit) * 0.35)
+
+
 def ice_cloud():
-    (body,) = cloud_parts(name="IceCloud", tris=1250, colour=cloud_painter([(0, rgb(104, 164, 230)), (0.5, rgb(156, 208, 248)), (1, rgb(214, 240, 255))], under=0.82))
+    # v2: the v1 mid-blue cloud and same-blue shards read as a dull grey-blue blob in game. Now a bright frosty white
+    # cloud (only the belly icy blue) and saturated, faceted ice-blue shards with white sparkle facets.
+    (body,) = cloud_parts(name="IceCloud", tris=1080, colour=cloud_painter([(0, rgb(128, 194, 252)), (0.42, rgb(190, 226, 255)), (0.78, rgb(236, 248, 255)), (1, rgb(248, 252, 255))], under=0.9))
     parts = [body]
     # three crystal clusters on the rim: a tall shard with two leaning companions
     spec = [((-1.15, -0.45, 0.62), (-0.55, -0.25, 1.0), 1.0, 0.17), ((-1.0, -0.2, 0.55), (-1.0, -0.1, 0.55), 0.62, 0.12),
             ((1.05, 0.35, 0.6), (0.5, 0.25, 1.0), 0.95, 0.16), ((1.2, 0.1, 0.55), (1.0, -0.05, 0.6), 0.6, 0.12),
             ((0.8, 0.65, 0.55), (0.25, 0.6, 0.9), 0.55, 0.11),
-            ((0.3, -0.95, 0.5), (0.25, -0.45, 1.0), 0.7, 0.13), ((0.6, -0.8, 0.5), (0.9, -0.5, 0.8), 0.5, 0.1)]
+            ((0.3, -0.95, 0.5), (0.25, -0.45, 1.0), 0.7, 0.13), ((0.6, -0.8, 0.5), (0.9, -0.5, 0.8), 0.5, 0.1),
+            ((-0.55, -0.95, 0.42), (-0.4, -0.9, 0.55), 0.42, 0.1), ((-0.35, 0.95, 0.5), (-0.3, 0.6, 0.85), 0.5, 0.11)]  # v2: front + back
     for k, (b, d, ln, r) in enumerate(spec):
         ln, r = ln * 1.35, r * 1.3
         c = crystal("Shard%d" % k, b, d, ln, r)
-        paint(c, lambda co, n: mix(rgb(96, 170, 236), rgb(214, 248, 255), clamp((co.z - 0.5) / 1.0) * 0.7 + clamp(n.z) * 0.3), smooth=False)
+        paint_facets(c, ice_crystal_colour)
         parts.append(c)
     return parts
 
@@ -224,28 +258,59 @@ def leaf():
 
 
 # ---------------------------------------------------------------- bubble
-def bubble():
-    body = pillow("Bubble", 1.6, 1.15, 0.55, pos=(0, 0, 0.65), nx=14, ny=10, nz=6, pxy=1.0, pz=0.8)
-    PALE = rgb(228, 238, 250)
-    hues = [rgb(240, 176, 218), rgb(188, 172, 240), rgb(150, 226, 242), rgb(172, 238, 210), rgb(240, 176, 218)]
-    L1, L2 = Vector((-0.5, -0.55, 0.65)).normalized(), Vector((0.6, 0.45, 0.3)).normalized()
+BUBBLE_HUES = [rgb(255, 150, 206), rgb(196, 150, 250), rgb(116, 190, 252), rgb(112, 232, 192), rgb(255, 214, 120)]  # pink, lilac, sky, mint, butter
+
+
+def bubble_paint(cx=0.0, cy=0.0, cz=0.65, scale=1.0, phase=0.0):
+    """Soap-film colouring: wide swirling pastel bands (mostly flat colour, short blends) that run across the surface,
+    a pale tint only on the flat seat, a light rim toward the key light. (cx, cy, cz) is the shape's centre."""
+    L1 = Vector((-0.5, -0.55, 0.65)).normalized()
+    n_h = len(BUBBLE_HUES)
 
     def f(co, n):
-        tilt = math.acos(clamp(n.z, -1, 1)) / (math.pi / 2)  # 0 on the flat top, 1 on the side
-        ph = (2.4 * tilt + 0.5 * math.atan2(n.y, n.x) / math.pi + 0.2 * co.x) % 1.0 * (len(hues) - 1)
-        i = min(int(ph), len(hues) - 2)
-        c = mix(hues[i], hues[i + 1], ph - i)
-        c = mix(PALE, c, 0.3 + 0.6 * sstep(0.15, 0.85, tilt))  # clear, pale middle; colour gathers at the rim
-        c = mix(c, rgb(246, 252, 255), sstep(0.8, 0.95, tilt) * 0.5)  # thin bright edge
-        c = mix(c, rgb(255, 255, 255), sstep(0.8, 0.92, clamp(n.dot(L1))))  # strong highlight
-        c = mix(c, rgb(238, 252, 255), sstep(0.88, 0.97, clamp(n.dot(L2))) * 0.8)  # small bounce light
-        return c
-    paint(body, f)
+        x, y, z = (co.x - cx) / scale, (co.y - cy) / scale, (co.z - cz) / scale
+        ph = phase + 1.15 * x + 0.55 * y - 1.6 * z + 0.35 * math.sin(2.2 * y + 1.3 * x)
+        ph %= n_h
+        i = int(ph)
+        c = mix(BUBBLE_HUES[i], BUBBLE_HUES[(i + 1) % n_h], sstep(0.6, 1.0, ph - i))
+        c = mix(c, rgb(236, 240, 255), sstep(0.88, 0.99, n.z) * 0.35)  # the seat a touch paler
+        return mix(c, rgb(250, 252, 255), sstep(0.78, 0.95, clamp(n.dot(L1))) * 0.6)  # soft gloss toward the light
+    return f
+
+
+def bubble():
+    """A soap-bubble cushion: a plump rounded slab in swirling pastel soap-film bands (pink, lilac, sky, mint, butter),
+    bold white highlight spots pressed onto the front shoulder and three small satellite bubbles round the rim."""
+    body = pillow("Bubble", 1.6, 1.15, 0.55, pos=(0, 0, 0.65), nx=14, ny=10, nz=5, pxy=1.0, pz=0.8)
+    paint(body, bubble_paint())
     parts = [body]
-    for k, (x, y, z, r, sd) in enumerate([(-1.25, 0.65, 0.34, 0.36, 3), (1.3, 0.5, 0.28, 0.27, 3), (1.05, -0.85, 0.22, 0.17, 2)]):
+    tree = _bvh(body)
+    W = rgb(255, 255, 255)
+    # a big curved highlight window and a round dot on the front-left shoulder
+    win = [(0.5 * math.cos(t) - 0.12 * math.sin(t) ** 2, 0.2 * math.sin(t)) for t in [k * math.tau / 14 for k in range(14)]]
+    hl = decal("Shine", win, tree, out=0.03, back=0.04, along=(0.3, 1, -0.12), centre=(-0.75, 0, 0.86), long_edge=0.24, all_edges=True)
+    paint(hl, lambda co, n: W)
+    dot = decal("ShineDot", [(0.12 * math.cos(k * math.tau / 10), 0.12 * math.sin(k * math.tau / 10)) for k in range(10)], tree,
+                out=0.03, back=0.04, along=(0.05, 1, -0.12), centre=(-0.05, 0, 0.92), all_edges=True)
+    paint(dot, lambda co, n: W)
+    # the pet follows the player, so the back is seen most: a second window + dot on the back-right shoulder
+    hb = decal("ShineBack", [(-x, z) for x, z in win], tree, out=0.03, back=0.04, along=(-0.3, -1, -0.12), centre=(0.7, 0, 0.86),
+               long_edge=0.24, all_edges=True)
+    paint(hb, lambda co, n: W)
+    db = decal("ShineBackDot", [(0.1 * math.cos(k * math.tau / 10), 0.1 * math.sin(k * math.tau / 10)) for k in range(10)], tree,
+               out=0.03, back=0.04, along=(-0.05, -1, -0.12), centre=(0.0, 0, 0.92), all_edges=True)
+    paint(db, lambda co, n: W)
+    parts += [hl, dot, hb, db]
+    for k, (x, y, z, r, sd) in enumerate([(-1.25, 0.65, 0.34, 0.36, 3), (1.3, 0.5, 0.28, 0.27, 2), (1.05, -0.85, 0.22, 0.17, 2)]):
         sp = sphere("Mini%d" % k, r, (x, y, z), subdiv=sd)
-        paint(sp, f)
+        paint(sp, bubble_paint(x, y, z, r * 1.6, phase=1.3 * k + 0.5))
         parts.append(sp)
+        # a white glint on each: a small squashed ball on the light side
+        g = Vector((-0.5, -0.6, 0.62)).normalized()
+        gl = sphere("Glint%d" % k, r * 0.26, (0, 0, 0), squash=(1, 1, 0.4), subdiv=1)
+        gl.data.transform(Matrix.Translation(Vector((x, y, z)) + g * r * 0.97) @ g.to_track_quat("Z", "Y").to_matrix().to_4x4())
+        paint(gl, lambda co, n: W)
+        parts.append(gl)
     return parts
 
 

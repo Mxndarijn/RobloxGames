@@ -157,6 +157,36 @@ def crystal(name, base, direction, length, r):
     return obj_from_bm(name, bm)
 
 
+def facet_star(name, R, r, tip=0.09, back=None, rim=0.0, points=5):
+    """Cheap chunky faceted star in the XZ plane facing -Y (~40 tris): a 2*points outline (outer R, inner r) at
+    y = -rim with a raised centre tip at y = -tip; back=None mirrors the tip (a double-sided star), a number gives a
+    flat back at y = +back (to sink into a surface). Flat facets catch the light: paint it with smooth=False."""
+    bm = bmesh.new()
+    n = 2 * points
+    out = []
+    for k in range(n):
+        a = math.pi / 2 + k * math.pi / points
+        rr = R if k % 2 == 0 else r
+        out.append((rr * math.cos(a), rr * math.sin(a)))
+    ring = [bm.verts.new((x, -rim, z)) for x, z in out]
+    t0 = bm.verts.new((0, -tip, 0))
+    for k in range(n):
+        bm.faces.new((ring[k], ring[(k + 1) % n], t0))
+    if back is None:
+        t1 = bm.verts.new((0, tip, 0))
+        for k in range(n):
+            bm.faces.new((ring[(k + 1) % n], ring[k], t1))
+    else:
+        bring = [bm.verts.new((x, back, z)) for x, z in out]
+        for k in range(n):
+            j = (k + 1) % n
+            bm.faces.new((ring[j], ring[k], bring[k], bring[j]))
+        bm.faces.new(bring)
+        bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return obj_from_bm(name, bm)
+
+
 def soft_tube(name, points, radii, segs=8):
     """tapered smooth tube with round ends (caps pulled into a point by a final ring)."""
     return tube(name, points, radii, segs=segs)
