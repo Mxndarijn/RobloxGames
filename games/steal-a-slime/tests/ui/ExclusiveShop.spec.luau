@@ -857,7 +857,7 @@ describe("Style tab and gifts (ExclusiveShopView)", function()
 		end
 		return out
 	end
-	it("Style lists base skins, lock styles, trails, fanfares, hats, then Bat skins, priced from Config", function()
+	it("Style lists base skins, lock styles, trails, hats, then Bat skins, priced from Config", function()
 		local cards = byKey(ExclusiveShopView.cards("Style", shopState(), Config))
 		for _, def in cat.trails do
 			local card = cards[`trail:{def.id}`]
@@ -871,7 +871,7 @@ describe("Style tab and gifts (ExclusiveShopView)", function()
 		end
 		expect(cards["plotSkin:fairground"].index < cards["lockStyle:candy"].index).toBe(true)
 		expect(cards["lockStyle:candy"].index < cards["trail:sparkle"].index).toBe(true)
-		expect(cards["fanfare:confetti"].index < cards["hat:party"].index).toBe(true)
+		expect(cards["trail:sparkle"].index < cards["hat:party"].index).toBe(true)
 		expect(cards["hat:party"].index < cards["batSkin:fish"].index).toBe(true)
 		expect(ExclusiveShopView.tabOf("hat:party")).toBe("Style")
 		expect(ExclusiveShopView.tabOf("plotSkin:space")).toBe("Style")
@@ -1409,7 +1409,7 @@ describe("Exclusive styles, seasons and bundles (ExclusiveShopView)", function()
 	it("a bundle shows Owned once everything in it is owned", function()
 		local all = shopState({
 			owned = { magic_carpet = true },
-			styles = { plotSkin = { fairground = true }, fanfare = { confetti = true } },
+			styles = { plotSkin = { fairground = true } },
 		})
 		expect(ExclusiveShopView.packOwned(all.exclusiveShop, Config, "BoutiqueBundle")).toBe(true)
 		local some = shopState({ owned = { magic_carpet = true } })

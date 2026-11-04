@@ -534,40 +534,36 @@ describe("Exclusive styles, bundles and seasons", function()
 	local PlotSkins = require("../src/shared/PlotSkins")
 	local SaveData = require("../src/shared/SaveData")
 	local Seasons = require("../src/shared/Seasons")
-	local Carry = require("../src/server/Carry")
-	it(
-		"a hat, fanfare, lock style and base skin are owned once bought and worn with EquipStyle / EquipPlotSkin",
-		function()
-			local world = ServerFixtures.world()
-			local s = ServerFixtures.join(world, 1)
-			expect((Purchases.equipStyle(s, "hat", "party"))).toBe(false)
-			for _, key in { "Hat_party", "Fanfare_confetti", "LockStyle_candy", "Skin_space" } do
-				Purchases.grant(world, s, key, T0, ON)
-			end
-			expect(s.data.ownedStyles.hat).toEqual({ "party" })
-			expect(s.data.ownedStyles.plotSkin).toEqual({ "space" })
-			expect((Purchases.equipStyle(s, "hat", "party"))).toBe(true)
-			expect((Purchases.equipStyle(s, "lockStyle", "candy"))).toBe(true)
-			expect(s.data.wornStyles.hat).toBe("party")
-			expect((Purchases.equipStyle(s, "hat", ""))).toBe(true)
-			expect(s.data.wornStyles.hat).toBeNil()
-			expect((Purchases.equipStyle(s, "trail", "sparkle"))).toBe(false)
-			expect(PlotSkins.unlocked(s.data, PlotSkins.get("space") :: any)).toBe(true)
-			expect((PlotSkins.equip(s.data, "space"))).toBe(true)
-			expect(PlotSkins.unlocked(s.data, PlotSkins.get("beach") :: any)).toBe(false)
+	it("a hat, lock style and base skin are owned once bought and worn with EquipStyle / EquipPlotSkin", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		expect((Purchases.equipStyle(s, "hat", "party"))).toBe(false)
+		for _, key in { "Hat_party", "LockStyle_candy", "Skin_space" } do
+			Purchases.grant(world, s, key, T0, ON)
 		end
-	)
+		expect(s.data.ownedStyles.hat).toEqual({ "party" })
+		expect(s.data.ownedStyles.plotSkin).toEqual({ "space" })
+		expect((Purchases.equipStyle(s, "hat", "party"))).toBe(true)
+		expect((Purchases.equipStyle(s, "lockStyle", "candy"))).toBe(true)
+		expect(s.data.wornStyles.hat).toBe("party")
+		expect((Purchases.equipStyle(s, "hat", ""))).toBe(true)
+		expect(s.data.wornStyles.hat).toBeNil()
+		expect((Purchases.equipStyle(s, "trail", "sparkle"))).toBe(false)
+		expect(PlotSkins.unlocked(s.data, PlotSkins.get("space") :: any)).toBe(true)
+		expect((PlotSkins.equip(s.data, "space"))).toBe(true)
+		expect(PlotSkins.unlocked(s.data, PlotSkins.get("beach") :: any)).toBe(false)
+	end)
 	it("styles survive a save round trip; unknown and unowned ids are dropped", function()
 		local data = Fixtures.data(nil, 0)
 		data.ownedStyles = { hat = { "party", "nope", "party" }, plotSkin = { "space" }, junk = { "x" } } :: any
-		data.wornStyles = { hat = "party", fanfare = "confetti" }
+		data.wornStyles = { hat = "party", lockStyle = "candy" }
 		data.plotSkin = "space"
 		local back = SaveData.deserialize(SaveData.serialize(data, T0))
 		expect(back.ownedStyles.hat).toEqual({ "party" })
 		expect(back.ownedStyles.plotSkin).toEqual({ "space" })
 		expect((back.ownedStyles :: any).junk).toBeNil()
 		expect(back.wornStyles.hat).toBe("party")
-		expect(back.wornStyles.fanfare).toBeNil() -- not owned
+		expect(back.wornStyles.lockStyle).toBeNil() -- not owned
 		expect(back.plotSkin).toBe("space")
 	end)
 	it("an Exclusive base is owned once bought, says where to pick it, and State lists it", function()
@@ -617,7 +613,6 @@ describe("Exclusive styles, bundles and seasons", function()
 		Purchases.grant(world, s, "BoutiqueBundle", T0, ON)
 		expect(s.data.ownedSeats).toEqual({ "magic_carpet" })
 		expect(s.data.ownedStyles.plotSkin).toEqual({ "fairground" })
-		expect(s.data.ownedStyles.fanfare).toEqual({ "confetti" })
 	end)
 	it("seasonal items sell only in their season window (UTC, wrapping the new year)", function()
 		local function at(month: number, day: number): number
@@ -644,18 +639,17 @@ describe("Exclusive styles, bundles and seasons", function()
 		end
 		expect(shown).toBe(true)
 	end)
-	it("a worn fanfare bursts on the slime when it lands on your pad", function()
-		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1)
-		Purchases.grant(world, s, "Fanfare_starburst", T0, ON)
-		Purchases.equipStyle(s, "fanfare", "starburst")
-		Carry.fanfare(world, s, "slime1")
-		local found = false
-		for _, event in world.outbox do
-			if event.type == "Effect" and event.effect == "Fanfare_starburst" and event.slimeId == "slime1" then
-				found = true
-			end
+	it("deposit fanfares are gone: no product, no style kind", function()
+		for key in Config.EXCLUSIVE_SHOP.products do
+			expect(string.find(key, "Fanfare_", 1, true)).toBeNil()
 		end
-		expect(found).toBe(true)
+		expect(table.find(SaveData.STYLE_KINDS, "fanfare")).toBeNil()
+		local data = Fixtures.data(nil, 0)
+		data.ownedStyles = { fanfare = { "confetti" }, hat = { "party" } } :: any
+		data.wornStyles = { fanfare = "confetti", hat = "party" }
+		local back = SaveData.deserialize(SaveData.serialize(data, T0))
+		expect((back.ownedStyles :: any).fanfare).toBeNil()
+		expect((back.wornStyles :: any).fanfare).toBeNil()
+		expect(back.wornStyles.hat).toBe("party")
 	end)
 end)

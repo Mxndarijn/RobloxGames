@@ -771,13 +771,6 @@ local SEASONS = table.freeze({
 	halloween = table.freeze({ name = "Halloween", from = { 10, 15 }, to = { 11, 7 } }),
 	winter = table.freeze({ name = "Winter", from = { 12, 1 }, to = { 1, 7 } }),
 })
--- Deposit fanfares (§15): a short burst (≤ 2 s, Effects.BURSTS[burst]) on the slime when it lands on your pad.
-local FANFARES = table.freeze({
-	table.freeze({ id = "confetti", name = "Confetti", robux = 49, burst = "Fanfare_confetti" }),
-	table.freeze({ id = "goo_splash", name = "Goo Splash", robux = 49, burst = "Fanfare_goo_splash" }),
-	table.freeze({ id = "starburst", name = "Starburst", robux = 79, burst = "Fanfare_starburst" }),
-	table.freeze({ id = "heart_pop", name = "Heart Pop", robux = 79, burst = "Fanfare_heart_pop" }),
-})
 -- Lock stopper styles (§15): another look for the plug that closes a locked base (kit models/lock_stopper_<id>.py).
 -- The same slot box and invisible collision as the default stopper, and a red lock signal: it locks exactly the same.
 local LOCK_STYLES = table.freeze({
@@ -798,9 +791,6 @@ local SLIME_HATS = table.freeze({
 for _, def in CARRY_TRAILS do
 	EXCLUSIVE_PRODUCTS["Trail_" .. def.id] = product(def.robux, { kind = "trail", trail = def.id })
 end
-for _, def in FANFARES do
-	EXCLUSIVE_PRODUCTS["Fanfare_" .. def.id] = product(def.robux, { kind = "fanfare", style = def.id })
-end
 for _, def in LOCK_STYLES do
 	EXCLUSIVE_PRODUCTS["LockStyle_" .. def.id] = product(def.robux, { kind = "lockStyle", style = def.id })
 end
@@ -820,10 +810,8 @@ for _, base in PLOT_BASES do
 	end
 end
 -- Bundles (§15): cosmetics together for less than their parts (`items` are product keys; owned ones are skipped).
-EXCLUSIVE_PRODUCTS.BoutiqueBundle = product(
-	549,
-	{ kind = "pack", items = table.freeze({ "Seat_magic_carpet", "Skin_fairground", "Fanfare_confetti" }) }
-)
+EXCLUSIVE_PRODUCTS.BoutiqueBundle =
+	product(549, { kind = "pack", items = table.freeze({ "Seat_magic_carpet", "Skin_fairground" }) })
 EXCLUSIVE_PRODUCTS.SkyBundle = product(599, {
 	kind = "pack",
 	items = table.freeze({ "Seat_storm_cloud", "Seat_sunset_cloud", "Seat_ice_cloud", "Seat_flame_cloud" }),
@@ -850,7 +838,6 @@ for key, def in EXCLUSIVE_PRODUCTS do
 		kind == "seat"
 		or kind == "trail"
 		or kind == "batSkin"
-		or kind == "fanfare"
 		or kind == "lockStyle"
 		or kind == "hat"
 		or kind == "plotSkin"
@@ -920,7 +907,6 @@ local EXCLUSIVE_SHOP = table.freeze({
 	products = table.freeze(EXCLUSIVE_PRODUCTS),
 	trails = CARRY_TRAILS,
 	batSkins = BAT_SKINS,
-	fanfares = FANFARES,
 	lockStyles = LOCK_STYLES,
 	hats = SLIME_HATS,
 	seasons = SEASONS,
@@ -937,7 +923,7 @@ local EXCLUSIVE_SHOP = table.freeze({
 	radar = table.freeze({
 		maxShown = 4, -- most visitors the Thief Radar pings at once
 	}),
-	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = bases, base skins, lock styles, trails, fanfares, hats, Bat skins
+	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = bases, base skins, lock styles, trails, hats, Bat skins
 	finishBrewBrackets = table.freeze({ 300, 1800, 3600, math.huge }) :: { number }, -- seconds left -> FinishBrew_<i>
 	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
 	receiptMemory = 200, -- processed PurchaseIds kept in the save, newest last
@@ -986,7 +972,6 @@ local EXCLUSIVE_SHOP = table.freeze({
 			plotBase = true,
 			hat = true,
 			lockStyle = true,
-			fanfare = true,
 			serverPotion = true,
 		}),
 	}),

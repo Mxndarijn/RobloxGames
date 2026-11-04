@@ -117,8 +117,8 @@ export type Data = {
 	passLuckBonus: number?, -- runtime only (never saved): LuckyCharmPlus, added to Perks.luckChance; nil = 0
 	passAutoCollect: boolean?, -- runtime only (never saved): AutoCollect: income skips the cash pads (Income.step)
 	perkDays: PerkDays?, -- UTC day numbers a daily perk was last used (Purchases; no version bump: missing -> never)
-	ownedStyles: { [string]: { string } }, -- Exclusive style ids bought, by kind: fanfare / lockStyle / hat / plotSkin / plotBase (no version bump)
-	wornStyles: { [string]: string }, -- the worn fanfare / lockStyle / hat id by kind (owned ids only; no version bump)
+	ownedStyles: { [string]: { string } }, -- Exclusive style ids bought, by kind: lockStyle / hat / plotSkin / plotBase (no version bump)
+	wornStyles: { [string]: string }, -- the worn lockStyle / hat id by kind (owned ids only; no version bump)
 	padCash: { [number]: number }?, -- FEATURES.CashPads: uncollected cash per pad index (CashPads, contract/cash-pads.md; no version bump)
 }
 

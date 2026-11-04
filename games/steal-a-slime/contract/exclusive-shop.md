@@ -283,10 +283,10 @@ no version bump), spent with `UseCredit(kind, target?)` or the shop's "Use credi
   else the least grown pad slime. Sold on the slime's pad card (the hatch key: an egg never grows).
 State: `credits` (all six kinds), `serverBoosts = { rain, boss }` (could start now), `streakKeepable`.
 
-## 15. Base skins, lock styles, fanfares, hats, seasons and bundles
+## 15. Base skins, lock styles, hats, seasons and bundles
 
 Cosmetics only; each also sells as a gift (`Gift_<key>`). Save (no version bump): `ownedStyles = { [kind]: { id } }`
-and `wornStyles = { [kind]: id }` for kinds `fanfare`, `lockStyle`, `hat` (worn), `plotSkin` (owned; worn as
+and `wornStyles = { [kind]: id }` for kinds `lockStyle`, `hat` (worn), `plotSkin` (owned; worn as
 `plotSkin`) and `plotBase` (owned; worn as `plotBase`). `deserialize` drops unknown ids and worn ids that are not owned; owned styles load before the plot skin.
 Request `EquipStyle(kind, id)` (0.5 s; "" = take off). State: `exclusiveShop.styles`, `worn`, `seasons`.
 - **Base skins** (`Skin_<id>`, `Config.PLOT_SKINS[].exclusive`): Fairground 299, Beach Hut 249, Space Station 399,
@@ -302,8 +302,7 @@ Request `EquipStyle(kind, id)` (0.5 s; "" = take off). State: `exclusiveShop.sty
 - **Lock styles** (`LockStyle_<id>`, `EXCLUSIVE_SHOP.lockStyles`, kit `lock_stopper_<id>`, the classic stopper's box):
   the owner's worn style is Plot attribute `LockStyle`; MeshSwap shows its stopper on `StopperShut` only (the door
   parked open keeps the classic plug, so the style's red reads "locked" only when locked). Collision is unchanged.
-- **Fanfares** (`Fanfare_<id>`, `EXCLUSIVE_SHOP.fanfares`): on every deposit (wild, stolen, boss) `Carry.fanfare`
-  emits the worn one's `Effect` (`Effects.BURSTS.Fanfare_<id>`, ≤ 2 s) on the slime.
+- **No deposit fanfares.** They were removed; a save's old `fanfare` style kind is dropped on load.
 - **Slime hats** (`Hat_<id>`, `EXCLUSIVE_SHOP.hats`, kit `slime_hat_<id>`): Plot attribute `SlimeHat`; the client
   (`ui/SlimeHatsFx`) welds the template from `ReplicatedStorage.SlimeHatMeshes` (`MeshSwap.publishHatTemplates`) on
   top of the visible `Mesh` of every non-egg slime in State "Pad" of that owner. The hat belongs to the pad: a carried or stolen slime has none.

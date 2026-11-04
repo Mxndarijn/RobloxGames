@@ -645,11 +645,11 @@ local function batRecipe(id: string): ((Pen, any) -> ())?
 	end
 end
 
--- Fanfares (Fanfare_), lock styles (LockStyle_), slime hats (Hat_) and Exclusive plot bases (PlotBase_) of the
+-- Lock styles (LockStyle_), slime hats (Hat_) and Exclusive plot bases (PlotBase_) of the
 -- Exclusive shop (§15), drawn in the spec's colour until pictures are rendered.
 local function styleRecipe(id: string): ((Pen, any) -> ())?
 	local kind = string.match(id, "^(%a+)_")
-	if kind ~= "Fanfare" and kind ~= "LockStyle" and kind ~= "Hat" and kind ~= "PlotBase" then
+	if kind ~= "LockStyle" and kind ~= "Hat" and kind ~= "PlotBase" then
 		return nil
 	end
 	return function(p, spec)
@@ -662,17 +662,6 @@ local function styleRecipe(id: string): ((Pen, any) -> ())?
 			p:circle(0.5, 0.3, 0.3, roof)
 			p:shape(0.5, 0.7, 0.16, 0.24, c:Lerp(INK, 0.45), { round = 0.4 })
 			p:circle(0.5, 0.5, 0.07, c:Lerp(WHITE, 0.6), { stroke = false, flat = true })
-		elseif kind == "Fanfare" then
-			blob(p, 0.5, 0.66, 0.42, GREEN)
-			for i = 0, 5 do
-				local a = i * math.pi / 3
-				p:circle(
-					0.5 + 0.34 * math.cos(a),
-					0.36 + 0.24 * math.sin(a),
-					0.07,
-					if i % 2 == 0 then c else rgb(250, 150, 182)
-				)
-			end
 		elseif kind == "LockStyle" then
 			p:circle(0.5, 0.5, 0.36, c)
 			p:circle(0.5, 0.5, 0.24, c:Lerp(WHITE, 0.4), { stroke = false, flat = true })

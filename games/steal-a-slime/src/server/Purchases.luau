@@ -13,7 +13,7 @@
 	  * serverPotion: extends the server-wide Luck Potion (Consumables.extendPotion) and tells everyone who gave it.
 	  * trail / batSkin (Trail_<id>, BatSkin_<id>): the carry trail / Bat skin joins `data.ownedTrails` /
 	    `data.ownedBatSkins` (worn with EquipTrail / EquipBatSkin).
-	  * fanfare / lockStyle / hat / plotSkin / plotBase (Fanfare_, LockStyle_, Hat_, Skin_, Base_<id>): joins
+	  * lockStyle / hat / plotSkin / plotBase (LockStyle_, Hat_, Skin_, Base_<id>): joins
 	    `data.ownedStyles[kind]` (worn with EquipStyle; a plot skin with EquipPlotSkin, a plot base with
 	    EquipPlotBase). pack (a bundle): each of its `items`.
 	  * lockBreak: opens the locked base aimed with AimLockBreak for the buyer (LockBreak.open), else one
@@ -186,7 +186,6 @@ end
 
 -- The Exclusive style kinds kept in data.ownedStyles / data.wornStyles, with their Config catalogue.
 local STYLE_KINDS: { [string]: { list: { any }?, noun: string } } = {
-	fanfare = { list = SHOP.fanfares, noun = "fanfare" },
 	lockStyle = { list = SHOP.lockStyles, noun = "lock" },
 	hat = { list = SHOP.hats, noun = "" },
 	plotSkin = { list = nil, noun = "base skin" },
@@ -391,9 +390,9 @@ function Purchases.sendGift(
 	return true, nil
 end
 
--- EquipStyle: wears an owned fanfare / lockStyle / hat ("" takes that kind off). Returns (ok, reason).
+-- EquipStyle: wears an owned lockStyle / hat ("" takes that kind off). Returns (ok, reason).
 function Purchases.equipStyle(session: Session, kind: string, id: string): (boolean, string?)
-	if kind ~= "fanfare" and kind ~= "lockStyle" and kind ~= "hat" then
+	if kind ~= "lockStyle" and kind ~= "hat" then
 		return false, "unknown style"
 	end
 	local data = session.data
@@ -410,7 +409,7 @@ function Purchases.equipStyle(session: Session, kind: string, id: string): (bool
 	return true, nil
 end
 
--- The worn style of `kind` ("fanfare", "lockStyle", "hat"), or nil.
+-- The worn style of `kind` ("lockStyle", "hat"), or nil.
 function Purchases.wornStyle(data: PlayerData.Data, kind: string): string?
 	return data.wornStyles[kind]
 end

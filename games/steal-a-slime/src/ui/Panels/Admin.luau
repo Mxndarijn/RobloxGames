@@ -279,9 +279,6 @@ function Admin.rows(ctx: any): { [string]: { Row } }
 	for _, trail in shop.trails do
 		product(`Trail_{trail.id}`, `{trail.name} trail`)
 	end
-	for _, def in shop.fanfares or {} do
-		product(`Fanfare_{def.id}`, `{def.name} fanfare`)
-	end
 	for _, def in shop.hats or {} do
 		product(`Hat_{def.id}`, if def.season then `{def.name} ({seasonName(def.season)})` else def.name)
 	end

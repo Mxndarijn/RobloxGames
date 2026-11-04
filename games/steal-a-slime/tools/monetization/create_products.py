@@ -23,7 +23,7 @@ def find(lst, i):
 
 FIXED = {
     "StarterBundle": ("Starter bundle", "The Leaf cloud for your pet and x2 income for 15 minutes. Once per player."),
-    "BoutiqueBundle": ("Boutique bundle", "The Magic Carpet cloud, the Fairground base skin and the Confetti fanfare, for less than the three."),
+    "BoutiqueBundle": ("Boutique bundle", "The Magic Carpet cloud and the Fairground base skin, for less than the two."),
     "SkyBundle": ("Sky bundle", "Storm, Sunset, Ice and Flame clouds together, for less than the four."),
     "FinishBrew_1": ("Finish brew (up to 5 min)", "Finishes your merge vat brew now. The result was already decided when the brew started."),
     "FinishBrew_2": ("Finish brew (up to 30 min)", "Finishes your merge vat brew now. The result was already decided when the brew started."),
@@ -58,9 +58,6 @@ def item(key, grant):
     if k == "batSkin":
         n = find(shop["batSkins"], grant["skin"])["name"]
         return (n if "Bat" in n else f"{n} Bat") + " skin", f"Your Bat looks like a {n.lower()}. Same reach and timing as the normal Bat."
-    if k == "fanfare":
-        n = find(shop["fanfares"], grant["style"])["name"]
-        return f"{n} fanfare", f"A {n.lower()} burst over every slime you bring home. Yours to keep."
     if k == "lockStyle":
         n = find(shop["lockStyles"], grant["style"])["name"]
         return f"{n} lock", f"A {n.lower()} look for the plug that closes your base when you lock it. Locks exactly the same."

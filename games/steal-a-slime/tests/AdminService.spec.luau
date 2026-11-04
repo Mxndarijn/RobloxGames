@@ -190,7 +190,7 @@ describe("AdminService on a test save", function()
 			end
 		end
 		expect(exclusive > 0).toBe(true)
-		for _, kind in { "plotSkin", "lockStyle", "fanfare", "hat" } do
+		for _, kind in { "plotSkin", "lockStyle", "hat" } do
 			expect(`{kind}: {#(s.data.ownedStyles[kind] or {}) > 0}`).toBe(`{kind}: true`)
 		end
 		expect(#s.data.ownedTrails).toBe(#Config.EXCLUSIVE_SHOP.trails)
