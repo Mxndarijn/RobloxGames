@@ -69,3 +69,22 @@ Every cosmetic mesh loaded (`AssetService:CreateMeshPartAsync` on the client, 36
 | 4 | Remake Bubble, Crescent Moon, Ice Cloud | models | yes, 3 meshes (`--update`) |
 | 5 | Bundles: the pane lists what is inside, with each item's picture | UI | no |
 | 6 | Passes and boosts: the pane shows your own numbers before and after (income per second, brew time) | UI | no |
+
+## Also found
+
+- The mesh templates the server publishes for the client (`PetCloudMeshes`, `SlimeHatMeshes`, `PlotSkinMeshes`) keep
+  a MeshPart's default grey `Color` (163, 162, 165). `Color` multiplies the vertex colours, so seats, hats and skin
+  decor show about 35% darker in the world than the models are (`docs/shop-audit/template_tint.jpg`). Not changed
+  here: it changes how every seat and hat looks, so it needs Merijn's eye first.
+
+## Built on this branch
+
+- Option A (`src/ui/ShopPreview.luau`, wired in `Panels/ExclusiveShop.luau`): the stage turns the item's own mesh for
+  clouds, hats (on a slime), lock styles, Bat skins and base skins, and shows a bundle's items. Plot bases, trails,
+  passes and boosts keep their icon.
+- 30 card pictures (`shared/modeling-kit/tools/icons/recipes_exclusive.py`, sheet `docs/shop-audit/icons_after.png`),
+  not uploaded.
+- New `claw_prize_capsule` model; Bubble, Crescent Moon and Ice Cloud remade (`sheets/shop_models_v2_rounds.md`),
+  not uploaded.
+
+Proposal with mockups and before/after: `docs/shop-preview-proposal.html`.

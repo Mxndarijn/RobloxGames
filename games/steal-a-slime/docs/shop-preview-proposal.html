@@ -79,7 +79,8 @@ code{font-size:14px}
 
 <div class="card decided">
 <h3 style="margin-top:0">Decided</h3>
-<p><b>Not decided yet.</b> Pick one preview option (A, B or C) and tick the upgrades you want. Built on branch <code>docs/shop-preview-audit</code> behind the recommended pick (A) so it can be tried in Studio; it changes nothing that is uploaded.</p>
+<p><b>Not decided yet.</b> Pick one preview option (A, B or C) and the upgrades you want (1 to 6 below).</p>
+<p>So it can be tried now, option A is built on branch <code>docs/shop-preview-audit</code> (not pushed, no PR). It only uses meshes that are already uploaded. The 30 card pictures and the 4 models are made but <b>not uploaded</b>; they wait for your OK.</p>
 </div>
 
 <h2>What players see today</h2>
@@ -172,16 +173,38 @@ code{font-size:14px}
 </table></div>
 <figure style="max-width:520px"><img src="shop-audit/template_tint.jpg" alt="The Top Hat mesh with the default grey colour (darker, left) and with white (true colours, right)"><figcaption>Top Hat template as cloned today (left, default grey colour) and with white (right, the model's own colours).</figcaption></figure>
 
+<h2>Option A, built</h2>
+<p>The stage swaps its medal for the real model as soon as the mesh is loaded (the icon shows until then), and turns it once every 9 seconds; with Reduced Motion on it stands still at a 3/4 angle.</p>
+<div class="grid2">
+<figure><img src="shop-audit/preview_pc_bundle.jpg" alt="The Exclusive shop on PC with the Starter bundle's Leaf cloud and boost potion standing on the turntable"><figcaption>PC, 1920 × 1080: the Starter bundle shows what is inside instead of a gift box.</figcaption></figure>
+<figure><img src="shop-audit/preview_phone_landscape.jpg" alt="The same shop on a phone held sideways"><figcaption>Phone sideways, 844 × 390.</figcaption></figure>
+</div>
+<figure><img src="shop-audit/preview_all_stages.jpg" alt="38 copies of the shop stage, each showing one item's 3D model: clouds with a slime riding them, hats on a slime, lock stoppers, Bat skins, base-skin decor and two bundles"><figcaption>Every item that gets a 3D preview, each in a copy of the real stage (208 × 128 px), still at the 3/4 angle. Rows: clouds, clouds, Pumpkin, Snow Globe and the six hats, lock styles and Bat skins, base-skin decor and two bundles.</figcaption></figure>
+<div class="grid2">
+<figure><img src="shop-audit/preview_phone_models.jpg" alt="Six stage previews at phone scale: UFO, Bubble, Top Hat, Witch Hat, Sleepy Guard, Fish"><figcaption>At phone scale (the UI shrinks to 80%).</figcaption></figure>
+<figure><img src="shop-audit/preview_phone_portrait.jpg" alt="The shop on a phone held upright: only the card grid shows"><figcaption>Phone upright, 390 × 844: the pane is a sheet that opens when a card is tapped, as before.</figcaption></figure>
+</div>
+<p class="small">Notes: the slime under a hat or on a cloud is the simple round preview slime the SlimeDex uses. The Boutique bundle still lists the Confetti fanfare until the fanfare removal is merged. The previews use the models' own colours, so they are brighter than the same items in the world today (see upgrade 6).</p>
+
 <h2 id="models">New models (before and after)</h2>
-<p id="models-status" class="small">Being built with the headless Blender loop; sheets are added here when they are done.</p>
+<p>Made with the headless Blender loop, rendered with the kit's Roblox look. Same size and seat height as before, so nothing moves in game. Left: today. Right: new.</p>
+<figure><img src="shop-audit/pet_mount_bubble_before_after.jpg" alt="Bubble cloud before (a pale white flattened orb) and after (pastel rainbow bands with white highlights)"><figcaption><b>Bubble:</b> from a white orb to a bright soap bubble. Verdict: good; it reads a little like a beach ball.</figcaption></figure>
+<figure><img src="shop-audit/pet_mount_crescent_moon_before_after.jpg" alt="Crescent Moon before (cream) and after (warm gold with a sleepy face and stars)"><figcaption><b>Crescent Moon:</b> warm gold with a sleepy face and stars. Verdict: ok; from above it still looks a bit like a banana (the shape was kept so the seat doesn't move).</figcaption></figure>
+<figure><img src="shop-audit/pet_mount_ice_cloud_before_after.jpg" alt="Ice Cloud before (grey-blue) and after (frosty white with bright blue crystals)"><figcaption><b>Ice Cloud:</b> frosty white turning sky blue underneath, brighter crystals. Verdict: good, but a modest change.</figcaption></figure>
+<div class="grid2">
+<figure><img src="shop-audit/claw_prize_capsule.jpg" alt="A gacha prize capsule: lilac dome with a white highlight, gold band, mint bottom with a gold star"><figcaption><b>Prize capsule (new):</b> for the claw show, instead of the plain lilac ball. 1,136 triangles, 1.35 studs. Verdict: good. Not wired in: it needs an upload first.</figcaption></figure>
+<div><p>Not checked in Studio: the models are not uploaded, so they were only seen in the kit's Roblox-look render. Earlier warm yellows went olive in game, so the moon's gold needs a Studio look after upload.</p></div>
+</div>
 
 <h2 id="icons">New card pictures</h2>
-<p id="icons-status" class="small">Being rendered; added here when done.</p>
+<p>Rendered from each item's own model with the same rig, light and outline as today's uploaded cloud pictures. Not uploaded.</p>
+<figure><img src="shop-audit/icons_after.png" alt="30 new item pictures: six hats on a slime, three lock stoppers, four Bat skins, Pumpkin and Snow Globe seats, five plot skin tower tops, seven plot base buildings and three bundles"><figcaption>All 30. Compare with the placeholders at the top of the page. Weakest: the Boutique and Sky bundles (busy), the Party Hat (small cone) and the Lighthouse beam.</figcaption></figure>
 
 <h2>What was checked, and what was not</h2>
 <ul>
-<li>Checked in a hidden, muted Studio playtest: every shop icon (drawn by the game's own code), every cosmetic mesh loading on the client, the claw machine from the front.</li>
-<li>Not checked: purchases with real Robux (none are made from a bot), a real phone (only emulated sizes), the claw show playing with a new prize.</li>
+<li>Checked in a hidden, muted Studio playtest: every shop icon (drawn by the game's own code), every cosmetic mesh loading on the client, the claw machine from the front, the built preview in the real panel at 1920 × 1080, 844 × 390 and 390 × 844, and all 38 model previews in copies of the real stage.</li>
+<li>Tests: the new <code>ShopPreview</code> spec, the Exclusive shop and item icon specs, and the full Lune suite with the layout gate.</li>
+<li>Not checked: tapping a cloud, hat or lock card in the real panel (a script can't tap; the model previews were checked in stage copies instead), the stage while it turns (screenshots are still), a real phone, purchases with real Robux, the new models and pictures inside Roblox (not uploaded), the claw show with a new prize (not built).</li>
 </ul>
 <p class="small">Sources: <code>docs/exclusive-shop-audit.md</code> (item by item), <code>src/ui/ItemIcons.luau</code>, <code>src/ui/Panels/ExclusiveShop.luau</code>, <code>src/visuals/client/ShopDisplayFx.luau</code>.</p>
 </main>
