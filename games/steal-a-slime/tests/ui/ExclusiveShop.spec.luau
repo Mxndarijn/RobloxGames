@@ -861,6 +861,10 @@ describe("Style tab and gifts (ExclusiveShopView)", function()
 		local cards = byKey(ExclusiveShopView.cards("Style", shopState(), Config))
 		for _, def in cat.trails do
 			local card = cards[`trail:{def.id}`]
+			if (def :: any).daily then
+				expect(card).toBeNil() -- a daily streak trail shows only once owned
+				continue
+			end
 			expect(card.icon).toBe(`Trail_{def.id}`)
 			expect(card.title).toBe(def.name)
 			expect(card.tag).toBe(Format.robux(def.robux))
@@ -892,6 +896,15 @@ describe("Style tab and gifts (ExclusiveShopView)", function()
 		expect((worn.unequip :: any).request).toBe("EquipTrail")
 		expect((worn.unequip :: any).arg).toBe("")
 		expect(worn.unequipText).toBe("Unequip")
+	end)
+	it("a daily streak trail shows in Style once owned, and Equips like a bought one", function()
+		local state = shopState({ trails = { mint_fizz = true } })
+		local card = byKey(ExclusiveShopView.cards("Style", state, Config))["trail:mint_fizz"]
+		expect(card.state).toBe("owned")
+		expect(card.tag).toBe("Owned")
+		local detail = ExclusiveShopView.detail("trail:mint_fizz", state, Config) :: ExclusiveShopView.Detail
+		expect(detail.action.kind).toBe("equip")
+		expect((detail.action.equip :: any).arg).toBe("mint_fizz")
 	end)
 	it("Bat skins: EquipBatSkin, and the worn one offers Use default Bat", function()
 		local state = shopState({ batSkins = { golden = true }, batSkin = "golden" })

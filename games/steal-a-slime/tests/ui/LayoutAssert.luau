@@ -24,6 +24,7 @@
 ]]
 
 local Config = require("../../src/shared/Config")
+local Daily = require("../../src/ui/Daily")
 local Economy = require("../../src/shared/Economy")
 local Format = require("../../src/ui/Format")
 local GuideTips = require("../../src/ui/GuideTips")
@@ -375,7 +376,7 @@ LayoutAssert.BIG_STATE = table.freeze({
 	lockDuration = Config.LOCK_MAX_SECONDS,
 	lockUntil = 100 + Config.LOCK_MAX_SECONDS / 2,
 	slimes = {},
-	daily = { available = true, streak = Config.DAILY_STREAK_CAP or 7, amount = 987.6e12 },
+	daily = { available = true, streak = Config.DAILY_STREAK_CAP, day = 30, amount = 987.6e12 },
 })
 
 -- Bottom-left cluster texts at their worst (Hud builds the same label boxes via Layout.moneyTextBox): the
@@ -1014,7 +1015,7 @@ function LayoutAssert.welcomeTexts(panel: Rect): { TextDesc }
 	local textX, right, gap, amountW = W.textX, W.right, W.offerGap, W.amountW
 	local rowW = bodyW - textX - right
 	local trackW = bodyW - W.trackInset * 2
-	local unit = trackW / ((Config.DAILY_STREAK_CAP or 7) - 1 + W.lastWeight)
+	local unit = trackW / (Daily.TRACK - 1 + W.lastWeight)
 	local tileW, lastW = unit - W.tileGap, unit * W.lastWeight - W.tileGap
 	local big = Format.formatCash(999.99e15)
 	local title = Layout.panelTitle(panel)
@@ -1056,10 +1057,14 @@ function LayoutAssert.welcomeTexts(panel: Rect): { TextDesc }
 			h = 24,
 		},
 		desc("Welcome streak broke", "Your 77-day streak broke"),
-		desc("Welcome tomorrow", `{big} tomorrow`),
+		desc("Welcome next skin", "Next skin: Midnight Cloud seat on day 30"),
+		{ name = "Welcome streak day", text = "Day 30 of 30", size = 20, bold = true, w = rowW, h = 24 },
 		{ name = "Welcome tile today", text = "Day 6", size = 14, bold = true, w = tileW, h = 17 },
-		{ name = "Welcome tile last", text = "Day 7", size = 14, bold = true, w = lastW, h = 17 },
+		{ name = "Welcome tile last", text = "Day 30", size = 14, bold = true, w = lastW, h = 17 },
 		{ name = "Welcome tile amount", text = "$3.5K", size = 14, bold = true, w = tileW - 4, h = 17 },
+		{ name = "Welcome tile items", text = "x2", size = 14, bold = true, w = tileW - 4, h = 17 },
+		{ name = "Welcome tile totem", text = "Totem", size = 14, bold = true, w = tileW - 4, h = 17 },
+		{ name = "Welcome tile skin", text = "Midnight", size = 14, bold = true, w = lastW - 4, h = 17 },
 		{
 			name = "Welcome offer",
 			text = "Keep my streak · R$25",
@@ -1069,6 +1074,14 @@ function LayoutAssert.welcomeTexts(panel: Rect): { TextDesc }
 			h = Layout.MIN_TOUCH_DESIGN,
 		},
 		{ name = "Welcome action", text = `Claim {big}`, size = 22, bold = true, w = bodyW, h = Layout.BUTTON },
+		{
+			name = "Welcome action skin",
+			text = "Claim Midnight Cloud seat",
+			size = 22,
+			bold = true,
+			w = bodyW,
+			h = Layout.BUTTON,
+		},
 	}
 end
 

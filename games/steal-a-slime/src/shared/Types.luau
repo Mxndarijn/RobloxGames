@@ -57,8 +57,6 @@ export type RainView = {
 	nextAt: number?, -- when not active
 }
 
--- day: the streak day the pending claim pays (1..DAILY_STREAK_CAP); when
--- nothing is pending, the day the last claim paid.
 -- Redeem codes (CONTRACT.md §10): the active income boost (1 / 0 = none).
 -- Friend income bonus (CONTRACT.md §11): friends in this server and the income bonus they give (0.2 = +20%).
 export type FriendsView = { count: number, bonus: number }
@@ -116,7 +114,30 @@ export type QuestView = {
 	rewardKind: string,
 }
 export type DailyQuestsView = { day: number, resetsIn: number, quests: { QuestView } }
-export type DailyView = { available: boolean, streak: number, amount: number, day: number }
+-- The daily streak (contract/daily-streak.md): day = the streak day the pending claim pays (1..DAILY_STREAK_CAP), or
+-- the day the last claim paid when nothing is pending; amount = that day's cash (0 when it isn't cash).
+export type DailyReward = {
+	day: number,
+	kind: string,
+	label: string,
+	short: string,
+	icon: string,
+	amount: number?,
+	skin: boolean,
+	id: string?,
+	count: number?,
+	mult: number?,
+	minutes: number?,
+}
+export type DailyView = {
+	available: boolean,
+	streak: number,
+	day: number,
+	amount: number,
+	reward: DailyReward,
+	track: { DailyReward },
+	nextSkin: DailyReward?,
+}
 
 -- Keys are the UI's ShopCatalog item ids. price nil = maxed / owned.
 export type ShopView = {

@@ -128,7 +128,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Shop:** `src/shared/Shop.luau` (pure). `"BuySpeedCoil"` buys an **item** (Item Shop, 2026-10-18: it works while held, so it has a hotbar slot; §27.1). Its price is in `State.shop` (§5.1).
 - **Speed Coil** (2026-10-22: only while held, see §8.10): owning it (`data.speedCoil`) keeps one `SpeedCoil` Tool (`Props.speedCoil()`, a `Handle` Part plus welded decor, unanchored, CanCollide false) in your Backpack or character, re-added after respawns. While that Tool is **equipped** (in the character) the server sets WalkSpeed to `SPEED_COIL_WALK_SPEED`; in the Backpack it does nothing. Carrying puts tools away, so the coil never helps while carrying.
 - **Tutorial** (§49, [tutorial.md](contract/tutorial.md)): `src/shared/TutorialProgress.luau` (pure). The server owns the step; the client only shows it (`State.tutorialStepId`, Player attribute `TutorialStepId`). Eight steps: Grab, Deposit, Lock, Leaderboard, Guide, BuyPad, Merge, BuyItem; no rewards; `Request("SkipTutorial")` ends it. New profiles start at 1. Saves made before the field existed start at 1 if they have no slimes and no rebirths, otherwise done. Saved as `tutorialStep` (0 = done) and kept on rebirth.
-- **Daily reward:** `Request("Daily")` (`Progression.claimDaily`). `State.daily` says whether it's available, the streak and what the pending claim pays (`day`, `amount`).
+- **Daily reward** (§54, [daily-streak.md](contract/daily-streak.md)): `Request("Daily")` (`DailyRewards.claim`). A 30-day streak of cash, items, boosts and daily-only skins. `State.daily` says whether it's available, the streak day and what it gives (`reward`, `track`, `nextSkin`).
 - **Effects:** the server plays `Effects.play` bursts on gameplay events (§5.4).
 - **Extras** (each behind `Config.FEATURES.<name>`, `false` turns it fully off, except the ones marked *always on*, whose flag is retired):
   - Boss event (*always on*): a server-wide boss fight, haul race and boss badges, see §33 ([boss-event.md](contract/boss-event.md)). The boss model has attribute `Boss = true` (`Constants.BOSS_ATTRIBUTE`).
@@ -171,7 +171,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"Favorite"` | `slimeId: string?` | Sets the favourite (the follow pet; a rebirth uses it up only when no other slime of a required species is there). `nil` clears it. |
 | `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`) once the player has the rebirths it needs (`Economy.padRebirths`); else "Rebirth <n> to unlock this pad". |
 | `"MoveSlime"` | `slimeId: string, pad: number` | `FEATURES.MoveSlime`: moves that owned, not-busy slime to `pad` (an unlocked pad, `1..padsUnlocked`, a whole number). If another slime sits there, the two swap pads; that slime must not be busy either. Moving to its own pad is a no-op. Fails with `"moving slimes is off"`, `"not your slime"`, `"pad is locked"`, `"slime is busy"`, `"That slime is brewing in the vat"`. Only `slime.pad` changes (no save change); the slime models re-place on the next world refresh. |
-| `"Daily"` | none | Claims the daily reward (`Progression.claimDaily`). |
+| `"Daily"` | none | Claims today's daily streak reward (`DailyRewards.claim`, §54). Fails with `"already claimed today"`. |
 | `"SkipTutorial"` | none | Ends the tutorial (§49); refused when it is already over. |
 | `"ReplayTutorial"` | none | Starts a finished tutorial again at step 1 (§51); refused while it runs. |
 | `"SetSettings"` | `changes: { [id]: value }` | Stores Settings menu values (§51, `PlayerSettings.parse`); a bad table is `"bad argument"`. Rate limit 0.5 s. |
@@ -287,7 +287,7 @@ The client always replaces its copy and never diffs.
 }
 ```
 
-- `daily.day` is the streak day the pending claim pays (1..`DAILY_STREAK_CAP`, `amount = DAILY_BASE × day × rebirthMultiplier`). When nothing is pending, it's the day the last claim paid.
+- `daily` is the §54 `DailyView`: `day` is the streak day the pending claim pays (1..`DAILY_STREAK_CAP`); when nothing is pending, it's the day the last claim paid. `amount` is that day's cash (0 on a day that is not cash), `reward` what it gives, `track` the 7 days shown and `nextSkin` the next unowned skin day.
 - `egg.hatched` is the newest Mystery Egg the player hatched (`HatchEgg`, [mystery-egg.md](contract/mystery-egg.md)). The HUD shows no banner for it.
 - `shop` keys are the UI's `ShopCatalog` item ids. Prices are final (what `Request` charges).
 - `boards` holds the same values the saves write to the global boards (§2 Leaderboard), so the client can show "You" under a board's top 10.
@@ -470,3 +470,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §49 | [cash-pads.md](contract/cash-pads.md) | Cash pads: income piles up on a raised gold coin at each slime, only the owner collects by walking over it (`FEATURES.CashPads`) |
 | §52 | [obby.md](contract/obby.md) | Obby: a sky course, the same on every server, that rebuilds every 30 min from new sections; clearing it gives x1.5 income for 5 min, then a 5-min cooldown; retries chase a fastest-time board shared by every server |
 | §53 | [pet-species.md](contract/pet-species.md) | Pet species: pick any found SlimeDex slime for the follow pet, the Skins menu's Pet tab |
+| §54 | [daily-streak.md](contract/daily-streak.md) | Daily streak: 30 days of cash, items, boosts and daily-only skins |

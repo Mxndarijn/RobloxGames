@@ -189,27 +189,7 @@ function Progression.dailyAvailable(daily: PlayerData.Daily, now: number): boole
 	return Progression.dayNumber(now) > daily.lastDay
 end
 
-function Progression.dailyAmount(streak: number, rebirths: number): number
-	local s = math.clamp(streak, 1, Config.DAILY_STREAK_CAP)
-	return math.floor(Config.DAILY_BASE * s * Economy.rebirthMultiplier(rebirths))
-end
-
---[[
-	Claims today's reward. Consecutive days grow the streak (reward capped at
-	DAILY_STREAK_CAP days), a missed day resets it to 1.
-	Returns (ok, amountOrReason).
-]]
-function Progression.claimDaily(data: PlayerData.Data, now: number): (boolean, number | string)
-	local today = Progression.dayNumber(now)
-	if today <= data.daily.lastDay then
-		return false, "already claimed today"
-	end
-	local streak = if data.daily.lastDay == today - 1 then data.daily.streak + 1 else 1
-	local amount = Progression.dailyAmount(streak, data.rebirths)
-	data.daily = { lastDay = today, streak = streak }
-	PlayerData.earn(data, amount)
-	return true, amount
-end
+-- The claim and what each streak day gives: DailyRewards (contract/daily-streak.md).
 
 ---------------------------------------------------------------------------
 -- Slime Rain

@@ -26,7 +26,13 @@ local function base(): any
 		nextPadCost = 500,
 		slimes = slimes({ 1, 2 }),
 		dex = { found = 2, total = 50 },
-		daily = { available = true, streak = 2, amount = 300, day = 3 },
+		daily = {
+			available = true,
+			streak = 2,
+			amount = 1000,
+			day = 3,
+			reward = { day = 3, kind = "cash", label = "$1K", short = "$1K", icon = "Cash", skin = false },
+		},
 		shop = {
 			SpeedCoil = { price = nil, owned = true },
 		},
@@ -49,7 +55,7 @@ describe("Goals.derive", function()
 		expect(g.AllPads.detail).toBe("4/8 · next $500")
 		expect(g.AllPads.done).toBe(false)
 		expect(g.Daily.done).toBe(false)
-		expect(g.Daily.detail).toBe("Day 3 pays $300")
+		expect(g.Daily.detail).toBe("Day 3: $1K")
 		expect(g.BestTier.title).toBe("Own a Rare slime")
 		expect(g.Rebirth.title).toBe("Reach your first rebirth")
 		expect(g.Rebirth.fraction).toBeCloseTo(0.2)

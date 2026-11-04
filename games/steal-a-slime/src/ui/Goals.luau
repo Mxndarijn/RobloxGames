@@ -66,7 +66,7 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 			id = "Daily",
 			title = "Claim today's daily reward",
 			detail = if available
-				then `Day {num(daily.day)} pays {Format.formatCash(num(daily.amount))}`
+				then `Day {num(daily.day)}: {if type(daily.reward) == "table" then daily.reward.label else ""}`
 				else `Claimed · streak {num(daily.streak)}`,
 			fraction = if available then 0 else 1,
 			done = not available,

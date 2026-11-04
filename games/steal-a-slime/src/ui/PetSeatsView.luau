@@ -73,6 +73,8 @@ local function lineOf(seat: any): string
 		return `Complete {need}% of the SlimeDex.`
 	elseif seat.kind == "exclusive" then
 		return PetSeatsView.EXCLUSIVE_LINE
+	elseif seat.kind == "daily" then
+		return `Daily streak day {need}.`
 	end
 	return PetSeatsView.FREE_LINE
 end
@@ -164,6 +166,7 @@ function PetSeatsView.detail(petSeats: any, id: string, config: any?): Detail?
 		elseif exclusive then PetSeatsView.EXCLUSIVE_ACTION
 		elseif seat.kind == "merges" then `Merge {left} more slime{if left == 1 then "" else "s"}`
 		elseif seat.kind == "dex" then `{left}% more of the SlimeDex`
+		elseif seat.kind == "daily" then `Reach day {num(seat.need)} of your daily streak`
 		else PlotSkinsView.EQUIP
 	return {
 		id = id,

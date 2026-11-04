@@ -13,6 +13,7 @@
 ]]
 
 local UI = script.Parent.Parent
+local Daily = require(UI.Daily)
 local ExclusiveShopView = require(UI.ExclusiveShopView)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
@@ -42,7 +43,7 @@ Welcome.ROW = table.freeze({
 })
 -- The daily row: the same head as a plain row, the track of day tiles under it.
 Welcome.DAILY = table.freeze({ h = 156, trackY = 72, trackH = 72, trackInset = 10, amountW = 96 })
--- One tile per streak day; the last (cap) day is LAST_WEIGHT times wider with a bigger pile.
+-- One tile per day of State.daily.track; the last one (always a skin day) is LAST_WEIGHT times wider with a bigger icon.
 Welcome.TILE = table.freeze({
 	gap = 6,
 	lastWeight = 1.5,
@@ -66,7 +67,7 @@ Welcome.ACTION_GAP = 12 -- between the last row and the pinned main button
 Welcome.CLAIMED_CLOSE = 1.5
 
 type Row = { frame: Frame, pic: any, name: TextLabel, desc: TextLabel }
-type Tile = { frame: Frame, stroke: UIStroke, label: TextLabel, amount: TextLabel }
+type Tile = { frame: Frame, stroke: UIStroke, label: TextLabel, amount: TextLabel, icon: any }
 
 function Welcome.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "WelcomePanel", "Welcome back", "👋") -- WelcomeBack.view sets the mode's title
@@ -75,7 +76,7 @@ function Welcome.new(parent: Instance, ctx: any)
 	local tileSpec = Welcome.TILE
 	local offers = Welcome.OFFERS
 	local icons = ItemIcons.of(ctx)
-	local cap: number = ctx.Config.DAILY_STREAK_CAP or 7
+	local count = Daily.TRACK
 
 	-- Everything but the main button; its canvas is set in update to the rows' bottom plus ACTION_GAP.
 	local content = Widgets.scroll({
@@ -147,7 +148,7 @@ function Welcome.new(parent: Instance, ctx: any)
 		Size = UDim2.new(1, -inset * 2, 0, Welcome.DAILY.trackH),
 		Parent = dailyRow.frame,
 	}, { Widgets.list(Enum.FillDirection.Horizontal, tileSpec.gap, Enum.HorizontalAlignment.Center) })
-	local weightSum = (cap - 1) + tileSpec.lastWeight
+	local weightSum = (count - 1) + tileSpec.lastWeight
 	-- A claimed tile's check, where its day label was (built the first time the day is claimed).
 	local CLAIMED = table.freeze({
 		Name = "Claimed",
@@ -155,11 +156,11 @@ function Welcome.new(parent: Instance, ctx: any)
 		Position = UDim2.new(0.5, 0, 0, tileSpec.labelY),
 	})
 	local tiles: { Tile } = {}
-	for day = 1, cap do
-		local last = day == cap
+	for slot = 1, count do
+		local last = slot == count
 		local frame = Widgets.rowFrame({
-			Name = `Day{day}`,
-			LayoutOrder = day,
+			Name = `Day{slot}`,
+			LayoutOrder = slot,
 			Size = UDim2.new((if last then tileSpec.lastWeight else 1) / weightSum, -tileSpec.gap, 1, 0),
 			Parent = track,
 		})
@@ -176,14 +177,15 @@ function Welcome.new(parent: Instance, ctx: any)
 			Parent = frame,
 		})
 		local iconSize = if last then tileSpec.lastIcon else tileSpec.icon
-		ItemIconView.new({
-			Name = `Day{day}Icon`,
+		local icon = ItemIconView.new({
+			Name = `Day{slot}Icon`,
 			Id = "Cash",
 			Size = iconSize,
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 0, tileSpec.iconY + (tileSpec.icon - iconSize) / 2),
 			Parent = frame,
-		}, icons).setActive(true)
+		}, icons)
+		icon.setActive(true)
 		local amount = Widgets.label({
 			Name = "DayAmount",
 			Font = Theme.Font,
@@ -200,11 +202,12 @@ function Welcome.new(parent: Instance, ctx: any)
 			MaxTextSize = if last then tileSpec.lastAmountSize else tileSpec.amountSize,
 			Parent = amount,
 		})
-		tiles[day] = {
+		tiles[slot] = {
 			frame = frame,
 			stroke = frame:FindFirstChildOfClass("UIStroke") :: UIStroke,
 			label = label,
 			amount = amount,
+			icon = icon,
 		}
 	end
 
@@ -410,9 +413,10 @@ function Welcome.new(parent: Instance, ctx: any)
 			dailyRow.desc.Text = daily.status
 			dailyAmount.Text = daily.amount or ""
 			dailyAmount.Visible = daily.amountShown
-			for _, t in daily.tiles do
-				local tile = tiles[t.day]
+			for slot, t in daily.tiles do
+				local tile = tiles[slot]
 				if tile then
+					tile.icon.set(t.icon)
 					local today = t.state == "today"
 					local fill = if today then Theme.Gold else Theme.Row
 					tile.frame.BackgroundColor3 = fill

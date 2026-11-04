@@ -502,6 +502,12 @@ do
 				goalTotal += reward * m
 			end
 		end
+		local dailyBest = 0
+		for _, entry in Config.DAILY_REWARDS do
+			if entry.kind == "cash" then
+				dailyBest = math.max(dailyBest, entry.amount)
+			end
+		end
 		local questMax = 0
 		for _, q in Config.DAILY_QUESTS.pool do
 			if q.reward.kind == "cash" then
@@ -511,14 +517,14 @@ do
 		table.insert(drows, {
 			tostring(r),
 			money(Economy.rebirthCost(r)),
-			money(Config.DAILY_BASE * Config.DAILY_STREAK_CAP * m),
+			money(dailyBest * m),
 			money(questMax * Config.DAILY_QUESTS.count),
 			money(goalTotal),
 		})
 		table.insert(draw, {
 			rebirths = r,
 			rebirthCost = Economy.rebirthCost(r),
-			dailyMax = Config.DAILY_BASE * Config.DAILY_STREAK_CAP * m,
+			dailyMax = dailyBest * m,
 			questsMax = questMax * Config.DAILY_QUESTS.count,
 			goalsTotal = goalTotal,
 		})
@@ -526,7 +532,7 @@ do
 	render(
 		"Daily, quests and goals (cash x rebirth multiplier) against the rebirth price",
 		"rewards",
-		{ "Rebirths", "Rebirth price", "Daily at 7-day streak", "3 best quests (cash)", "All goal stages ever" },
+		{ "Rebirths", "Rebirth price", "Best daily streak cash day", "3 best quests (cash)", "All goal stages ever" },
 		drows,
 		draw
 	)

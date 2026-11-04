@@ -180,6 +180,8 @@ ItemIcons.AWAITING_UPLOAD = table.freeze({
 	"PlotSkin_haunted",
 	"PetSeat_pumpkin",
 	"PetSeat_snowglobe",
+	"PetSeat_golden_cloud",
+	"PetSeat_midnight_cloud",
 } :: { string })
 
 -- id -> MeshAssets name: an item that shows that kit mesh as a live model, with its picture as the fallback.

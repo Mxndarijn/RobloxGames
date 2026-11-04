@@ -122,15 +122,37 @@ export type PlotBase = {
 -- MeshAssets name (shared/modeling-kit/models/PET_MOUNTS.md); `seat` is the height of the seat surface over the mesh's
 -- bottom in native studs (where the pet's foot goes; decoration such as a cherry or an arch rises above it).
 -- `unlock`: "free" (everyone), "merges" (`count` slimes merged, stats.merges), "dex" (`percent` of the SlimeDex
--- found) or "exclusive" (sold in the Exclusive shop; nobody owns one yet).
+-- found), "exclusive" (sold in the Exclusive shop) or "daily" (given on daily streak `day`, contract/daily-streak.md).
+-- `tint` (RGB 0..255) colours the mesh, so one mesh can be several seats (PetSeats.templateName).
+-- One daily streak day (Config.DAILY_REWARDS, contract/daily-streak.md).
+export type DailyDay = {
+	kind: string, -- "cash" | "egg" | "boost" | "consumable" | "trail" | "seat"
+	amount: number?, -- cash
+	mult: number?, -- boost
+	minutes: number?, -- boost
+	id: string?, -- consumable / trail / seat id
+	count: number?, -- consumable count (default 1)
+}
+
+-- A carry trail (contract/exclusive-shop.md §9); a `daily` one has no `robux` and is never sold.
+export type CarryTrailDef = {
+	id: string,
+	name: string,
+	robux: number?,
+	daily: boolean?,
+	colors: { { number } },
+	style: string,
+}
+
 export type PetSeat = {
 	id: string, -- permanent save id; never rename
 	name: string,
 	mesh: string,
 	seat: number,
 	color: { number }, -- icon tile colour, RGB 0..255
-	unlock: { kind: "free" | "merges" | "dex" | "exclusive", count: number?, percent: number? },
+	unlock: { kind: "free" | "merges" | "dex" | "exclusive" | "daily", count: number?, percent: number?, day: number? },
 	season: string?, -- an Exclusive sold only in this Config.SEASONS window (contract/exclusive-shop.md §15)
+	tint: { number }?, -- MeshPart.Color of the seat's own template; nil = the mesh's own colours
 }
 
 -- A PvP tool or fun item (FEATURES.PvP, CONTRACT.md §26). Price is derived (PvpRules.price), never stored.
@@ -419,6 +441,52 @@ local GOALS: { Goal } = {
 	},
 }
 
+-- Daily streak days (contract/daily-streak.md), day 1 first. kind: "cash" (amount), "egg", "boost" (mult, minutes),
+-- "consumable" (id, count?), "trail" / "seat" (id of a daily CARRY_TRAILS / PET_SEATS entry).
+local function dailyCash(amount: number): DailyDay
+	return table.freeze({ kind = "cash", amount = amount })
+end
+local DAILY_EGG: DailyDay = table.freeze({ kind = "egg" })
+local function dailyBoost(minutes: number): DailyDay
+	return table.freeze({ kind = "boost", mult = 2, minutes = minutes })
+end
+local function dailyItem(id: string, count: number?): DailyDay
+	return table.freeze({ kind = "consumable", id = id, count = count })
+end
+local DAILY_REWARDS: { DailyDay } = {
+	dailyCash(500), -- 1
+	dailyCash(750),
+	dailyCash(1000),
+	dailyCash(1250),
+	dailyCash(1500), -- 5
+	DAILY_EGG,
+	table.freeze({ kind = "trail", id = "mint_fizz" }), -- 7
+	dailyCash(2500),
+	dailyBoost(15),
+	dailyItem("WeatherTotem"), -- 10
+	DAILY_EGG,
+	dailyCash(4000),
+	dailyItem("LuckPotion"),
+	table.freeze({ kind = "trail", id = "sunbeam" }), -- 14
+	dailyCash(5000), -- 15
+	dailyCash(5500),
+	dailyBoost(20),
+	DAILY_EGG,
+	dailyItem("LuckPotion"),
+	dailyCash(7500), -- 20
+	table.freeze({ kind = "seat", id = "golden_cloud" }), -- 21
+	dailyCash(8500),
+	dailyItem("WeatherTotem"),
+	dailyBoost(25),
+	DAILY_EGG, -- 25
+	dailyCash(11000),
+	dailyItem("LuckPotion", 2),
+	dailyCash(12500),
+	dailyCash(15000),
+	table.freeze({ kind = "seat", id = "midnight_cloud" }), -- 30
+}
+table.freeze(DAILY_REWARDS)
+
 -- Daily quests (Quests, Goals menu): `count` distinct pool entries rolled per player per UTC day. A target is
 -- one of `choices`; progress = stat gained since the roll (Goals.stat names). Cash is x rebirthMultiplier on
 -- claim; a boost follows the Codes boost rules. Pool ids are permanent save ids.
@@ -616,7 +684,8 @@ local function seat(
 	height: number,
 	color: { number },
 	unlock: any,
-	season: string?
+	season: string?,
+	tint: { number }?
 ): PetSeat
 	return table.freeze({
 		id = id,
@@ -626,6 +695,7 @@ local function seat(
 		color = color,
 		unlock = table.freeze(table.clone(unlock)),
 		season = season,
+		tint = if tint then table.freeze(tint) else nil,
 	})
 end
 local EXCLUSIVE = { kind = "exclusive" }
@@ -659,6 +729,17 @@ local PET_SEATS: { PetSeat } = {
 	-- Seasonal Exclusives: sold only in their season, back the next year.
 	seat("pumpkin", "Pumpkin", "pet_mount_pumpkin", 1.20, { 246, 134, 40 }, EXCLUSIVE, "halloween"),
 	seat("snowglobe", "Snow Globe", "pet_mount_snowglobe", 2.05, { 150, 216, 244 }, EXCLUSIVE, "winter"),
+	-- Daily streak seats (contract/daily-streak.md): the plain cloud in another colour, never sold.
+	seat("golden_cloud", "Golden Cloud", "pet_cloud", 1.225, { 255, 205, 90 }, { kind = "daily", day = 21 }, nil, {
+		255,
+		205,
+		90,
+	}),
+	seat("midnight_cloud", "Midnight Cloud", "pet_cloud", 1.225, { 90, 100, 190 }, { kind = "daily", day = 30 }, nil, {
+		110,
+		120,
+		210,
+	}),
 }
 
 -- Exclusive Shop (contract/exclusive-shop.md). The one source of every Robux product and pass.
@@ -714,7 +795,7 @@ for _, def in PET_SEATS do
 end
 -- Carry trails (contract/exclusive-shop.md §9): what streams behind you while you carry a slime. Purely visual: a trail is
 -- always visible and never hides the carried slime. Ids are permanent save ids.
-local CARRY_TRAILS = table.freeze({
+local CARRY_TRAILS: { CarryTrailDef } = {
 	table.freeze({
 		id = "sparkle",
 		name = "Sparkle",
@@ -756,7 +837,23 @@ local CARRY_TRAILS = table.freeze({
 		}),
 		style = "ribbon",
 	}),
-})
+	-- Daily streak trails (contract/daily-streak.md): no robux, never sold or gifted.
+	table.freeze({
+		id = "mint_fizz",
+		name = "Mint Fizz",
+		daily = true,
+		colors = table.freeze({ { 214, 255, 240 }, { 120, 230, 200 } }),
+		style = "sparkle",
+	}),
+	table.freeze({
+		id = "sunbeam",
+		name = "Sunbeam",
+		daily = true,
+		colors = table.freeze({ { 255, 244, 170 }, { 255, 186, 80 } }),
+		style = "stars",
+	}),
+}
+table.freeze(CARRY_TRAILS)
 -- Bat skins (§10): another look for the free Bat. Reach, cooldown, hitbox and knockback are the Bat's, unchanged.
 -- `mesh` = MeshAssets name (shared/modeling-kit models/bat_skin_<id>.py); without an uploaded mesh the default Bat shows.
 local BAT_SKINS = table.freeze({
@@ -789,7 +886,9 @@ local SLIME_HATS = table.freeze({
 	table.freeze({ id = "witch", name = "Witch Hat", robux = 99, mesh = "slime_hat_witch", season = "halloween" }),
 })
 for _, def in CARRY_TRAILS do
-	EXCLUSIVE_PRODUCTS["Trail_" .. def.id] = product(def.robux, { kind = "trail", trail = def.id })
+	if not def.daily then
+		EXCLUSIVE_PRODUCTS["Trail_" .. def.id] = product(def.robux :: number, { kind = "trail", trail = def.id })
+	end
 end
 for _, def in LOCK_STYLES do
 	EXCLUSIVE_PRODUCTS["LockStyle_" .. def.id] = product(def.robux, { kind = "lockStyle", style = def.id })
@@ -2253,9 +2352,12 @@ local Config = {
 	GROWTH_MAX_SCALE_BONUS = 0.1,
 	GROWTH_LABEL_GAP = 0.4, -- studs between the top of the slime and the bottom edge of its floating tag (contract/slime-labels.md)
 
-	-- Daily reward
-	DAILY_BASE = 100,
-	DAILY_STREAK_CAP = 7,
+	-- Daily streak (contract/daily-streak.md): DAILY_REWARDS[day] for day 1..DAILY_STREAK_CAP, then the days repeat.
+	-- Cash amounts are x the rebirth multiplier. DAILY_FALLBACK_CASH (x the multiplier) replaces a reward that can't
+	-- be given (plot full for the egg, an item whose feature is off or whose stack is full).
+	DAILY_STREAK_CAP = #DAILY_REWARDS,
+	DAILY_REWARDS = DAILY_REWARDS,
+	DAILY_FALLBACK_CASH = 2500,
 	DAILY_QUESTS = table.freeze({ count = 3, pool = table.freeze(DAILY_QUEST_POOL) }),
 
 	-- Redeem codes (CONTRACT.md §10). Keys are UPPERCASE; players type any case.

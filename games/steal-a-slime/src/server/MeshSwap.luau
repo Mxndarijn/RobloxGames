@@ -39,6 +39,7 @@ local Habitats = require(ReplicatedStorage.Shared.Habitats)
 local JarMeshes = require(ReplicatedStorage.Visuals.JarMeshes)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
 local PetCloud = require(ReplicatedStorage.Visuals.PetCloud)
+local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
 local PvpModels = require(ReplicatedStorage.Shared.PvpModels)
 local Retry = require(ReplicatedStorage.Lib.core.Retry)
 local ThemeMeshes = require(ReplicatedStorage.Shared.ThemeMeshes)
@@ -685,8 +686,9 @@ function MeshSwap.publishHatTemplates(): number
 	return count
 end
 
--- One template per Config.PET_SEATS mesh that MeshAssets has, in ReplicatedStorage.PetCloudMeshes (named by mesh,
--- native size, decor, attribute SeatHeight = the seat's `seat`), cloned by the client (FollowPets). A seat whose mesh
+-- One template per Config.PET_SEATS mesh that MeshAssets has, in ReplicatedStorage.PetCloudMeshes (named by
+-- PetSeats.templateName, native size, decor, attribute SeatHeight = the seat's `seat`; a tinted seat gets its own copy
+-- with Color = its tint, which multiplies the vertex colours), cloned by the client (FollowPets). A seat whose mesh
 -- is not uploaded has no template; its pet rides the default cloud. A failed load is forgotten and tried again
 -- after each of PET_CLOUD_RETRY_DELAYS; pets never wait for it. Yields; returns how many templates are published.
 function MeshSwap.publishPetSeatTemplates(): number
@@ -703,7 +705,8 @@ function MeshSwap.publishPetSeatTemplates(): number
 		if not (meshId and entry and entry.size) then
 			continue
 		end
-		if (folder :: Folder):FindFirstChild(seat.mesh) then
+		local name = PetSeats.templateName(seat)
+		if (folder :: Folder):FindFirstChild(name) then
 			count += 1
 			continue
 		end
@@ -719,8 +722,12 @@ function MeshSwap.publishPetSeatTemplates(): number
 			continue
 		end
 		local mesh: BasePart = base:Clone()
-		mesh.Name = seat.mesh
+		mesh.Name = name
 		mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+		local seatTint = seat.tint
+		if seatTint then
+			mesh.Color = Color3.fromRGB(seatTint[1], seatTint[2], seatTint[3])
+		end
 		mesh:SetAttribute(PetCloud.SEAT_ATTRIBUTE, seat.seat)
 		PetCloud.decor(mesh)
 		mesh.Parent = folder

@@ -19,6 +19,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local PlayerSettings = if Shared then require(Shared.PlayerSettings) else require("../shared/PlayerSettings")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
+local DailyRewards = if Shared then require(Shared.DailyRewards) else require("../shared/DailyRewards")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local HotbarOrder = if Shared then require(Shared.HotbarOrder) else require("../shared/HotbarOrder")
 local KitRequest = if Shared then require(Shared.KitRequest) else require("../shared/KitRequest")
@@ -29,7 +30,6 @@ local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared
 local PetSpecies = if Shared then require(Shared.PetSpecies) else require("../shared/PetSpecies")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
-local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Remotes = if Shared then require(Shared.Remotes) else require("../shared/Remotes")
 local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
@@ -317,19 +317,15 @@ local function buyPad(world: World, session: Session): Result
 	return result(ok, reason)
 end
 
-local function daily(world: World, session: Session, now: number): Result
-	local ok, value = Progression.claimDaily(session.data, now)
+local function daily(world: World, session: Session, now: number, ctx: Context): Result
+	local eggs = { rng = world.eggRng, newId = world.newId }
+	local ok, value = DailyRewards.claim(session.data, now, eggs, ctx.features)
 	if not ok then
 		return fail(value :: string)
 	end
-	World.notify(
-		world,
-		session.userId,
-		`Daily reward: ${Economy.formatNumber(value :: number)}`,
-		"good",
-		"DailyReward",
-		"Daily"
-	)
+	local reward = value :: DailyRewards.Reward
+	local text = if reward.kind == "cash" then `+{reward.label}` else `{reward.label}!`
+	World.notify(world, session.userId, `Day {reward.day}: {text}`, "good", "DailyReward", "Daily")
 	return OK
 end
 
@@ -692,7 +688,7 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	elseif action == "ReplayTutorial" then
 		return result(TutorialService.restart(world, session))
 	elseif action == "Daily" then
-		return daily(world, session, now)
+		return daily(world, session, now, ctx)
 	elseif action == "ClaimQuest" then
 		return claimQuest(world, session, args[1], now)
 	elseif action == "Redeem" then

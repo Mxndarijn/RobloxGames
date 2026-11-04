@@ -691,8 +691,8 @@ function SaveData.cleanGiftCredits(raw: any): { string }
 	return out
 end
 
--- Exclusive seat ids of a raw save (read) or of PlayerData (write): known `exclusive` Config.PET_SEATS ids, no
--- repeats, in the stored order. Missing / junk -> empty.
+-- Owned seat ids of a raw save (read) or of PlayerData (write): known `exclusive` or `daily` Config.PET_SEATS ids,
+-- no repeats, in the stored order. Missing / junk -> empty.
 function SaveData.cleanOwnedSeats(raw: any): { string }
 	local out: { string } = {}
 	if type(raw) ~= "table" then
@@ -700,7 +700,7 @@ function SaveData.cleanOwnedSeats(raw: any): { string }
 	end
 	for _, id in ipairs(raw) do
 		local seat = PetSeats.get(id)
-		if seat and seat.unlock.kind == "exclusive" and not table.find(out, seat.id) then
+		if seat and PetSeats.owns(seat) and not table.find(out, seat.id) then
 			table.insert(out, seat.id)
 		end
 	end
