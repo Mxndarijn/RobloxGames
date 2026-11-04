@@ -44,8 +44,28 @@ generic tile for every item of the kind.
 | Boost | Luck Potion, Slime Rain, Weather Totem, x2 15 min, x2 1 h | 49-179 | reused pics | ok | n/a |
 | Boost | Summon the boss | 199 | `Slap` (a hand) | weak: a slap hand, not a boss | n/a |
 
-## Still to check (in game)
+## In game (hidden muted Studio, 2026-11-04)
 
-- How each seat, hat, lock stopper, Bat skin and plot base looks in Studio from the front, an angle and behind.
-- Which items show as a plain white orb: the fallback `Ball` part when a mesh fails to load, or a model that is
-  mostly white.
+Every cosmetic mesh loaded (`AssetService:CreateMeshPartAsync` on the client, 36 of 36). Screenshot:
+`docs/shop-audit/meshes_ingame.jpg`.
+
+- **The meshes are mostly good; the shop just never shows them.** Hats, lock stoppers, Bat skins, Pumpkin, Snow Globe
+  and the base-skin decor all read clearly in 3D, while their shop icons are identical placeholders.
+- **Weak meshes:** Bubble is a plain white flattened orb; Crescent Moon is a cream blob; Ice Cloud is a dull grey-blue
+  blob; the Fairground skin decor is a thin balloon stick that will vanish at game distance.
+- **The white orbs Merijn sees:** the claw show grabs a plain lilac `Ball` part (`ShopDisplayFx.makePrize`, the
+  "prize capsule") for every purchase that is not a featured cloud: hats, lock styles, base skins, plot bases, Bat
+  skins, trails and every pass. The claw box itself is filled with pale untextured capsule balls (part of the
+  `exclusive_slime_claw_shop` mesh), and the featured Bubble seat on its pedestal looks like one more white disc
+  (`docs/shop-audit/claw_box_before.jpg`).
+
+## Fix list
+
+| # | Fix | Kind | Needs upload |
+|---|---|---|---|
+| 1 | Live 3D preview in the shop's detail pane for every cosmetic (model turns on the stage; hat worn by a slime) | UI | no: meshes are uploaded |
+| 2 | Card pictures for hats, lock styles, Bat skins, plot bases, base skins, Pumpkin, Snow Globe, the 3 bundles | icons | yes, 30 pictures |
+| 3 | The claw grabs the item's own mesh (hat, stopper, bat, skin decor) instead of a ball; a real capsule model for the rest | world + model | the capsule mesh |
+| 4 | Remake Bubble, Crescent Moon, Ice Cloud | models | yes, 3 meshes (`--update`) |
+| 5 | Bundles: the pane lists what is inside, with each item's picture | UI | no |
+| 6 | Passes and boosts: the pane shows your own numbers before and after (income per second, brew time) | UI | no |
