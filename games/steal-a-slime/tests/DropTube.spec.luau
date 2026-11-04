@@ -5,6 +5,7 @@
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
+local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local ServerFixtures = require("./ServerFixtures")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
@@ -123,13 +124,36 @@ describe("drop tube geometry", function()
 		end
 		return nil
 	end
+	local function pieces(nodes: { any }): { any }
+		local out = {}
+		for _, n in nodes do
+			if string.match(n.name, "^Tube_%d+$") then
+				table.insert(out, n)
+			end
+		end
+		return out
+	end
+	-- Plot 1's world point for a tube line point { r, height } (WorldLayout's plot frame: centre, then yaw).
+	local function onPlot(p: { number }): { number }
+		local centre, yaw = WorldLayout.plotCentre(1)
+		local x, z = WorldLayout.polar(p[1], WorldLayout.DROP_ANGLE)
+		return LayoutMath.add(centre, LayoutMath.apply(LayoutMath.orientation({ 0, yaw, 0 }), { x, p[2], z }))
+	end
+	-- Distance from point q to the axis (a segment) of cylinder node n.
+	local function offAxis(n: any, q: { number }): number
+		local axis = LayoutMath.apply(LayoutMath.orientation(n.rot), { 1, 0, 0 })
+		local half = n.size[1] / 2
+		local d = { q[1] - n.pos[1], q[2] - n.pos[2], q[3] - n.pos[3] }
+		local t = math.clamp(d[1] * axis[1] + d[2] * axis[2] + d[3] * axis[3], -half, half)
+		return math.sqrt((d[1] - axis[1] * t) ^ 2 + (d[2] - axis[2] * t) ^ 2 + (d[3] - axis[3] * t) ^ 2)
+	end
 	it("gives every upper jar one hatch and a tube no ray hits; floor 2 also has the splash pool", function()
 		for f = 2, #Config.BASE_FLOORS do
 			local parts = WorldLayout.floor(1, f)[1].children
 			expect(named(parts, "DropHatch") ~= nil).toBe(true)
-			for _, name in { "TubeArm", "Tube" } do
-				local node = named(parts, name)
-				expect(node ~= nil).toBe(true)
+			expect(named(parts, "TubeArm").canQuery).toBe(false)
+			expect(#pieces(parts) > 0).toBe(true)
+			for _, node in pieces(parts) do
 				expect(node.canQuery).toBe(false)
 			end
 			expect(named(parts, "SplashPool") ~= nil).toBe(f == 2)
@@ -154,41 +178,103 @@ describe("drop tube geometry", function()
 			expect(angles[1] < WorldLayout.DROP_ANGLE and WorldLayout.DROP_ANGLE < angles[2]).toBe(true)
 		end
 	)
-	it("runs the tube outside jar 1's glass and inside the plot, and lands in the goo moat", function()
+	it("runs the tube outside every jar's glass and inside the plot, and lands in the goo moat", function()
 		local tube = WorldLayout.DROP_TUBE
-		expect(tube.radius - tube.width / 2 > WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL).toBe(true)
-		expect(tube.radius + tube.width / 2 < WorldLayout.PLOT_SIZE / 2).toBe(true)
+		for f = 2, #Config.BASE_FLOORS do
+			for _, p in WorldLayout.dropTubeStretch(f) do
+				-- clear of the glass of the jar beside it; the last 4 studs under a jar's floor are the bend over the
+				-- shoulder of the jar below, already beside the jar above
+				local up = p[2] - WorldLayout.PLOT_FLOOR_TOP + 4
+				local jar = math.clamp(math.floor(up / WorldLayout.FLOOR_HEIGHT) + 1, 1, f)
+				expect(p[1] - tube.width / 2 > WorldLayout.jarRadius(jar) + WorldLayout.JAR_WALL).toBe(true)
+				expect(p[1] + tube.width / 2 < WorldLayout.PLOT_SIZE / 2).toBe(true)
+			end
+		end
 		local land = WorldLayout.dropLanding()
 		local r = math.sqrt(land[1] ^ 2 + land[3] ^ 2)
 		expect(r > WorldLayout.MOAT.inner and r < WorldLayout.MOAT.outer).toBe(true)
 	end)
-	it("makes the upright tube solid (nobody stands inside it) and keeps the arm out of reach as decor", function()
-		for f = 2, #Config.BASE_FLOORS do
-			local tube, arm = nil, nil
-			for _, node in WorldLayout.floor(1, f)[1].children do
-				if node.name == "Tube" then
-					tube = node
-				elseif node.name == "TubeArm" then
-					arm = node
+	it(
+		"splits the tube's line into one stretch per floor, from each hatch down to the mouth, on the mesh's line",
+		function()
+			local top = #Config.BASE_FLOORS
+			local path = WorldLayout.dropTubePath(top)
+			local mouth = path[#path]
+			for f = 2, top do
+				local stretch = WorldLayout.dropTubeStretch(f)
+				expect(#stretch >= 2).toBe(true)
+				expect(stretch[1][2]).toBe(WorldLayout.floorTop(f) + 2)
+				for k = 2, #stretch do
+					expect(stretch[k][2] < stretch[k - 1][2]).toBe(true)
+				end
+				local last = stretch[#stretch]
+				if f == 2 then
+					expect(last[1]).toBe(mouth[1])
+					expect(last[2]).toBe(mouth[2])
+				else
+					expect(last[2]).toBe(WorldLayout.dropTubeStretch(f - 1)[1][2])
 				end
 			end
-			expect(tube ~= nil and arm ~= nil).toBe(true)
-			expect(tube.canCollide).toBe(true)
-			expect(arm.canCollide).toBe(false)
+			-- below the elbow every tower height has the same line, so a floor's stretch holds as jars are added
+			-- (points 1-3 are the lower tower's elbow; from point 4 on its line is the tail of the tallest tower's)
+			for v = 2, top - 1 do
+				local lower = WorldLayout.dropTubePath(v)
+				local shift = #path - #lower
+				for k = 4, #lower do
+					local p, q = lower[k], path[k + shift]
+					expect(math.abs(p[1] - q[1]) < 1e-9 and math.abs(p[2] - q[2]) < 1e-9).toBe(true)
+				end
+			end
 		end
-	end)
-	it("lands the drop on the splash pool beside the tube's solid foot, not inside it", function()
+	)
+	it(
+		"makes the tube solid along its line (nobody stands inside it) and keeps the arm out of reach as decor",
+		function()
+			for f = 2, #Config.BASE_FLOORS do
+				local parts = WorldLayout.floor(1, f)[1].children
+				expect(named(parts, "TubeArm").canCollide).toBe(false)
+				local solid = pieces(parts)
+				local stretch = WorldLayout.dropTubeStretch(f)
+				expect(#solid).toBe(#stretch - 1)
+				for k, node in solid do
+					expect(node.canCollide).toBe(true)
+					expect(node.shape).toBe("Cylinder")
+					expect(node.size[2]).toBe(WorldLayout.DROP_TUBE.width)
+					-- both ends of its stretch lie on the piece's axis
+					expect(offAxis(node, onPlot(stretch[k])) < 1e-6).toBe(true)
+					expect(offAxis(node, onPlot(stretch[k + 1])) < 1e-6).toBe(true)
+				end
+				-- and so does every point in between: no point of the line is off the solid tube
+				for k = 1, #stretch - 1 do
+					for t = 0, 1, 0.1 do
+						local a, b = stretch[k], stretch[k + 1]
+						local q = onPlot({ a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t })
+						local best = math.huge
+						for _, node in solid do
+							best = math.min(best, offAxis(node, q))
+						end
+						expect(best < 1e-6).toBe(true)
+					end
+				end
+			end
+		end
+	)
+	it("lands the drop on the splash pool beside the tube's mouth, not inside it", function()
 		local tube = WorldLayout.DROP_TUBE
-		local tx, tz = WorldLayout.polar(tube.radius, WorldLayout.DROP_ANGLE)
 		local land, pool = WorldLayout.dropLanding(), WorldLayout.dropPool()
 		local function flat(x: number, z: number): number
 			return math.sqrt((land[1] - x) ^ 2 + (land[3] - z) ^ 2)
 		end
-		-- a character is about 2 wide: its root lands at least half a body clear of the tube
-		expect(flat(tx, tz) >= tube.width / 2 + 1).toBe(true)
-		-- still on the pool (6 across), whose middle is under the tube's foot
+		-- a character is about 2 wide: its root lands at least half a body clear of the solid tube at any height
+		for _, p in WorldLayout.dropTubeStretch(2) do
+			local x, z = WorldLayout.polar(p[1], WorldLayout.DROP_ANGLE)
+			expect(flat(x, z) >= tube.width / 2 + 1 - 1e-9).toBe(true)
+		end
+		-- still on the pool (6 across), whose middle is under the tube's mouth
 		expect(flat(pool[1], pool[3]) < 3).toBe(true)
-		expect(math.sqrt((pool[1] - tx) ^ 2 + (pool[3] - tz) ^ 2) < tube.width / 2).toBe(true)
+		local mouth = WorldLayout.dropTubeStretch(2)
+		local mx, mz = WorldLayout.polar(mouth[#mouth][1], WorldLayout.DROP_ANGLE)
+		expect(math.sqrt((pool[1] - mx) ^ 2 + (pool[3] - mz) ^ 2) < 1e-6).toBe(true)
 	end)
 	it("keeps the landing clear of the lock button", function()
 		local land = WorldLayout.dropLanding()
