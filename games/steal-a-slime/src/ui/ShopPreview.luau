@@ -49,7 +49,8 @@ ShopPreview.STYLE = table.freeze({
 	restYaw = -30, -- degrees: the model's angle when reduced motion keeps it still
 	fov = 30,
 	pitch = 14, -- degrees the camera looks down
-	margin = 1.12, -- framing room around the model's turning circle
+	margin = 1.06, -- framing room around the model
+	depth = 0.5, -- share of the turning radius added for the side that turns towards the camera
 	slimeColor = { 110, 226, 120 }, -- the slime that wears a hat or rides a cloud
 	riderShare = 0.4, -- rider width over the cloud's width
 	riderSink = 0.2, -- share of the rider sunk into the seat
@@ -171,7 +172,7 @@ function ShopPreview.distance(radius: number, height: number, aspect: number): n
 	local half = math.rad(STYLE.fov / 2)
 	local byHeight = (height / 2) / math.tan(half)
 	local byWidth = radius / (math.tan(half) * math.max(aspect, 0.1))
-	return (math.max(byHeight, byWidth) + radius) * STYLE.margin
+	return (math.max(byHeight, byWidth) + radius * STYLE.depth) * STYLE.margin
 end
 
 ---------------------------------------------------------------- Roblox adapter
