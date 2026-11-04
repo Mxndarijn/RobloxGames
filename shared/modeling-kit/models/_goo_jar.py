@@ -650,30 +650,16 @@ def catmull(points, per=8):
     return out
 
 
-TUBE_OUT = 3.2  # the tube's centre stands this far out from each jar's glass
-
-
 def tube_path(version):
     """The drop tube's centreline (game numbers) for a tower of `version` jars, all on the back at DROP_ANGLE: out of a
     hatch low on the top jar, a short elbow out, then straight down past each jar a little off the glass, easing out
-    over each wider jar below, down past jar 1, and out over the moat to a flared mouth above the splash pool."""
+    over each wider jar below, down past jar 1, and out over the moat to a flared mouth above the splash pool.
+    The control points are the game's (WorldLayout.dropTubePath, exported as dropTubePaths as (r, z) pairs), so the
+    game's solid tube follows the same line; this smooths a spline through them."""
     back = math.radians(D["dropAngle"])
     cb, sb = math.cos(back), math.sin(back)
-
-    def at(r, z):
-        return (r * cb, r * sb, z)
-
-    top_z = (version - 1) * FLOOR_H
-    ctrl = [at(radius(version) - 0.4, top_z + 3.0), at(radius(version) + TUBE_OUT * 0.6, top_z + 3.4),
-            at(radius(version) + TUBE_OUT, top_z + 1.0)]
-    for f in range(version - 1, 0, -1):
-        z = f * FLOOR_H  # the floor of jar f + 1 / top of jar f
-        ctrl.append(at(radius(f + 1) + TUBE_OUT, z + 0.5))
-        ctrl.append(at(radius(f) + TUBE_OUT, z - 3.5))
-    land = D["dropLanding"]
-    lr = math.hypot(land[0], land[2])
-    ctrl += [at(radius(1) + TUBE_OUT, 4.5), at((radius(1) + TUBE_OUT + lr) / 2, 3.0), at(lr, 2.6)]
-    return catmull(ctrl, per=10)
+    points = next(p["points"] for p in D["dropTubePaths"] if p["version"] == version)
+    return catmull([(r * cb, r * sb, z) for r, z in points], per=10)
 
 
 def drop_tube_glass(version):
