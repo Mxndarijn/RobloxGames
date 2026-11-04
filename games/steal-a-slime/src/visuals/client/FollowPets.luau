@@ -32,6 +32,7 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild(
 
 local PetCloud = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("PetCloud"))
 local PetFollow = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("PetFollow"))
+local PetSeats = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PetSeats"))
 
 local MeshAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MeshAssets"))
 
@@ -94,7 +95,7 @@ local function templateFor(player: Player): BasePart?
 	local id = player:GetAttribute(Constants.PET_SEAT_ATTRIBUTE)
 	for _, seat in Config.PET_SEATS do
 		if seat.id == id then
-			local own = PetCloud.find(ReplicatedStorage, seat.mesh)
+			local own = PetCloud.find(ReplicatedStorage, PetSeats.templateName(seat))
 			if own then
 				return own
 			end

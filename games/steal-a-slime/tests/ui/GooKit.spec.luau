@@ -139,7 +139,8 @@ describe("the game's check", function()
 
 	it("a claimed Daily tile shows the check instead of its day label", function()
 		local Daily = UiHarness.ui("Daily")
-		expect(Daily.dayLabel(3, "claimed", 7)).toBe("")
-		expect(Daily.dayLabel(3, "today", 7)).toBe("Day 3")
+		local reward = { day = 3, kind = "cash", label = "$1K", short = "$1K", icon = "Cash", skin = false }
+		expect(Daily.dayLabel({ day = 3, state = "claimed", reward = reward })).toBe("")
+		expect(Daily.dayLabel({ day = 3, state = "today", reward = reward })).toBe("Day 3")
 	end)
 end)

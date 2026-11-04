@@ -14,6 +14,7 @@ local PlayerSettings = if Shared then require(Shared.PlayerSettings) else requir
 local BossBadges = if Shared then require(Shared.BossBadges) else require("../shared/BossBadges")
 local CashPads = if Shared then require(Shared.CashPads) else require("../shared/CashPads")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
+local DailyRewards = if Shared then require(Shared.DailyRewards) else require("../shared/DailyRewards")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
 local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
@@ -96,9 +97,6 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 	local rainActive, endsAt, nextAt = Spawner.rain(world, now)
 	local canRebirth = Progression.canRebirth(data)
 	local income = World.incomeOf(world, session)
-	local dailyAvailable = Progression.dailyAvailable(data.daily, now)
-	local nextStreak = if data.daily.lastDay == Progression.dayNumber(now) - 1 then data.daily.streak + 1 else 1
-	local dailyDay = math.clamp(if dailyAvailable then nextStreak else data.daily.streak, 1, Config.DAILY_STREAK_CAP)
 
 	return {
 		serverTime = now,
@@ -124,12 +122,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		pickupBlockedUntil = Carry.pickupBlockedUntil(session, now),
 		rain = { active = rainActive, endsAt = endsAt, nextAt = nextAt },
 		dex = SpeciesDex.view(data, now, DexSources),
-		daily = {
-			available = dailyAvailable,
-			streak = data.daily.streak,
-			amount = Progression.dailyAmount(dailyDay, rebirths),
-			day = dailyDay,
-		},
+		daily = DailyRewards.view(data, now, nil),
 		codes = Codes.view(data),
 		shop = Shop.view(data),
 		egg = MysteryEgg.view(session.egg),

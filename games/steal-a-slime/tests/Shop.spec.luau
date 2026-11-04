@@ -232,7 +232,7 @@ describe("State additions", function()
 		expect(state.shop.SpeedCoil.owned).toBe(false)
 		expect(state.tutorialStep).toBe(1)
 		expect(state.daily.day).toBe(1)
-		expect(state.daily.amount).toBe(Progression.dailyAmount(1, 0))
+		expect(state.daily.amount).toBe(Config.DAILY_REWARDS[1].amount)
 		s.data.rebirths = 2
 		expect(Snapshot.build(world, s, T0).lockDuration).toBe(Steal.lockDuration(2))
 		s.data.rebirths = 0
@@ -240,10 +240,11 @@ describe("State additions", function()
 		local today = Progression.dayNumber(T0)
 		s.data.daily = { lastDay = today - 1, streak = 3 }
 		expect(Snapshot.build(world, s, T0).daily.day).toBe(4)
-		s.data.daily = { lastDay = today, streak = 9 }
+		s.data.daily = { lastDay = today, streak = Config.DAILY_STREAK_CAP + 9 }
 		state = Snapshot.build(world, s, T0)
 		expect(state.daily.available).toBe(false)
-		expect(state.daily.day).toBe(Config.DAILY_STREAK_CAP)
+		expect(state.daily.day).toBe(9)
+		expect(#state.daily.track).toBe(7)
 		s.data.tutorialStep = 0
 		expect(Snapshot.build(world, s, T0).tutorialStep).toBeNil()
 	end)

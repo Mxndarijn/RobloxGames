@@ -679,6 +679,9 @@ function ExclusiveShopView.cards(tab: string, state: any, config: any): { Card }
 					if card.state == "owned" or card.state == "equipped" or inSeason(shop, key) then
 						table.insert(out, card)
 					end
+				elseif def.daily and styleOwned(state, shop, kind, def.id) then
+					-- A daily streak trail is never sold: it shows once owned, so it can be worn.
+					table.insert(out, styleCard(state, shop, config, kind, def))
 				end
 			end
 		end

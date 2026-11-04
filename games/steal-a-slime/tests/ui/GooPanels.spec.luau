@@ -70,7 +70,8 @@ local function tooSmall(root: any): { string }
 			local visible = true
 			local p = node
 			while p and p ~= root do
-				if p.Visible == false then
+				-- A drawn item icon's glyph (ItemIconView "Art") is part of the picture and scales with it, not text.
+				if p.Visible == false or p.Name == "Art" then
 					visible = false
 				end
 				p = p.Parent

@@ -2,53 +2,51 @@
 --[[
 	Daily
 
-	Pure helpers for the daily reward part of the welcome card (Panels/Welcome, WelcomeBack.view). Reads
-	`State.daily` (CONTRACT §5.1); no Roblox APIs, so it runs under Lune (tests/ui/Daily.spec.luau). The
-	server decides everything: the card only shows `daily.amount` and calls `Request("Daily")`.
+	Pure helpers for the daily streak part of the welcome card (Panels/Welcome, WelcomeBack.view). Reads
+	`State.daily` (contract/daily-streak.md); no Roblox APIs, so it runs under Lune (tests/ui/Daily.spec.luau). The
+	server decides everything: the card shows `daily.track` / `daily.reward` and calls `Request("Daily")`.
 ]]
 
-export type DailyLike = { available: boolean, streak: number, amount: number, day: number? }
-export type Cell = { day: number, state: "claimed" | "today" | "upcoming" }
+export type Reward = {
+	day: number,
+	kind: string,
+	label: string,
+	short: string,
+	icon: string,
+	amount: number?,
+	skin: boolean,
+}
+export type DailyLike = { available: boolean, streak: number, day: number, track: { Reward }? }
+export type Cell = { day: number, state: "claimed" | "today" | "upcoming", reward: Reward }
 
 local Daily = {}
 
--- The streak day (1..cap) the pending claim pays, or the day the last claim paid (`daily.day`). Falls back to the
--- stored streak (+1 when a claim is available) when State has no day.
-function Daily.dayOf(daily: DailyLike, cap: number): number
-	local day = if type(daily.day) == "number"
-		then daily.day
-		else (if daily.available then daily.streak + 1 else daily.streak)
-	return math.clamp(day, 1, math.max(cap, 1))
-end
+Daily.TRACK = 7 -- tiles in the track (the server sends this many days)
 
--- One cell per streak day for the track. `today` is the day being claimed (or the last claimed day when nothing
--- is available).
-function Daily.track(today: number, cap: number, available: boolean): { Cell }
+-- One cell per day in `daily.track`. A day before `daily.day` is claimed; `daily.day` itself is today while a claim
+-- is ready, else it was claimed today too.
+function Daily.track(daily: DailyLike): { Cell }
 	local cells: { Cell } = {}
-	for day = 1, cap do
+	local available = daily.available == true
+	for _, reward in (if type(daily.track) == "table" then daily.track else {}) :: { Reward } do
 		local state: "claimed" | "today" | "upcoming" = "upcoming"
-		if day < today or (day == today and not available) then
+		if reward.day < daily.day or (reward.day == daily.day and not available) then
 			state = "claimed"
-		elseif day == today then
+		elseif reward.day == daily.day then
 			state = "today"
 		end
-		table.insert(cells, { day = day, state = state })
+		table.insert(cells, { day = reward.day, state = state, reward = reward })
 	end
 	return cells
 end
 
--- Cash a given streak day pays (mirrors Progression.dailyAmount: base * day * multiplier, floored).
-function Daily.reward(day: number, base: number, multiplier: number): number
-	return math.floor(base * day * multiplier)
-end
-
--- A tile's label: "Day N" for today and the last day, the bare number otherwise, empty once claimed (the tile's
--- check shows there instead).
-function Daily.dayLabel(day: number, state: string, cap: number): string
-	if state == "claimed" then
+-- A tile's label: "Day N" for today and skin days, the bare number otherwise, empty once claimed (the tile's check
+-- shows there instead).
+function Daily.dayLabel(cell: Cell): string
+	if cell.state == "claimed" then
 		return ""
 	end
-	return if state == "today" or day == cap then `Day {day}` else tostring(day)
+	return if cell.state == "today" or cell.reward.skin then `Day {cell.day}` else tostring(cell.day)
 end
 
 -- Auto-open once per availability edge: the first State with a claim ready, or when one becomes ready while

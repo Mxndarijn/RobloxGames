@@ -58,8 +58,7 @@ end
 	A wild egg: the kind, the lucky roll and the slime inside are rolled now (never
 	sent to a client before the hatch). Not incubating yet.
 ]]
-function MysteryEgg.rollWild(rng: Rng.Rng, id: string): (Genome.Slime, EggKind.Kind)
-	local kind = EggKind.rollKind(rng:float())
+local function rollInside(rng: Rng.Rng, id: string, kind: EggKind.Kind): Genome.Slime
 	local tier = EggKind.rollTier(kind, rng:float())
 	local lucky = rng:float() < Config.MYSTERY_EGG.LUCKY_CHANCE
 	if lucky then
@@ -67,7 +66,37 @@ function MysteryEgg.rollWild(rng: Rng.Rng, id: string): (Genome.Slime, EggKind.K
 	end
 	local slime = hatchling(rng, id, tier)
 	slime.egg = { kind = kind.id, lucky = if lucky then true else nil }
-	return slime, kind
+	return slime
+end
+
+function MysteryEgg.rollWild(rng: Rng.Rng, id: string): (Genome.Slime, EggKind.Kind)
+	local kind = EggKind.rollKind(rng:float())
+	return rollInside(rng, id, kind), kind
+end
+
+--[[
+	An egg given to a player (the daily streak, contract/daily-streak.md): the kind is rolled with the fountain's
+	weights among the kinds `rebirths` may grab, then the slime inside as for a wild egg. Not incubating yet.
+]]
+function MysteryEgg.rollFor(rng: Rng.Rng, id: string, rebirths: number): (Genome.Slime, EggKind.Kind)
+	local allowed: { EggKind.Kind } = {}
+	local total = 0
+	for _, kind in EggKind.list() do
+		if EggKind.grabBlock(rebirths, kind) == nil then
+			table.insert(allowed, kind)
+			total += kind.weight
+		end
+	end
+	local kind = allowed[#allowed] or EggKind.list()[1]
+	local target = rng:float() * total
+	for _, k in allowed do
+		target -= k.weight
+		if target < 0 then
+			kind = k
+			break
+		end
+	end
+	return rollInside(rng, id, kind), kind
 end
 
 -- Hatches of `kind` in a row that missed its top tier (the lucky meter).

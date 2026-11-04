@@ -193,7 +193,13 @@ describe("AdminService on a test save", function()
 		for _, kind in { "plotSkin", "lockStyle", "hat" } do
 			expect(`{kind}: {#(s.data.ownedStyles[kind] or {}) > 0}`).toBe(`{kind}: true`)
 		end
-		expect(#s.data.ownedTrails).toBe(#Config.EXCLUSIVE_SHOP.trails)
+		local sold = 0
+		for _, def in Config.EXCLUSIVE_SHOP.trails do
+			if not (def :: any).daily then
+				sold += 1
+			end
+		end
+		expect(#s.data.ownedTrails).toBe(sold) -- daily streak trails are not products
 		expect(s.data.boostMult).toBe(1) -- cosmetics only: no boosts
 	end)
 	it("turns Game Passes, the Slime Club and the paid random items policy on and off", function()

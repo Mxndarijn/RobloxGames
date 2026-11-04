@@ -277,7 +277,9 @@ function Admin.rows(ctx: any): { [string]: { Row } }
 
 	table.insert(items, head("hStyle", "Exclusive shop: style"))
 	for _, trail in shop.trails do
-		product(`Trail_{trail.id}`, `{trail.name} trail`)
+		if not trail.daily then -- daily streak trails are not products
+			product(`Trail_{trail.id}`, `{trail.name} trail`)
+		end
 	end
 	for _, def in shop.hats or {} do
 		product(`Hat_{def.id}`, if def.season then `{def.name} ({seasonName(def.season)})` else def.name)

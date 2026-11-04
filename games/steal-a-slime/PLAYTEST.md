@@ -87,7 +87,7 @@ What to report for v10: shop prompt or panel purchases that don't charge / don't
 ### Saving after rejoin
 - [ ] Note cash, slimes (with pads), pads unlocked, rebirths, favourite, Dex count, daily streak. Leave, wait ~10 s, rejoin: everything matches (cash may be higher from offline income).
 - [ ] Rejoin immediately (< 5 s): data still loads (session lock retries up to 5 times); you shouldn't be kicked. If you are kicked with a load error, note it.
-- [ ] **Daily**: claim once; a second claim the same day is refused; streak survives rejoin.
+- [ ] **Daily**: claim once; a second claim the same day is refused; streak survives rejoin. The card shows 7 days of the 30-day streak and the next skin; a skin day (7, 14, 21, 30) gives the trail or cloud seat, which you keep after a missed day.
 
 ## Known risks
 

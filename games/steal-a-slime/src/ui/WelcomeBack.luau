@@ -15,7 +15,15 @@ local Format = if script then require(script.Parent.Format) else require("./Form
 
 export type Mode = "join" | "daily"
 export type Row = { name: string, desc: string }
-export type Tile = { day: number, state: "claimed" | "today" | "upcoming", label: string, amount: string }
+-- amount: the day's reward on the tile ("$1K", "Egg", "Mint Fizz"); icon: its ItemIcons id; skin: a trail or seat day.
+export type Tile = {
+	day: number,
+	state: "claimed" | "today" | "upcoming",
+	label: string,
+	amount: string,
+	icon: string,
+	skin: boolean,
+}
 -- amount: today's claim (nil once claimed); amountShown: drawn in the row (the join card; the daily card's title
 -- and Claim button already say it).
 export type DailyRow = { name: string, amount: string?, amountShown: boolean, status: string, tiles: { Tile } }
@@ -66,45 +74,45 @@ local function streakBroke(state: any): boolean
 	return type(shop) == "table" and shop.streakKeepable == true
 end
 
--- The daily row from `State.daily`: today's amount, a status line and one tile per streak day. In the daily card
--- (`alone`) the card title already says "Daily reward", so the row leads with the streak instead.
+-- The daily row from `State.daily`: today's reward, a status line and one tile per day of `daily.track`. In the
+-- daily card (`alone`) the card title already says "Daily reward", so the row leads with the streak instead.
 function WelcomeBack.dailyRow(state: any, config: any, alone: boolean?): DailyRow?
 	local daily = state.daily
-	if type(daily) ~= "table" then
+	if type(daily) ~= "table" or type(daily.day) ~= "number" then
 		return nil
 	end
-	local cap: number = config.DAILY_STREAK_CAP or 7
-	local base: number = config.DAILY_BASE or 0
-	local mult: number = if type(state.rebirthMultiplier) == "number" then state.rebirthMultiplier else 1
+	local cap: number = config.DAILY_STREAK_CAP or 30
 	local available = daily.available == true
-	local day = Daily.dayOf(daily, cap)
 	local tiles: { Tile } = {}
-	for _, cell in Daily.track(day, cap, available) do
+	for _, cell in Daily.track(daily) do
 		table.insert(tiles, {
 			day = cell.day,
 			state = cell.state,
-			label = Daily.dayLabel(cell.day, cell.state, cap),
-			amount = Format.formatCash(Daily.reward(cell.day, base, mult)),
+			label = Daily.dayLabel(cell),
+			amount = cell.reward.short,
+			icon = cell.reward.icon,
+			skin = cell.reward.skin == true,
 		})
 	end
-	local tomorrow = Daily.reward(math.min(day + 1, cap), base, mult)
-	local tomorrowText = if tomorrow > 0 then `{Format.formatCash(tomorrow)} tomorrow` else "Come back tomorrow"
-	if available then
+	local nextSkin = if type(daily.nextSkin) == "table" then daily.nextSkin else nil
+	local status = if nextSkin then `Next skin: {nextSkin.label} on day {nextSkin.day}` else "Come back tomorrow"
+	local reward = if type(daily.reward) == "table" then daily.reward else nil
+	if available and reward then
 		local streak = if streakBroke(state)
 			then (if daily.streak > 1 then `Your {daily.streak}-day streak broke` else "Your streak broke")
-			else `Day {day} of your streak`
+			else `Day {daily.day} of {cap}`
 		return {
 			name = if alone then streak else "Daily reward",
-			amount = Format.formatCash(daily.amount),
+			amount = reward.label,
 			amountShown = not alone,
-			status = if alone then tomorrowText else streak,
+			status = if alone then status else streak,
 			tiles = tiles,
 		}
 	end
 	return {
 		name = if alone then "Claimed today" else "Daily reward claimed",
 		amountShown = false,
-		status = tomorrowText,
+		status = status,
 		tiles = tiles,
 	}
 end

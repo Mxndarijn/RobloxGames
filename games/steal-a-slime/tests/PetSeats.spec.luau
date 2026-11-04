@@ -53,13 +53,13 @@ local function equip(world: any, userId: number, id: any)
 end
 
 describe("pet seats: config", function()
-	it("lists the default cloud first, then Jelly and Rainbow Cloud, then 16 Exclusives and 2 seasonal ones", function()
+	it("lists the default cloud first, then Jelly and Rainbow Cloud, 18 Exclusives and 2 daily streak seats", function()
 		expect(Config.PET_SEAT_DEFAULT).toBe("cloud")
 		expect(Config.PET_SEATS[1].id).toBe("cloud")
 		expect(Config.PET_SEATS[1].mesh).toBe("pet_cloud")
 		expect(Config.PET_SEATS[2].id).toBe("jelly")
 		expect(Config.PET_SEATS[3].id).toBe("rainbow_cloud")
-		expect(#Config.PET_SEATS).toBe(21)
+		expect(#Config.PET_SEATS).toBe(23)
 		local kinds: { [string]: number } = {}
 		for _, s in Config.PET_SEATS do
 			kinds[s.unlock.kind] = (kinds[s.unlock.kind] or 0) + 1
@@ -68,6 +68,7 @@ describe("pet seats: config", function()
 		expect(kinds.merges).toBe(1)
 		expect(kinds.dex).toBe(1)
 		expect(kinds.exclusive).toBe(18)
+		expect(kinds.daily).toBe(2)
 		local seasonal = {}
 		for _, s in Config.PET_SEATS do
 			if s.season then

@@ -43,3 +43,5 @@ These show their UI-drawn scene (`src/ui/ItemIconArt.luau`) until a picture is u
 | PlotSkin_haunted | Haunted Ranch | Top of the 'Haunted Ranch' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view. |
 | PetSeat_pumpkin | Pumpkin | The 'Pumpkin' pet seat (models/pet_mount_pumpkin.py) alone, no slime; 3/4 view. |
 | PetSeat_snowglobe | Snow Globe | The 'Snow Globe' pet seat (models/pet_mount_snowglobe.py) alone, no slime; 3/4 view. |
+| PetSeat_golden_cloud | Golden Cloud | The 'Golden Cloud' pet seat (models/pet_cloud.py) alone, no slime; 3/4 view. |
+| PetSeat_midnight_cloud | Midnight Cloud | The 'Midnight Cloud' pet seat (models/pet_cloud.py) alone, no slime; 3/4 view. |

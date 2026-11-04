@@ -20,7 +20,14 @@
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 
-export type Def = { id: string, name: string, robux: number, colors: { { number } }, style: string }
+export type Def = {
+	id: string,
+	name: string,
+	robux: number?, -- nil for a daily streak trail (never sold)
+	daily: boolean?,
+	colors: { { number } },
+	style: string,
+}
 export type ColorKey = { t: number, rgb: { number } }
 export type NumberKey = { t: number, v: number }
 export type TrailLook = {

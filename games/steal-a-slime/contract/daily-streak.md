@@ -40,7 +40,7 @@ A missed day starts the streak again at day 1. Skins you have earned stay yours.
 
 ## Remote
 
-`Request("Daily")` (no arguments, unchanged) claims today's reward. It fails with "already claimed today". The
+`Request("Daily")` (no arguments, unchanged) claims today's reward (`DailyRewards.claim`). It fails with "already claimed today". The
 toast names the reward: "Day 7: Mint Fizz trail!", "Day 3: +$1,000".
 
 ## State
@@ -52,6 +52,7 @@ type DailyReward = {
 	day: number,       -- 1..DAILY_STREAK_CAP
 	kind: string,      -- "cash" | "egg" | "boost" | "consumable" | "trail" | "seat" (after the swaps above)
 	label: string,     -- "$1,000", "Mystery Egg", "2x income 15m", "2 Luck Potions", "Mint Fizz trail"
+	short: string,     -- the tile text: "$1K", "Egg", "2x", "Totem", "x2" (2 of the icon), "Golden" (a name's first word)
 	icon: string,      -- ItemIcons id: "Cash", "MysteryEgg", "Boost_Code", "Consumable_<id>", "Trail_<id>", "PetSeat_<id>"
 	amount: number?,   -- cash days: the cash it pays
 	skin: boolean,     -- a trail or seat (drawn as the big tile)

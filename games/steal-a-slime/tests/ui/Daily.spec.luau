@@ -1,43 +1,48 @@
 --!strict
--- Daily reward helpers for the welcome / daily reward card (src/ui/Daily.luau).
+-- Daily streak helpers for the welcome / daily reward card (src/ui/Daily.luau).
 local Daily = require("../../src/ui/Daily")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-describe("Daily.dayOf", function()
-	it("reads State's day, clamped to the streak cap", function()
-		expect(Daily.dayOf({ available = true, streak = 2, amount = 300, day = 3 }, 7)).toBe(3)
-		expect(Daily.dayOf({ available = false, streak = 4, amount = 400, day = 4 }, 7)).toBe(4)
-		expect(Daily.dayOf({ available = true, streak = 9, amount = 700, day = 9 }, 7)).toBe(7)
-	end)
-	it("falls back to the stored streak without a day", function()
-		expect(Daily.dayOf({ available = true, streak = 2, amount = 0 }, 7)).toBe(3)
-		expect(Daily.dayOf({ available = false, streak = 4, amount = 0 }, 7)).toBe(4)
-		expect(Daily.dayOf({ available = false, streak = 0, amount = 0 }, 7)).toBe(1)
-	end)
-end)
+local function reward(day: number, skin: boolean?): Daily.Reward
+	return {
+		day = day,
+		kind = if skin then "trail" else "cash",
+		label = `d{day}`,
+		short = `d{day}`,
+		icon = "Cash",
+		skin = skin == true,
+	}
+end
+
+local TRACK = { reward(8), reward(9), reward(10), reward(11), reward(12), reward(13), reward(14, true) }
 
 describe("Daily.track", function()
-	it("marks earlier days claimed, today, and upcoming", function()
-		local cells = Daily.track(3, 5, true)
-		expect(#cells).toBe(5)
+	it("marks days before today claimed, today, and the rest upcoming", function()
+		local cells = Daily.track({ available = true, streak = 9, day = 10, track = TRACK })
+		expect(#cells).toBe(7)
 		expect(cells[1].state).toBe("claimed")
 		expect(cells[2].state).toBe("claimed")
 		expect(cells[3].state).toBe("today")
 		expect(cells[4].state).toBe("upcoming")
+		expect(cells[7].reward.skin).toBe(true)
 	end)
 	it("shows today as claimed once nothing is available", function()
-		expect(Daily.track(3, 5, false)[3].state).toBe("claimed")
+		expect(Daily.track({ available = false, streak = 10, day = 10, track = TRACK })[3].state).toBe("claimed")
+	end)
+	it("is empty without a track", function()
+		expect(#Daily.track({ available = true, streak = 0, day = 1 })).toBe(0)
 	end)
 end)
 
-describe("Daily.reward", function()
-	it("pays base * day * multiplier, floored", function()
-		expect(Daily.reward(1, 100, 1)).toBe(100)
-		expect(Daily.reward(7, 100, 1)).toBe(700)
-		expect(Daily.reward(3, 100, 1.5)).toBe(450)
-		expect(Daily.reward(3, 33, 1.5)).toBe(148)
+describe("Daily.dayLabel", function()
+	it("names today and skin days, numbers the rest, and is empty once claimed", function()
+		local cells = Daily.track({ available = true, streak = 9, day = 10, track = TRACK })
+		expect(Daily.dayLabel(cells[1])).toBe("")
+		expect(Daily.dayLabel(cells[3])).toBe("Day 10")
+		expect(Daily.dayLabel(cells[4])).toBe("11")
+		expect(Daily.dayLabel(cells[7])).toBe("Day 14")
 	end)
 end)
 

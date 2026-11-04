@@ -98,13 +98,13 @@ export type Data = {
 	weekly: Weekly, -- Weekly Top Earners: totalEarned at the start of `week` (Leaderboards.rollWeek; no version bump)
 	vat: { ids: { string }, endsAt: number?, startedAt: number?, seed: number? }?, -- merge vat load, brew end and roll seed (VatState, CONTRACT.md §21)
 	-- Exclusive Shop (save v10, contract/exclusive-shop.md §2)
-	ownedSeats: { string }, -- Exclusive Config.PET_SEATS ids bought
+	ownedSeats: { string }, -- Config.PET_SEATS ids bought (exclusive) or given by the daily streak (daily)
 	receipts: { string }, -- processed Robux PurchaseIds, newest last, capped at Config.EXCLUSIVE_SHOP.receiptMemory
 	starterBundle: boolean, -- StarterBundle claimed
 	credits: Credits,
 	offlineDouble: OfflineDouble?, -- nil = no welcome-back payout recorded
 	-- Exclusive Shop extras (save v11, contract/exclusive-shop.md §9-§12)
-	ownedTrails: { string }, -- Config.EXCLUSIVE_SHOP.trails ids bought or gifted
+	ownedTrails: { string }, -- Config.EXCLUSIVE_SHOP.trails ids bought, gifted or given by the daily streak
 	trail: string?, -- the equipped carry trail (an owned id); nil = none
 	ownedBatSkins: { string }, -- Config.EXCLUSIVE_SHOP.batSkins ids bought or gifted
 	batSkin: string?, -- the equipped Bat skin (an owned id); nil = the default Bat

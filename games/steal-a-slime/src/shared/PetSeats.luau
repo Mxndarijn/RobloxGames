@@ -5,7 +5,8 @@
 	What the follow pet rides on (Config.PET_SEATS, contract/pet-seats.md). A seat unlocks by its `unlock` rule:
 	"free" always, "merges" once stats.merges reaches `count`, "dex" once `percent` of the SlimeDex is found
 	(SpeciesDex.count over SpeciesDex.TOTAL), "exclusive" once bought in the Exclusive Shop (`data.ownedSeats`,
-	contract/exclusive-shop.md); an unowned Exclusive's view row names its product key (`Seat_<id>`). The equipped
+	contract/exclusive-shop.md), "daily" once given by the daily streak on day `day` (also `data.ownedSeats`,
+	contract/daily-streak.md); an unowned Exclusive's view row names its product key (`Seat_<id>`). The equipped
 	seat is data.petSeat; `equip` refuses a locked seat and `current` never returns one.
 	Pure: no Roblox APIs.
 ]]
@@ -18,14 +19,14 @@ local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require
 type Data = PlayerData.Data
 type Seat = Config.PetSeat
 
-export type Kind = "free" | "merges" | "dex" | "exclusive"
+export type Kind = "free" | "merges" | "dex" | "exclusive" | "daily"
 
 export type View = {
 	id: string,
 	name: string,
 	kind: Kind,
 	have: number, -- progress toward `need`: merges, or SlimeDex percent (whole numbers)
-	need: number, -- 0 for free and exclusive seats
+	need: number, -- 0 for free and exclusive seats; a daily seat's streak day
 	unlocked: boolean,
 	equipped: boolean,
 	productKey: string?, -- an unowned Exclusive seat: its Config.EXCLUSIVE_SHOP.products key ("Seat_<id>"); nil otherwise
@@ -52,13 +53,16 @@ function PetSeats.dexPercent(data: Data): number
 	return math.floor(SpeciesDex.count(data) * 100 / SpeciesDex.TOTAL)
 end
 
--- Progress toward the seat's unlock: (have, need). Free and exclusive seats need nothing to show: (0, 0).
+-- Progress toward the seat's unlock: (have, need). Free and exclusive seats need nothing to show: (0, 0); a daily seat
+-- shows its streak day as `need`.
 function PetSeats.progress(data: Data, seat: Seat): (number, number)
 	local rule = seat.unlock
 	if rule.kind == "merges" then
 		return data.stats.merges, rule.count or 0
 	elseif rule.kind == "dex" then
 		return PetSeats.dexPercent(data), rule.percent or 0
+	elseif rule.kind == "daily" then
+		return 0, rule.day or 0
 	end
 	return 0, 0
 end
@@ -72,11 +76,22 @@ function PetSeats.unlocked(data: Data, seat: Seat): boolean
 	elseif kind == "dex" then
 		-- Exact: 40 of 50 found is 80 %, without rounding.
 		return SpeciesDex.count(data) * 100 >= (seat.unlock.percent or 0) * SpeciesDex.TOTAL
-	elseif kind == "exclusive" then
+	elseif kind == "exclusive" or kind == "daily" then
 		local owned = (data :: any).ownedSeats
 		return type(owned) == "table" and table.find(owned, seat.id) ~= nil
 	end
 	return false
+end
+
+-- Seats that are owned rather than earned by a count: bought (exclusive) or given by the daily streak.
+function PetSeats.owns(seat: Seat): boolean
+	return seat.unlock.kind == "exclusive" or seat.unlock.kind == "daily"
+end
+
+-- The ReplicatedStorage template name of a seat: its mesh name, or "<mesh>_<id>" for a tinted seat (its own copy of
+-- the mesh with Color set), so one mesh can be several seats.
+function PetSeats.templateName(seat: Seat): string
+	return if seat.tint then `{seat.mesh}_{seat.id}` else seat.mesh
 end
 
 -- The seat the pet rides: the equipped one if it exists and is unlocked, else the default cloud.

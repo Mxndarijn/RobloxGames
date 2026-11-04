@@ -103,19 +103,32 @@ describe("PetSeatsView.rows", function()
 		expect(rows[3].count).toBe(`{math.floor(26 * 100 / SpeciesDex.TOTAL)}%/80%`)
 		expect(PetSeatsView.summary(rows)).toBe(`1/{#rows} unlocked`)
 	end)
-	it("every other seat is Exclusive: its price, no line or count, never 'Coming soon'", function()
-		for i, row in PetSeatsView.rows(seats(0, 0), Config) do
-			if i > 3 then
-				expect(row.exclusive).toBe(true)
-				expect(row.price).toBe(`R${Config.EXCLUSIVE_SHOP.products[`Seat_{row.id}`].robux}`)
-				expect(row.line).toBe("")
-				expect(row.count).toBe("")
-			else
-				expect(row.price).toBe("")
+	it(
+		"every other seat is Exclusive (its price, no line or count, never 'Coming soon') or a daily streak seat",
+		function()
+			local dailyDay: { [string]: number } = {}
+			for _, def in Config.PET_SEATS do
+				if def.unlock.kind == "daily" then
+					dailyDay[def.id] = def.unlock.day :: number
+				end
 			end
-			expect(string.find(string.lower(row.line), "coming soon", 1, true)).toBeNil()
+			for i, row in PetSeatsView.rows(seats(0, 0), Config) do
+				if dailyDay[row.id] then
+					expect(row.exclusive).toBe(false)
+					expect(row.line).toBe(`Daily streak day {dailyDay[row.id]}.`)
+					expect(row.price).toBe("")
+				elseif i > 3 then
+					expect(row.exclusive).toBe(true)
+					expect(row.price).toBe(`R${Config.EXCLUSIVE_SHOP.products[`Seat_{row.id}`].robux}`)
+					expect(row.line).toBe("")
+					expect(row.count).toBe("")
+				else
+					expect(row.price).toBe("")
+				end
+				expect(string.find(string.lower(row.line), "coming soon", 1, true)).toBeNil()
+			end
 		end
-	end)
+	)
 	it("an earned seat is unlocked, the worn one equipped", function()
 		local rows = PetSeatsView.rows(seats(200, 0, "jelly"), Config)
 		expect(rows[1].state).toBe("unlocked")
