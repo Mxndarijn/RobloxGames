@@ -32,6 +32,8 @@ local ExclusiveShopView = require(UI.ExclusiveShopView)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
+local ShopPreview = require(UI.ShopPreview)
+local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -444,6 +446,26 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		Size = STYLE.stageMax,
 		Parent = medal,
 	}, icons)
+	-- The item's own 3D model (or a bundle's items) over the stage; the medal shows until it is up.
+	local preview = ShopPreview.new(stage, {
+		template = ctx.shopTemplate or function(): BasePart?
+			return nil
+		end,
+		loadMesh = ctx.loadMesh or function(): BasePart?
+			return nil
+		end,
+		icon = function(props: { [string]: any }): any
+			return ItemIconView.new(props, icons)
+		end,
+		slime = SlimePreview.build,
+		reducedMotion = ctx.reducedMotion or function(): boolean
+			return false
+		end,
+		onShown = function(shown: boolean)
+			medal.Visible = not shown
+			pole.Visible = not shown
+		end,
+	})
 
 	local function paneLabel(name: string, size: number, color: Color3, font: any): TextLabel
 		return Widgets.label({
@@ -890,6 +912,8 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			bigIcon.set(detail.icon)
 		end
 		bigIcon.setActive(open)
+		preview.layout(stageW, stageH, stageH - turnH // 2 - 6)
+		preview.set(ShopPreview.of(detail, Config))
 		y += stageH + 8
 
 		local function put(label: TextLabel, size: number, text: string, bold: boolean, gapAfter: number)
@@ -1145,6 +1169,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			r.icon.setActive(isOpen)
 		end
 		bigIcon.setActive(isOpen)
+		preview.setActive(isOpen)
 		repaint()
 	end
 
@@ -1180,6 +1205,13 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		end
 		latest = state
 		repaint()
+	end
+
+	-- Turns the stage's model; from the client frame loop while the shop is open.
+	function self.tick(now: number)
+		if open then
+			preview.tick(now)
+		end
 	end
 
 	-- Tests and Studio: the open tab and card, and picking them as a tap does.
