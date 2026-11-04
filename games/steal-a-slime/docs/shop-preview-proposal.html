@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop previews</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#08262a;--bg:#0c3436;--row:#1c4849;--light:#286060;--mint:#6cf2c2;--text:#f1fff9;--muted:#bfebdd;
+  --bad:#ee5476;--info:#387870;--gold:#ffd23f;--goldhi:#fff4c2;--plum:#9668ce;--butter:#fcd86e;
+  --page:#f5f1e6;--paper:#ffffff;--line:#d9d2bf;--body:#1f2a2b;--soft:#5b6b6b;--accent:#0e7f68;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--page:#0f1b1c;--paper:#162627;--line:#2b4243;--body:#e6f2ee;--soft:#9fb6b1;--accent:#6cf2c2;}
+}
+:root[data-theme="dark"]{--page:#0f1b1c;--paper:#162627;--line:#2b4243;--body:#e6f2ee;--soft:#9fb6b1;--accent:#6cf2c2;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--body);font:16px/1.5 Nunito,system-ui,sans-serif}
+main{max-width:1080px;margin:0 auto;padding:28px 16px 80px}
+h1,h2,h3{font-family:Fredoka,Nunito,sans-serif;font-weight:600;line-height:1.2}
+h1{font-size:34px;margin:0 0 6px}
+h2{font-size:24px;margin:44px 0 10px;padding-top:12px;border-top:2px solid var(--line)}
+h3{font-size:19px;margin:22px 0 8px}
+p{margin:8px 0;max-width:72ch}
+.lede{color:var(--soft);font-size:18px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:12px 0}
+.decided{border:2px solid var(--accent)}
+.pill{display:inline-block;font-weight:800;font-size:13px;padding:2px 10px;border-radius:99px;background:var(--accent);color:var(--paper)}
+.pill.warn{background:#c98a10}.pill.bad{background:var(--bad)}.pill.ok{background:#3a8f5c}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+figure{margin:14px 0}
+figure img{width:100%;height:auto;border-radius:10px;border:1px solid var(--line);display:block}
+figcaption{font-size:14px;color:var(--soft);margin-top:6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:18px;margin-top:14px}
+.opt h3{margin-top:0}
+.opt .pros{color:var(--soft);font-size:15px}
+ul{margin:6px 0;padding-left:22px}
+/* ---------- in-game mockups (GooKit colours) ---------- */
+.shop{background:var(--bg);border:3px solid var(--ink);border-radius:18px;color:var(--text);font-family:Fredoka,sans-serif;overflow:hidden;width:100%;max-width:340px;margin:0 auto}
+.shop .hd{background:var(--mint);color:var(--ink);font-weight:600;padding:8px 12px;display:flex;justify-content:space-between;align-items:center}
+.shop .x{width:26px;height:26px;border-radius:50%;background:var(--bad);border:2px solid var(--ink);color:#fff;display:grid;place-items:center;font-size:14px}
+.shop .bd{padding:10px}
+.stage{position:relative;height:150px;background:var(--plum);border:2px solid var(--ink);border-radius:12px;overflow:hidden}
+.turn{position:absolute;left:12%;right:12%;bottom:6px;height:30px;background:var(--butter);border:3px solid var(--ink);border-radius:99px}
+.spin{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);animation:spin 6s linear infinite}
+@keyframes spin{0%{transform:translateX(-50%) scaleX(1)}25%{transform:translateX(-50%) scaleX(.35)}50%{transform:translateX(-50%) scaleX(-1)}75%{transform:translateX(-50%) scaleX(-.35)}100%{transform:translateX(-50%) scaleX(1)}}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+.slime{width:58px;height:44px;background:#5fd36e;border:3px solid var(--ink);border-radius:50% 50% 42% 42%/62% 62% 38% 38%;position:relative}
+.slime:before,.slime:after{content:"";position:absolute;top:15px;width:7px;height:9px;background:var(--ink);border-radius:50%}
+.slime:before{left:17px}.slime:after{right:17px}
+.hat{width:30px;height:28px;background:#6a55c8;border:3px solid var(--ink);border-radius:4px 4px 2px 2px;margin:0 auto -4px;position:relative}
+.hat:after{content:"";position:absolute;left:-11px;right:-11px;bottom:-5px;height:8px;background:#6a55c8;border:3px solid var(--ink);border-radius:99px}
+.hat i{position:absolute;left:0;right:0;bottom:3px;height:6px;background:#f27a8a}
+.chip{display:inline-block;background:var(--ink);color:var(--text);border-radius:99px;padding:2px 10px;font-size:13px}
+.ptitle{text-align:center;font-size:19px;margin:8px 0 2px}
+.ptext{text-align:center;font:600 14px Nunito;color:var(--muted);margin:0 0 6px}
+.btn{display:block;text-align:center;background:var(--mint);color:var(--ink);border:3px solid var(--ink);border-radius:14px;padding:8px;font-weight:600;margin-top:8px}
+.btn.sec{background:var(--info);color:var(--text)}
+.hint{position:absolute;right:8px;top:8px;font:700 13px Nunito;color:var(--goldhi);background:rgba(8,38,42,.5);padding:2px 8px;border-radius:99px}
+.mini{display:flex;gap:6px;justify-content:center;position:absolute;left:0;right:0;bottom:20px}
+.mini span{width:48px;height:48px;border-radius:12px;background:var(--row);border:2px solid var(--ink);display:grid;place-items:center;font-size:22px}
+.world{height:180px;border-radius:12px;border:2px solid var(--ink);background:linear-gradient(#9fd8f0,#cdeef7 55%,#6cc68a 56%);position:relative;overflow:hidden}
+.world .tower{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:70px;height:110px;background:#e7c08b;border:3px solid var(--ink);border-radius:20px 20px 6px 6px}
+.world .tower:before{content:"";position:absolute;left:-12px;right:-12px;top:-16px;height:28px;background:#d9534f;border:3px solid var(--ink);border-radius:40px 40px 8px 8px}
+.banner{position:absolute;left:8px;right:8px;top:8px;background:var(--ink);color:var(--goldhi);font:600 14px Fredoka;border-radius:10px;padding:5px 10px;display:flex;justify-content:space-between}
+.small{font-size:14px;color:var(--soft)}
+code{font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>Shop previews and item looks</h1>
+<p class="lede">Steal a Slime, Exclusive Shop. A player should see what they buy before they pay, and no item should look like a placeholder. This page has the audit, three ways to preview, and the list of items to upgrade. Merijn picks; nothing is uploaded or shipped before that.</p>
+
+<div class="card decided">
+<h3 style="margin-top:0">Decided: Option A (built)</h3>
+<p>Merijn, 2026-11-04: <b>"Option A (built)"</b>. The shop stage turns the item's own 3D model, as built on this branch.</p>
+<p>Still open: upgrades 2, 3, 4 and 6 below (1 and 5 are part of option A), the ~35% darker meshes in the world, and the capsule in the claw show.</p>
+<p>Option A is built on branch <code>docs/shop-preview-audit</code> (not pushed, no PR). It only uses meshes that are already uploaded. The 30 card pictures and the 4 models are made but <b>not uploaded</b>; they wait for your OK.</p>
+</div>
+
+<h2>What players see today</h2>
+<p>The shop's right-hand pane shows the card's icon again, only bigger. There is no 3D view and no way to see a hat on a slime, a lock style on a door, or what a bundle holds. Half the Style tab is placeholders.</p>
+<div class="grid2">
+<figure><img src="shop-audit/shop_featured_before.jpg" alt="The Exclusive shop today: three bundles with the same gift box, clouds below, the pane on the right repeats the gift icon"><figcaption>The shop today. All three bundles show the same gift box.</figcaption></figure>
+<figure><img src="shop-audit/icons_before.jpg" alt="Every Exclusive cosmetic's shop icon in a grid"><figcaption>Every cosmetic's shop icon, drawn by the game's own icon code. Hats, lock styles and plot bases are identical placeholders; Pumpkin and Snow Globe use a generic seat.</figcaption></figure>
+</div>
+<p>Yet the real models are already uploaded and most of them look good:</p>
+<figure><img src="shop-audit/meshes_ingame.jpg" alt="Every Exclusive cosmetic's uploaded 3D model rendered in Roblox"><figcaption>The same items as their uploaded 3D models, rendered in a hidden Studio playtest. Hats, lock stoppers, Bat skins and skin decor are all clear. Weak: Bubble (a white orb), Crescent Moon (cream blob), Ice Cloud (grey blob), Fairground decor (thin stick).</figcaption></figure>
+
+<h3>The white orbs</h3>
+<div class="grid2">
+<figure><img src="shop-audit/claw_box_before.jpg" alt="Inside the claw machine: pale untextured capsule balls and a white Bubble seat on a pedestal"><figcaption>Inside the claw machine. The pale balls are the shop mesh's capsules; the white disc on the left pedestal is the Bubble cloud.</figcaption></figure>
+<div>
+<p>Three things show up as plain white or lilac orbs:</p>
+<ul>
+<li><b>The claw prize.</b> After any purchase that is not a featured cloud (hats, lock styles, skins, bases, Bat skins, trails, every pass) the claw grabs a plain lilac ball (<code>ShopDisplayFx.makePrize</code>).</li>
+<li><b>The capsules in the box</b> are part of the claw shop mesh: untextured pastel balls.</li>
+<li><b>The Bubble cloud</b> mesh itself is a pale flattened orb.</li>
+</ul>
+</div>
+</div>
+
+<h2>How the preview could work</h2>
+<p>Each mockup is the shop's right-hand pane (on a phone it is the bottom sheet). Same kit: plum stage, butter turntable, mint main button.</p>
+
+<div class="opts">
+<div class="card opt">
+<h3>A. The model turns on the stage <span class="pill">Recommended</span></h3>
+<div class="shop" aria-label="Mockup A">
+<div class="hd">Exclusive shop<span class="x">✕</span></div>
+<div class="bd">
+<div class="stage"><div class="turn"></div><div class="spin"><div class="hat"><i></i></div><div class="slime"></div></div></div>
+<div class="ptitle">Top Hat</div>
+<p class="ptext">Every slime on your pads wears it.</p>
+<div class="btn">Buy · R$99</div>
+<div class="btn sec">Gift</div>
+</div></div>
+<p>The medal on the stage is swapped for the real 3D model, slowly turning on the turntable. Hats sit on a slime, clouds carry a slime, lock styles stand in a door ring, Bat skins and skin decor turn on their own. Bundles show their items side by side on the turntable.</p>
+<p class="pros"><b>For:</b> no new buttons or screens; uses the uploaded meshes, so no upload; works the same on a phone. <b>Against:</b> the stage is small (about 220 × 150 px); plot bases are whole buildings and stay a picture.</p>
+</div>
+
+<div class="card opt">
+<h3>B. A big preview you can spin</h3>
+<div class="shop" aria-label="Mockup B">
+<div class="hd">Top Hat<span class="x">✕</span></div>
+<div class="bd">
+<div class="stage" style="height:250px"><span class="hint">Drag to turn</span><div class="turn"></div><div class="spin" style="bottom:26px;transform:translateX(-50%) scale(1.5)"><div class="hat"><i></i></div><div class="slime"></div></div></div>
+<div class="btn">Buy · R$99</div>
+</div></div>
+<p>A secondary <b>Preview</b> button in the pane opens the whole panel as one big stage. Drag to turn it; for hats and clouds, your own favourite slime wears or rides it. X goes back to the list.</p>
+<p class="pros"><b>For:</b> big enough to see details; your own slime sells it. <b>Against:</b> one more button and one more screen per item; drag needs care next to the scroll list on a phone.</p>
+</div>
+
+<div class="card opt">
+<h3>C. Try it on in the world</h3>
+<div class="shop" aria-label="Mockup C" style="max-width:340px">
+<div class="bd" style="padding:0">
+<div class="world"><div class="banner">Trying: Space Rocket <span>0:12</span></div><div class="tower"></div></div>
+</div></div>
+<p>A <b>Try it</b> button closes the shop and shows the item for 15 seconds where it belongs, for you only: the base on your plot, the hat on your pad slimes, the trail behind you, the cloud under your pet. The camera flies there and back.</p>
+<p class="pros"><b>For:</b> the only option that shows plot bases and trails for real. <b>Against:</b> the most work and the most edge cases (stealing, other players, the camera); you leave the shop to see it.</p>
+</div>
+</div>
+
+<h3>What each kind shows under A</h3>
+<div class="tablewrap"><table>
+<tr><th>Kind</th><th>Items</th><th>Stage shows</th><th>Built here</th></tr>
+<tr><td>Clouds</td><td>18</td><td>The cloud turning, a small slime riding it at its real seat height</td><td>yes</td></tr>
+<tr><td>Slime hats</td><td>6</td><td>A slime wearing the hat, fitted like on a pad (<code>SlimeHatsFx.fit</code>)</td><td>yes</td></tr>
+<tr><td>Lock styles</td><td>3</td><td>The stopper turning</td><td>yes</td></tr>
+<tr><td>Bat skins</td><td>4</td><td>The bat turning, tilted</td><td>yes</td></tr>
+<tr><td>Base skins</td><td>5</td><td>The skin's tower-top decor turning</td><td>yes</td></tr>
+<tr><td>Bundles</td><td>3</td><td>Each item's picture side by side on the turntable</td><td>yes</td></tr>
+<tr><td>Plot bases</td><td>7</td><td>A rendered picture (needs upload); a live building is too heavy for the stage</td><td>picture after upload</td></tr>
+<tr><td>Trails</td><td>5</td><td>The drawn trail scene (a trail is particles, which a viewport can't draw)</td><td>unchanged</td></tr>
+<tr><td>Passes and boosts</td><td>16</td><td>Icon as today. Later idea: your own numbers, e.g. “Your income: $120/s → $240/s”</td><td>no</td></tr>
+</table></div>
+
+<h2>Items to upgrade</h2>
+<div class="tablewrap"><table>
+<tr><th>#</th><th>Upgrade</th><th>Items</th><th>Needs</th></tr>
+<tr><td>1</td><td>Card pictures rendered from the real models (same pipeline as today's cloud pictures)</td><td>6 hats, 3 lock styles, 4 Bat skins, 7 plot bases, 5 base skins, Pumpkin, Snow Globe, 3 bundles</td><td>30 picture uploads</td></tr>
+<tr><td>2</td><td>Remade cloud models</td><td>Bubble, Crescent Moon, Ice Cloud</td><td>3 mesh updates</td></tr>
+<tr><td>3</td><td>The claw grabs the bought item's own model (hat, stopper, bat, skin decor); a real gacha capsule for the rest</td><td>claw show</td><td>1 new mesh (the capsule)</td></tr>
+<tr><td>4</td><td>Capsules in the claw box get the same capsule look</td><td>claw shop mesh</td><td>claw shop mesh update</td></tr>
+<tr><td>5</td><td>Summon the boss gets its own picture (today a slap hand)</td><td>1 boost</td><td>1 picture upload</td></tr>
+<tr><td>6</td><td>Template colour: the mesh templates the client clones keep Roblox's default grey, which darkens seats, hats and skin decor about 35% in the world (see below)</td><td>all seats, hats, skin decor</td><td>code only; looks change, so it needs your eye</td></tr>
+</table></div>
+<figure style="max-width:520px"><img src="shop-audit/template_tint.jpg" alt="The Top Hat mesh with the default grey colour (darker, left) and with white (true colours, right)"><figcaption>Top Hat template as cloned today (left, default grey colour) and with white (right, the model's own colours).</figcaption></figure>
+
+<h2>Option A, built</h2>
+<p>The stage swaps its medal for the real model as soon as the mesh is loaded (the icon shows until then), and turns it once every 9 seconds; with Reduced Motion on it stands still at a 3/4 angle.</p>
+<div class="grid2">
+<figure><img src="shop-audit/preview_pc_bundle.jpg" alt="The Exclusive shop on PC with the Starter bundle's Leaf cloud and boost potion standing on the turntable"><figcaption>PC, 1920 × 1080: the Starter bundle shows what is inside instead of a gift box.</figcaption></figure>
+<figure><img src="shop-audit/preview_phone_landscape.jpg" alt="The same shop on a phone held sideways"><figcaption>Phone sideways, 844 × 390.</figcaption></figure>
+</div>
+<figure><img src="shop-audit/preview_all_stages.jpg" alt="38 copies of the shop stage, each showing one item's 3D model: clouds with a slime riding them, hats on a slime, lock stoppers, Bat skins, base-skin decor and two bundles"><figcaption>Every item that gets a 3D preview, each in a copy of the real stage (208 × 128 px), still at the 3/4 angle. Rows: clouds, clouds, Pumpkin, Snow Globe and the six hats, lock styles and Bat skins, base-skin decor and two bundles.</figcaption></figure>
+<div class="grid2">
+<figure><img src="shop-audit/preview_phone_models.jpg" alt="Six stage previews at phone scale: UFO, Bubble, Top Hat, Witch Hat, Sleepy Guard, Fish"><figcaption>At phone scale (the UI shrinks to 80%).</figcaption></figure>
+<figure><img src="shop-audit/preview_phone_portrait.jpg" alt="The shop on a phone held upright: only the card grid shows"><figcaption>Phone upright, 390 × 844: the pane is a sheet that opens when a card is tapped, as before.</figcaption></figure>
+</div>
+<p class="small">Notes: the slime under a hat or on a cloud is the simple round preview slime the SlimeDex uses. The Boutique bundle still lists the Confetti fanfare until the fanfare removal is merged. The previews use the models' own colours, so they are brighter than the same items in the world today (see upgrade 6).</p>
+
+<h2 id="models">New models (before and after)</h2>
+<p>Made with the headless Blender loop, rendered with the kit's Roblox look. Same size and seat height as before, so nothing moves in game. Left: today. Right: new.</p>
+<figure><img src="shop-audit/pet_mount_bubble_before_after.jpg" alt="Bubble cloud before (a pale white flattened orb) and after (pastel rainbow bands with white highlights)"><figcaption><b>Bubble:</b> from a white orb to a bright soap bubble. Verdict: good; it reads a little like a beach ball.</figcaption></figure>
+<figure><img src="shop-audit/pet_mount_crescent_moon_before_after.jpg" alt="Crescent Moon before (cream) and after (warm gold with a sleepy face and stars)"><figcaption><b>Crescent Moon:</b> warm gold with a sleepy face and stars. Verdict: ok; from above it still looks a bit like a banana (the shape was kept so the seat doesn't move).</figcaption></figure>
+<figure><img src="shop-audit/pet_mount_ice_cloud_before_after.jpg" alt="Ice Cloud before (grey-blue) and after (frosty white with bright blue crystals)"><figcaption><b>Ice Cloud:</b> frosty white turning sky blue underneath, brighter crystals. Verdict: good, but a modest change.</figcaption></figure>
+<div class="grid2">
+<figure><img src="shop-audit/claw_prize_capsule.jpg" alt="A gacha prize capsule: lilac dome with a white highlight, gold band, mint bottom with a gold star"><figcaption><b>Prize capsule (new):</b> for the claw show, instead of the plain lilac ball. 1,136 triangles, 1.35 studs. Verdict: good. Not wired in: it needs an upload first.</figcaption></figure>
+<div><p>Not checked in Studio: the models are not uploaded, so they were only seen in the kit's Roblox-look render. Earlier warm yellows went olive in game, so the moon's gold needs a Studio look after upload.</p></div>
+</div>
+
+<h2 id="icons">New card pictures</h2>
+<p>Rendered from each item's own model with the same rig, light and outline as today's uploaded cloud pictures. Not uploaded.</p>
+<figure><img src="shop-audit/icons_after.png" alt="30 new item pictures: six hats on a slime, three lock stoppers, four Bat skins, Pumpkin and Snow Globe seats, five plot skin tower tops, seven plot base buildings and three bundles"><figcaption>All 30. Compare with the placeholders at the top of the page. Weakest: the Boutique and Sky bundles (busy), the Party Hat (small cone) and the Lighthouse beam.</figcaption></figure>
+
+<h2>What was checked, and what was not</h2>
+<ul>
+<li>Checked in a hidden, muted Studio playtest: every shop icon (drawn by the game's own code), every cosmetic mesh loading on the client, the claw machine from the front, the built preview in the real panel at 1920 × 1080, 844 × 390 and 390 × 844, and all 38 model previews in copies of the real stage.</li>
+<li>Tests: the new <code>ShopPreview</code> spec, the Exclusive shop and item icon specs, and the full Lune suite with the layout gate.</li>
+<li>Not checked: tapping a cloud, hat or lock card in the real panel (a script can't tap; the model previews were checked in stage copies instead), the stage while it turns (screenshots are still), a real phone, purchases with real Robux, the new models and pictures inside Roblox (not uploaded), the claw show with a new prize (not built).</li>
+</ul>
+<p class="small">Sources: <code>docs/exclusive-shop-audit.md</code> (item by item), <code>src/ui/ItemIcons.luau</code>, <code>src/ui/Panels/ExclusiveShop.luau</code>, <code>src/visuals/client/ShopDisplayFx.luau</code>.</p>
+</main>
+</body>
+</html>

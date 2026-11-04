@@ -129,7 +129,7 @@ def crescent_moon():
                 # balls shrink toward the edges and the horns, so the horns taper to sharp points and drop lower
                 r = min(0.26, 0.05 + 0.7 * d)  # full height from 0.3 in from the edge: a flat band, tapered horns
                 balls.append(Ball((x, y, 0.08 + 0.9 * r), (r, r, r)))
-    body = metaball_mesh("Moon", balls, resolution=0.05, tris=1400, smooth=2)
+    body = metaball_mesh("Moon", balls, resolution=0.05, tris=1300, smooth=2)
     me = body.data
     z_lo = min(v.co.z for v in me.vertices)
     for v in me.vertices:
@@ -143,27 +143,61 @@ def crescent_moon():
         if v.co.z > z0:
             v.co.z = z0 + K * math.tanh((v.co.z - z0) / K)
     me.update()
-    TOP_C, SIDE, BELLY = rgb(255, 246, 196), rgb(212, 212, 238), rgb(160, 166, 214)
+    # warm saturated gold (v2: the pale lemon/silver read as a cream blob in game): butter top, gold sides, amber belly
+    TOP_C, SIDE, BELLY = rgb(255, 228, 104), rgb(255, 196, 58), rgb(240, 160, 64)
 
-    def f(co, n):  # pale lemon top fading to cool silver sides and a lavender belly
+    def f(co, n):
         c = mix(SIDE, TOP_C, sstep(0.1, 0.85, n.z))
-        return mix(c, BELLY, clamp(-n.z) * 0.8)
+        c = mix(c, BELLY, clamp(-n.z) * 0.7)
+        return mix(c, rgb(255, 246, 196), sstep(0.95, 1.45, abs(co.x)) * 0.7)  # pale horn tips (dark tips = banana)
     paint(body, f)
     parts = [body]
-    # a small star standing on each horn
-    pts = []
-    for k in range(10):
-        a = math.pi / 2 + k * math.pi / 5
-        r = 0.24 if k % 2 == 0 else 0.1
-        pts.append((r * math.cos(a), r * math.sin(a)))
+    # a sleepy face on the front of the band (the -Y wall under the pet): closed eyes as downward arcs, pink cheeks,
+    # a small smile. Decals pressed onto the wall, so they follow its curve.
+    from models._pet_mounts import _bvh, decal
+    tree = _bvh(body)
+    front = [v.co for v in me.vertices if abs(v.co.x) < 0.25]
+    fy = min(c.y for c in front)
+    fz = [c for c in front if c.y < fy + 0.02][0].z  # height of the wall's most forward bulge
+    FACE_Z = fz + 0.02
+
+    def arc(cx, cz, w, h, t, n=9, up=False):  # a thick arc: closed eye (U, up=False) or smile
+        outer, inner = [], []
+        for i in range(n + 1):
+            a = math.pi * i / n
+            sgn = 1 if up else -1
+            outer.append((cx - w * math.cos(a), cz + sgn * h * math.sin(a)))
+            inner.append((cx - (w - t) * math.cos(a), cz + sgn * (h - t) * math.sin(a)))
+        return outer + inner[::-1]
+    DARK, CHEEK = rgb(110, 62, 70), rgb(255, 136, 150)
+    for nm, pts, c in [("EyeL", arc(-0.3, FACE_Z + 0.06, 0.13, 0.08, 0.05), DARK),
+                       ("EyeR", arc(0.3, FACE_Z + 0.06, 0.13, 0.08, 0.05), DARK),
+                       ("Smile", arc(0.0, FACE_Z - 0.04, 0.08, 0.05, 0.035), DARK),
+                       ("CheekL", [(-0.5 + 0.075 * math.cos(k * math.tau / 10), FACE_Z - 0.06 + 0.055 * math.sin(k * math.tau / 10)) for k in range(10)], CHEEK),
+                       ("CheekR", [(0.5 + 0.075 * math.cos(k * math.tau / 10), FACE_Z - 0.06 + 0.055 * math.sin(k * math.tau / 10)) for k in range(10)], CHEEK)]:
+        d = decal(nm, pts, tree, out=0.02, back=0.04, along=(0, 1, 0), centre=(0, 0, 0), long_edge=0.08, all_edges=True)
+        paint(d, lambda co, n, c=c: c)
+        parts.append(d)
+    # small white twinkle stars (4-point) pressed onto the outer wall, at points on the outer circle, cast inward
+    for k, (deg, sz) in enumerate(((226, 0.13), (318, 0.11), (196, 0.1))):
+        th = math.radians(deg)
+        px, py = R * math.cos(th), R * math.sin(th)
+        tw = [((0.32 if i % 2 == 0 else 0.1) * sz / 0.32 * 3 * math.cos(i * math.pi / 4 + math.pi / 2),
+               (0.32 if i % 2 == 0 else 0.1) * sz / 0.32 * 3 * math.sin(i * math.pi / 4 + math.pi / 2)) for i in range(8)]
+        d = decal("Twinkle%d" % k, [(x * 0.33, z * 0.33) for x, z in tw], tree, out=0.02, back=0.04, along=(-math.cos(th), -math.sin(th), 0),
+                  centre=(px, py, FACE_Z), all_edges=True, long_edge=0.08)
+        paint(d, lambda co, n: rgb(255, 255, 246))
+        parts.append(d)
+    # a small cream-white star standing on each horn (white, so it pops off the gold), plus a tiny one on the front-right
     for side, size in ((-1, 1.0), (1, 0.72)):
         tip = max((v.co for v in me.vertices if v.co.x * side > 0), key=lambda c: c.y)  # the horn's tip
         hx, hy = tip.x - side * 0.12, tip.y - 0.22  # a little back from the tip, where the horn still has some body
         hz = max((v.co.z for v in me.vertices if math.hypot(v.co.x - hx, v.co.y - hy) < 0.18), default=tip.z)
-        star = extrude_poly("HornStar%d" % side, [(x * size, z * size) for x, z in pts], 0.1, pos=(hx, hy, hz + 0.08 * size),
-                            bevel_w=0.03)  # its lower points sink into the horn
-        paint(star, lambda co, n: mix(rgb(255, 210, 70), rgb(255, 246, 180), clamp(-n.y * 0.8 + 0.2)))
+        star = facet_star("HornStar%d" % side, 0.25 * size, 0.11 * size, tip=0.07)
+        place(star, Matrix.Translation((hx, hy, hz + 0.1 * size)))  # its lower points sink into the horn
+        paint(star, lambda co, n: mix(rgb(255, 236, 170), rgb(255, 254, 236), clamp(abs(n.y) * 0.8 + n.z * 0.4)), smooth=False)
         parts.append(star)
+    return parts
     return parts
 
 

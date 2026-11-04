@@ -1,13 +1,13 @@
 {
   "name": "pet_mount_bubble",
-  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\models\\pet_mount_bubble.py",
+  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\shop-preview-audit\\shared\\modeling-kit\\models\\pet_mount_bubble.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
-  "tris": 1856,
+  "tris": 1876,
   "meshes": [
     {
       "name": "pet_mount_bubble",
-      "tris": 1856,
-      "verts": 936,
+      "tris": 1876,
+      "verts": 960,
       "ngons": 0,
       "non_manifold_edges": 0,
       "size_studs": [
@@ -52,58 +52,58 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_bubble.fbx",
-  "fbx_bytes": 50956,
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-wt\\shop-preview-audit\\shared\\modeling-kit\\out\\pet_mount_bubble.fbx",
+  "fbx_bytes": 50972,
   "engine": "cycles",
   "mode": "full",
   "look": "default",
-  "res": 256,
+  "res": 320,
   "samples": 16,
   "tiles": [
     {
       "view": "front",
-      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_0.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\shop-preview-audit\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_0.png"
     },
     {
       "view": "side",
-      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_1.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\shop-preview-audit\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_2.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\shop-preview-audit\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_3.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\shop-preview-audit\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.18,
+    "model_s": 0.195,
     "stats_s": 0.002,
-    "setup_s": 0.022,
+    "setup_s": 0.023,
     "render_s": [
-      0.143,
-      0.117,
-      0.122,
-      0.128
+      0.202,
+      0.187,
+      0.206,
+      0.207
     ],
-    "export_s": 0.238
+    "export_s": 0.235
   },
-  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_bubble_sheet.png",
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\shop-preview-audit\\shared\\modeling-kit\\out\\pet_mount_bubble_sheet.png",
   "timings": {
-    "wall_s": 1.35,
-    "blender_process_s": 1.31,
-    "compose_s": 0.045,
-    "model_s": 0.18,
+    "wall_s": 1.68,
+    "blender_process_s": 1.63,
+    "compose_s": 0.052,
+    "model_s": 0.195,
     "stats_s": 0.002,
-    "setup_s": 0.022,
+    "setup_s": 0.023,
     "render_s": [
-      0.143,
-      0.117,
-      0.122,
-      0.128
+      0.202,
+      0.187,
+      0.206,
+      0.207
     ],
-    "export_s": 0.238
+    "export_s": 0.235
   }
 }

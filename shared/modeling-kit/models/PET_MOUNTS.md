@@ -10,15 +10,15 @@ front -Y, 1 BU = 1 stud), same smooth, soft, rounded slime-cartoon style (smooth
 | `pet_mount_storm_cloud` | 1842 | 3.30 x 1.23 x 2.40 | 1.22 | dark grey pet_cloud shape, yellow lightning bolt off the front-right |
 | `pet_mount_rainbow_cloud` | 1786 | 3.30 x 1.74 x 2.40 | 1.22 | white cloud, six-band rainbow arch over the back rim |
 | `pet_mount_sunset_cloud` | 1798 | 3.30 x 1.23 x 2.40 | 1.22 | peach / pink / orange gradient cloud |
-| `pet_mount_ice_cloud` | 1894 | 3.30 x 1.70 x 2.40 | 1.22 | icy pale-blue cloud with crystal shards round the rim |
+| `pet_mount_ice_cloud` | 1908 | 3.30 x 1.70 x 2.40 | 1.22 | v2: frosty white cloud fading to sky blue at the belly, nine saturated faceted ice-blue crystal shards round the rim (white sparkle facets on the lit side) |
 | `pet_mount_flame_cloud` | 1800 | 3.30 x 1.53 x 2.40 | 1.22 | red / orange cloud with soft flame tufts, yellow tips |
 | `pet_mount_leaf` | 1864 | 3.30 x 0.71 x 2.40 | 0.25 | cupped green leaf raft, pointed tip, midrib + 5 side vein pairs painted light green into the vertex colours (no raised geometry), short stem curling up from the back |
-| `pet_mount_bubble` | 1856 | 3.30 x 1.22 x 2.40 | 1.22 | pale pearl soap-bubble disc, pastel sheen, white highlight, three bigger mini bubbles |
+| `pet_mount_bubble` | 1876 | 3.30 x 1.22 x 2.40 | 1.22 | v2: soap-bubble cushion in swirling pastel soap-film bands (pink, lilac, sky, mint, butter), bold white highlight windows front-left and back-right, three banded satellite bubbles with white glints |
 | `pet_mount_magic_carpet` | 1776 | 3.30 x 0.57 x 2.40 | 0.30 | Persian carpet: crimson field, purple dash-motif border, gold diamond medallion, gold trim, short tassels on the short ends, gentle wave |
 | `pet_mount_ufo` | 1924 | 3.30 x 1.34 x 2.40 | 1.00 | saucer: blue-grey hull, 6 rim lamps, glass dome at the back, cyan underlight |
 | `pet_mount_lily_pad` | 1800 | 3.30 x 1.56 x 2.40 | 0.99 | green lily pad with notch and veins, pink lotus bud, on a water disc |
 | `pet_mount_star_cushion` | 1320 | 3.09 x 0.94 x 2.38 | 0.94 | puffy golden 5-point star pillow, one point to the front, orange rim (own proportions, not stretched to 3.3 x 2.4) |
-| `pet_mount_crescent_moon` | 1950 | 3.00 x 0.88 x 1.77 | 0.63 | pale crescent lying flat like a cushion (a disc with a big bite out of the back): pale lemon top, cool silver sides, lavender belly, slim horns sweeping low behind the pet, a star on each horn (own proportions) |
+| `pet_mount_crescent_moon` | 1920 | 3.00 x 0.90 x 1.79 | 0.63 | v2: warm gold crescent lying flat like a cushion (butter top, gold sides, amber belly, pale horn tips), sleepy face on the front wall (closed eyes, smile, pink cheeks), white twinkle stars on the outer wall, a cream star on each horn (own proportions) |
 | `pet_mount_mushroom` | 1880 | 3.30 x 1.25 x 2.40 | 1.23 | red toadstool cap with 9 raised white spots, striped cream gills, short stout stem |
 | `pet_mount_pancakes` | 1820 | 3.30 x 0.99 x 2.40 | 0.99 | four golden pancakes, off-centre, maple syrup glaze with five drips down the side |
 | `pet_mount_jelly` | 1626 | 3.30 x 2.18 x 2.40 | 1.17 | wobbly three-layer jelly (raspberry, mango, lime), glossy streak, whipped cream + cherry on the front-right corner |

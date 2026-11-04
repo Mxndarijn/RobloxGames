@@ -72,6 +72,7 @@ local PurchasePrompt = require(script.PurchasePrompt)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
 local SettingsController = require(script.SettingsController)
+local ShopPreview = require(script.ShopPreview)
 local SlimeInfoCard = require(script.SlimeInfoCard)
 local SlimeKeyCard = require(script.SlimeKeyCard)
 local SlimeKeys = require(script.SlimeKeys)
@@ -389,6 +390,10 @@ local function reducedMotion(): boolean
 	return (GuiService :: any).ReducedMotionEnabled == true
 		or player:GetAttribute(Config.HABITAT_ANIM.REDUCED_ATTRIBUTE) == true
 end
+-- The Exclusive shop's stage preview: the server's published templates, other kit meshes loaded on demand.
+ctx.reducedMotion = reducedMotion
+ctx.shopTemplate = ShopPreview.templateFinder(ReplicatedStorage)
+ctx.loadMesh = ShopPreview.meshLoader(MeshAssets, AssetService)
 
 -- Cash changes: coins fly into the money plate and +/- amounts stack above its number.
 local cashFly = CashFly.new({
@@ -1685,6 +1690,9 @@ task.spawn(function()
 			end)
 			guardedTick("worldShop", function()
 				panelByKey.WorldShop.tick()
+			end)
+			guardedTick("exclusiveShop", function()
+				panelByKey.ExclusiveShop.tick(now)
 			end)
 			guardedTick("slimeKeys", slimeKeys.tick)
 			guardedTick("stealReach", stealReach.tick)
