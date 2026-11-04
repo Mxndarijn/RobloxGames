@@ -156,6 +156,15 @@ function methods.PivotTo(self: any, cframe: any)
 	pivots[self] = cframe
 end
 
+-- Model:ScaleTo stand-in: every part's size scales by the factor (positions are not tracked).
+function methods.ScaleTo(self: any, factor: number)
+	for _, node in methods.GetDescendants(self) do
+		if node:IsA("BasePart") then
+			node.Size = node.Size * factor
+		end
+	end
+end
+
 function methods.IsDescendantOf(self: any, ancestor: any): boolean
 	local node = self.Parent
 	while node do
@@ -313,7 +322,12 @@ Path.__index = function(self: any, key: string): any
 			return this[name]
 		end
 	end
-	return setmetatable({ path = `{rawget(self, "path")}/{key}` }, Path)
+	local path = `{rawget(self, "path")}/{key}`
+	-- src/visuals/shared sits in ReplicatedStorage as Visuals, so its script.Parent.Parent.Shared is src/shared
+	if path == "src/visuals/Shared" then
+		path = "src/shared"
+	end
+	return setmetatable({ path = path }, Path)
 end
 
 local function pathOf(path: string): any

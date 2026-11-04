@@ -854,6 +854,17 @@ function BaseShapes.tint(base: string?, skin: string?, role: string): { number }
 	return row[role] or tints.classic[role]
 end
 
+-- The mesh slot plan of base `id` (BaseShapeData/<Name>Meshes: boxes, slots, tints), or nil for the jar and an
+-- unknown id. The Exclusive shop's preview builds the whole base from it.
+function BaseShapes.looks(id: string?): any?
+	if id == "factory" then
+		return FactoryMeshes
+	elseif id == "pagoda" then
+		return PagodaMeshes
+	end
+	return ROUND_LOOKS[id or ""]
+end
+
 -- The shape of base `id`; the jar for nil or an unknown id (a free plot, the flag off).
 function BaseShapes.get(id: string?): Shape
 	return SHAPES[id or ""] or jar
