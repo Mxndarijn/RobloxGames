@@ -22,8 +22,12 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   (`mecha_goo`, `goomancer`) needs `world.fountainTier >= BOSS.SECRET_FOUNTAIN_TIER` (Starlight); otherwise it is
   `BOSS.SECRET_FALLBACK`.
 - **Meter (`Shared.BossFight`, pure).** One point per Bat hit per player, at most one per `BOSS.HIT_GAP` seconds each.
-  Target = `BOSS.POINTS_PER_PLAYER` x players on the server (at least 1), read live. With no hit for `BOSS.DRAIN_GRACE`
-  seconds it drains `BOSS.DRAIN_PER_SECOND` of the target per second. Every player's points are kept (they never drain).
+  The meter is a share, 0..1. A hit adds its points / (`BOSS.POINTS_PER_PLAYER` x fighters), read at that hit;
+  fighters (`BossFight.fighters`) are the players with at least `BOSS.FIGHTER_MIN_HITS` counted hits (guard pops
+  count) in the last `BOSS.FIGHTER_WINDOW` seconds, at least 1. Players who never come to the plaza don't make it
+  harder, so one player can clear it alone, and the bar never jumps when a fighter joins or leaves. With no hit for
+  `BOSS.DRAIN_GRACE` seconds it drains `BOSS.DRAIN_PER_SECOND` of the meter per second, never below the last stage
+  reached (`BossFight.floor`: stage x `BOSS.STAGE_EVERY`). Every player's points are kept (they never drain).
   Each `BOSS.STAGE_EVERY` of the meter crossed for the first time is a new stage (`BossFight.stage`, event `stage`):
   the boss speeds up (below). The boss never drops wild slimes, during the fight or after it. The full meter starts
   the haul.
@@ -75,8 +79,8 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   - Goozilla, double stomp: ring `waves = 2`; each next wave starts `waveGap` later, `waveSpeedUp` x faster. A player
     can be struck once per wave.
   - Queen Jelly, royal guards: guards `heal` + `rain`. While her guards stand she rains jelly on the nearest players,
-    and if any guard is still up when the call runs out she gets `heal` x the meter target back (a server toast says
-    so).
+    and if any guard is still up when the call runs out she gets `heal` of the meter back, below the stage floor if
+    need be (a server toast says so).
   - Mecha Goo, ricochet charge: charge `bounces = 1`. After each leg it winds up again (`BOSS.LEG_WINDUP_SECONDS`,
     slot `<slot>#<leg>`) and rams the top hitter.
   - Klawdius, scuttle: charge `sideways`, `backAndForth`, `bounces = 2`. It travels to its right (it faces the
@@ -100,7 +104,7 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   hit's own toast is the only text. A blocked strike drops nothing. Each attack strikes a player once. The meter never drains during `windup`, `attack`, `hop`, `rise` or `land`. Every
   `BOSS.STAGE_EVERY` of the meter reached speeds its moves and attack gaps by `BOSS.STAGE_SPEEDUP`.
 - **Haul.** For the first `BOSS.PRIORITY_SECONDS` only the top contributor may grab it (if still on the server); then
-  anyone. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms
+  anyone, whether they hit it or not. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
   spot; anyone can grab it again. Dropping never resets the haul deadline.
 - **Win.** The carrier reaches their HomeZone (`Carry.depositBoss`, no free pad needed): a server-wide toast names the
@@ -277,7 +281,7 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 ## Config (`Config.BOSS`)
 
 `FIRST_AT INTERVAL WARNING_SECONDS RAIN_GAP SKIP_DELAY FIGHT_SECONDS HAUL_SECONDS LINGER_SECONDS PRIORITY_SECONDS
-POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE STAGE_EVERY CARRY_SLOW
+POINTS_PER_PLAYER FIGHTER_WINDOW FIGHTER_MIN_HITS HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE STAGE_EVERY CARRY_SLOW
 SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_CLEARANCE STROLL_* LOOK_SECONDS ARRIVE_* WINDUP_SECONDS CHARGE_EASE
 STRIKE_SECONDS RING_DELAY SPIT_FLIGHT DAZED_SECONDS RISE_* LAND_SECONDS GUARD_SECONDS SHRINK_SECONDS
 MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK MVP_BONUS MVP_SECONDS FIRST_ATTACK ATTACK_GAP

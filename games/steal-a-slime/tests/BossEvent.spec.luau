@@ -168,8 +168,8 @@ describe("BossEvent fight", function()
 		expect(wildCount(w) - before).toBe(0)
 		expect(BossFight.stage(w.boss.fight)).toBe(math.ceil(1 / BOSS.STAGE_EVERY) - 1)
 	end)
-	it("the meter target scales with the players on the server", function()
-		local solo, crowd = world(1), world(4)
+	it("a lone fighter needs POINTS_PER_PLAYER hits on a full server; a group about as many each", function()
+		local solo, crowd = world(Config.PLOT_COUNT), world(4)
 		arrive(solo)
 		arrive(crowd)
 		local soloHits = 0
@@ -189,7 +189,9 @@ describe("BossEvent fight", function()
 			end
 			t += BOSS.HIT_GAP
 		end
-		expect(crowdHits).toBe(BOSS.POINTS_PER_PLAYER * 4)
+		-- each player's first FIGHTER_MIN_HITS - 1 hits land before they count as a fighter, so they are worth a bit more
+		expect(crowdHits <= BOSS.POINTS_PER_PLAYER * 4).toBe(true)
+		expect(crowdHits > BOSS.POINTS_PER_PLAYER * 4 - 4 * BOSS.FIGHTER_MIN_HITS * 3).toBe(true)
 	end)
 	it("a fight that runs out lets the boss get away without dropping slimes", function()
 		local w = world()
@@ -408,7 +410,7 @@ describe("BossEvent State.boss", function()
 		expect(view.kind).toBe("goozilla")
 		expect(view.name).toBe("Goozilla")
 		expect(view.tier).toBe(6)
-		expect(view.meter).toBeCloseTo(5 / (BOSS.POINTS_PER_PLAYER * 2), 1e-9)
+		expect(view.meter).toBeCloseTo(5 / BOSS.POINTS_PER_PLAYER, 1e-9) -- nobody has FIGHTER_MIN_HITS yet: one fighter
 		expect(view.endsAt).toBe(t + BOSS.FIGHT_SECONDS)
 		expect(view.yourPoints).toBe(1)
 		expect(view.yourShare).toBeCloseTo(0.25, 1e-9)

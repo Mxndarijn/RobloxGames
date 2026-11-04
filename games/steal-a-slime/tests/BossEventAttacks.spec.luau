@@ -183,14 +183,14 @@ describe("BossEvent attacks", function()
 		local ok, reason = BossEvent.hit(w, s, t + 0.2, nil, ctx)
 		expect(ok).toBe(false)
 		expect(reason).toBe("it's out of reach")
-		local before = w.boss.fight.points
+		local before = w.boss.fight.meter
 		local now = t + 0.3
 		for _, g in table.clone(w.boss.guards) do
 			local from = { X = g.x - 3, Y = 3, Z = g.z }
 			expect(BossEvent.hitGuard(w, s, now, from, { X = 1, Y = 0, Z = 0 }, ctx)).toBe(true)
 			now += 0.5
 		end
-		expect(w.boss.fight.points).toBe(before + 3 * BOSS.GUARD_POINTS)
+		expect(w.boss.fight.meter).toBeCloseTo(before + 3 * BOSS.GUARD_POINTS / BOSS.POINTS_PER_PLAYER, 1e-9)
 		expect(wild.move.kind).toBe("land")
 		expect(wild.move.slot).toBe("daze")
 		BossEvent.step(w, wild.move.at + wild.move.seconds + 0.01, ctx)
@@ -238,7 +238,7 @@ describe("BossEvent attacks", function()
 		wild.move = BossChoreo.hold("look", wild.move, t, 0.05)
 		w.boss.nextAttackAt = t
 		w.boss.attackIndex = 1 -- the second available attack: Goozilla's spit (its phase attack)
-		w.boss.fight.points = BOSS.POINTS_PER_PLAYER * BOSS.PHASE_AT + 2 -- the phase is on (with room for the drain)
+		w.boss.fight.meter = BOSS.PHASE_AT + 0.02 -- the phase is on (with room for the drain)
 		w.boss.fight.stage = 2
 		BossEvent.step(w, t + 0.1, ctx)
 		expect(wild.move.kind).toBe("windup")
@@ -328,11 +328,11 @@ describe("BossEvent signature attacks: every boss has one of its own", function(
 		force(w, "windup", "start.1", t, 0.05)
 		BossEvent.step(w, t + 0.1, ctx)
 		expect(bossOf(w).move.kind).toBe("rise")
-		w.boss.fight.points = 30
+		w.boss.fight.meter = 0.3
 		w.boss.fight.lastAnyHitAt = math.huge -- no drain in this test
 		BossEvent.step(w, t + 0.1 + BOSS.GUARD_SECONDS + 0.05, ctx)
 		expect(bossOf(w).move.kind).toBe("land")
-		expect(w.boss.fight.points).toBeCloseTo(30 - 0.15 * BOSS.POINTS_PER_PLAYER, 1e-6)
+		expect(w.boss.fight.meter).toBeCloseTo(0.3 - 0.15, 1e-6)
 	end)
 
 	it("Pumpking hops at you three times, a ring on every landing, then is dazed", function()
