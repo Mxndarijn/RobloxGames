@@ -290,6 +290,7 @@ local function sell(world: World, session: Session, id: string): Result
 		name = "SlimeSold",
 		fields = { GameAnalytics.tierField(slime and slime.tier) },
 	})
+	GameAnalytics.firstTime(world, session, "Sell")
 	World.notify(world, session.userId, `Sold for ${Economy.formatNumber(value :: number)}`, "good", "Cash", "Cash")
 	return OK
 end

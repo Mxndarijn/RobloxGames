@@ -72,6 +72,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local Constants = if script then require(script.Parent.Constants) else require("./Constants")
 local PlayerSettings = if script then require(script.Parent.PlayerSettings) else require("./PlayerSettings")
 local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
 local CashPads = if script then require(script.Parent.CashPads) else require("./CashPads")
@@ -136,6 +137,32 @@ function SaveData.cleanEggLuck(raw: any): { [string]: number }
 		end
 	end
 	return out
+end
+
+-- The first-time ids of a raw save (a list) or of PlayerData (a set): known Constants.FIRST_TIMES ids only, as a
+-- set. Missing / junk -> empty.
+function SaveData.cleanFirsts(raw: any): { [string]: boolean }
+	local out: { [string]: boolean } = {}
+	if type(raw) ~= "table" then
+		return out
+	end
+	for key, value in raw do
+		local id = if type(key) == "string" and value == true then key else value
+		if table.find(Constants.FIRST_TIMES, id) then
+			out[id] = true
+		end
+	end
+	return out
+end
+
+-- The save form of `data.firsts`: a sorted list, nil while empty (the key is left out).
+local function firstsList(set: any): { string }?
+	local list = {}
+	for id in SaveData.cleanFirsts(set) do
+		table.insert(list, id)
+	end
+	table.sort(list)
+	return if #list > 0 then list else nil
 end
 
 -- Sanitizes the pvp field of a raw save (read) or of PlayerData (write; `fun` is a set there, a list in the save).
@@ -956,6 +983,7 @@ function SaveData.deserialize(stored: any): Data
 	data.boss = BossBadges.clean(raw.boss) -- boss record and badges (missing / junk -> zeros)
 	data.hotbar = HotbarOrder.clean(raw.hotbar) -- hotbar order (no version bump: missing / junk -> nil)
 	data.eggLuck = SaveData.cleanEggLuck(raw.eggLuck) -- Mystery Egg lucky meter (no version bump: missing -> empty)
+	data.firsts = SaveData.cleanFirsts(raw.firsts) -- first-time analytics events sent (no version bump: missing -> none)
 	data.weekly = SaveData.cleanWeekly(raw.weekly, data.totalEarned) -- Weekly Top Earners (no version bump: missing -> week 0)
 	data.vat = VatState.sanitize(raw.vat) -- merge vat (no version bump: missing / junk -> empty vat)
 	VatState.prune(data)
@@ -1120,6 +1148,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		boss = BossBadges.clean(data.boss),
 		hotbar = HotbarOrder.clean(data.hotbar), -- nil until set: the key is left out
 		eggLuck = SaveData.cleanEggLuck(data.eggLuck),
+		firsts = firstsList(data.firsts), -- nil while empty: the key is left out
 		weekly = SaveData.cleanWeekly(data.weekly, data.totalEarned),
 		vat = VatState.sanitize(data.vat), -- nil while empty: the key is left out
 		padCash = CashPads.serialize(data), -- FEATURES.CashPads piles; nil while none: the key is left out

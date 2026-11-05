@@ -66,6 +66,7 @@ function MysteryEgg.hatch(world: World, session: Session, slimeId: string, now: 
 		session.userId,
 		{ op = "event", name = "EggHatched", fields = { GameAnalytics.tierField(slime.tier) } }
 	)
+	GameAnalytics.firstTime(world, session, "Egg")
 	world.hatches[slimeId] = {
 		at = now,
 		kind = info.kind,

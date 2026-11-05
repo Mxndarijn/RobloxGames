@@ -4,6 +4,7 @@ local Config = require("../src/shared/Config")
 local PurchaseService = require("../src/server/PurchaseService")
 local ServerFixtures = require("./ServerFixtures")
 local TestRunner = require("./TestRunner")
+local World = require("../src/server/World")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
@@ -145,5 +146,41 @@ describe("PurchaseService passes and policy", function()
 		expect(s.data.passIncomeMult).toBeNil()
 		expect(service.setPaidRandomAllowed(1, true)).toBe(true)
 		expect(s.paidRandomAllowed).toBe(true)
+	end)
+end)
+
+describe("PurchaseService prompt analytics", function()
+	local function prompts(world: any): { { [string]: string } }
+		local out = {}
+		for _, event in World.drain(world) do
+			if event.type == "Analytics" and event.track and event.track.name == "RobuxPrompt" then
+				table.insert(out, event.track.fields :: any)
+			end
+		end
+		return out
+	end
+
+	it("logs every closed Robux prompt with the item and whether it was bought", function()
+		local world, service = setup()
+		ServerFixtures.join(world, 1)
+		ServerFixtures.clearEvents(world)
+		local productKey, productId
+		for k, def in Config.EXCLUSIVE_SHOP.products do
+			if def.productId ~= 0 then
+				productKey, productId = k, def.productId
+				break
+			end
+		end
+		service.promptClosed(1, "product", 987654321, false)
+		service.promptClosed(1, "subscription", "", true)
+		local got = prompts(world)
+		expect(got).toEqual({
+			{ "Item - Unknown product", "Bought - no" },
+			{ "Item - Unknown subscription", "Bought - yes" },
+		})
+		if productId then
+			service.promptClosed(1, "product", productId, true)
+			expect(prompts(world)).toEqual({ { `Item - {productKey}`, "Bought - yes" } })
+		end
 	end)
 end)

@@ -55,6 +55,12 @@ export type Service = {
 	grantProduct: (userId: number, productKey: string, purchaseId: string) -> Decision,
 	join: (userId: number) -> (),
 	passPurchased: (userId: number, passId: number, purchased: boolean) -> (),
+	promptClosed: (
+		userId: number,
+		kind: "product" | "pass" | "subscription",
+		id: number | string,
+		bought: boolean
+	) -> (),
 	setPass: (userId: number, passKey: string, owned: boolean) -> boolean,
 	setPaidRandomAllowed: (userId: number, allowed: boolean) -> boolean,
 	setSubscription: (userId: number, key: string, active: boolean) -> boolean,
@@ -270,6 +276,33 @@ function PurchaseService.service(options: Options): Service
 		end
 	end
 
+	-- A Robux prompt closed, bought or not (the client opens prompts; Roblox tells the server when they close).
+	-- Logs "RobuxPrompt" so the dashboard shows offers seen against offers bought, per item.
+	function self.promptClosed(
+		userId: number,
+		kind: "product" | "pass" | "subscription",
+		id: number | string,
+		bought: boolean
+	)
+		local key: string? = nil
+		if kind == "product" then
+			key = Purchases.keyForProductId(id :: number)
+		elseif kind == "pass" then
+			key = Purchases.keyForPassId(id :: number)
+		elseif type(id) == "string" and id ~= "" then
+			for subKey, def in Config.EXCLUSIVE_SHOP.subscriptions do
+				if def.subscriptionId == id then
+					key = subKey
+				end
+			end
+		end
+		World.track(world, userId, {
+			op = "event",
+			name = "RobuxPrompt",
+			fields = { `Item - {key or `Unknown {kind}`}`, if bought then "Bought - yes" else "Bought - no" },
+		})
+	end
+
 	function self.setPaidRandomAllowed(userId: number, allowed: boolean): boolean
 		local session = World.session(world, userId)
 		if not session then
@@ -328,6 +361,17 @@ function PurchaseService.start(service: Service)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(
 		function(player: Player, passId: number, purchased: boolean)
 			service.passPurchased(player.UserId, passId, purchased)
+			service.promptClosed(player.UserId, "pass", passId, purchased == true)
+		end
+	)
+	MarketplaceService.PromptProductPurchaseFinished:Connect(
+		function(userId: number, productId: number, bought: boolean)
+			service.promptClosed(userId, "product", productId, bought == true)
+		end
+	)
+	MarketplaceService.PromptSubscriptionPurchaseFinished:Connect(
+		function(player: Player, subscriptionId: string, tried: boolean)
+			service.promptClosed(player.UserId, "subscription", subscriptionId, tried == true)
 		end
 	)
 	local function joined(player: Player)

@@ -14,10 +14,15 @@
 	  the sku is what it was for.
 	- Progression: "Rebirth", level = rebirth count.
 	- Custom events: the list in CATALOG.events.
+	- Why players leave: "SessionMinutes" on leave carries the rank, how full the server was on average and whether
+	  this was the player's first visit; "LeftAfterRobbed" marks a leave soon after being robbed; "FirstTime" marks
+	  the first sale, steal, rebirth, ... per player (value = minutes played until then).
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
+local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -58,8 +63,12 @@ GameAnalytics.CATALOG = table.freeze({
 		"QuestClaimed",
 		"DailyClaimed", -- value = streak day
 		"CodeRedeemed",
-		"SessionMinutes", -- on leave; value = minutes played (field: rank)
+		"SessionMinutes", -- on leave; value = minutes played (fields: rank, average server size, first visit or not)
 		"RebirthHours", -- on rebirth; value = total hours played so far (field: the rebirth number)
+		"SlimeLost", -- the owner's side of StealDone: one of my slimes was stolen (field: tier)
+		"LeftAfterRobbed", -- left within ROBBED_LEAVE_SECONDS of a SlimeLost; value = minutes since (field: losses this session)
+		"FirstTime", -- once per player (Constants.FIRST_TIMES); value = minutes played until then (field: which)
+		"RobuxPrompt", -- a Robux purchase prompt closed (fields: item, bought yes / no)
 	}),
 	currencies = table.freeze({ GameAnalytics.CURRENCY }),
 	progressions = table.freeze({ "Rebirth" }),
@@ -80,6 +89,44 @@ function GameAnalytics.rankField(rebirths: number): string
 		end
 	end
 	return `Rank - {title}`
+end
+
+-- A leave this soon after losing a slime counts as "LeftAfterRobbed".
+GameAnalytics.ROBBED_LEAVE_SECONDS = 300
+
+-- "Server - 2-3" for the average number of players in the server (the player included) while they played.
+-- The servers hold Config.PLOT_COUNT players.
+function GameAnalytics.serverField(average: number): string
+	local bracket = if average < 1.5
+		then "Alone"
+		elseif average < 3.5 then "2-3"
+		elseif average < 5.5 then "4-5"
+		else "6+"
+	return `Server - {bracket}`
+end
+
+-- "Lost - 2-3" for how many slimes a player lost to thieves this session.
+local function lossesField(n: number): string
+	return `Lost - {if n <= 1 then "1" elseif n <= 3 then "2-3" else "4+"}`
+end
+
+-- Queues the "FirstTime" event the first time this player does `id` (one of Constants.FIRST_TIMES), ever.
+-- Remembered in the save (`data.firsts`), so it fires once per player, not per session.
+function GameAnalytics.firstTime(world: World.World, session: World.Session, id: string)
+	local data = session.data
+	local firsts = data.firsts or {}
+	if firsts[id] or not table.find(Constants.FIRST_TIMES, id) then
+		return
+	end
+	firsts[id] = true
+	data.firsts = firsts
+	World.markDirty(session)
+	World.track(world, session.userId, {
+		op = "event",
+		name = "FirstTime",
+		value = math.floor((data.stats.playSeconds or 0) / 6) / 10,
+		fields = { `First - {id}` },
+	})
 end
 
 -- Economy transaction name per Request action that moves cash. Actions not listed (Admin, ...) are not tracked.
@@ -147,6 +194,10 @@ function GameAnalytics.bossOver(world: World.World, contributions: { [number]: n
 			value = hits,
 			fields = { `Outcome - {outcome}`, if hits > 0 then "Joined - yes" else "Joined - no" },
 		})
+		local session = World.session(world, userId)
+		if hits > 0 and session then
+			GameAnalytics.firstTime(world, session, "Boss")
+		end
 	end
 end
 
@@ -166,17 +217,51 @@ export type Tracker = {
 
 export type State = {
 	tracker: Tracker,
+	now: () -> number, -- the clock join / leave are given (os.clock in a live server)
 	inOnboarding: { [any]: boolean },
 	joinedAt: { [any]: number },
+	firstVisit: { [any]: boolean }, -- no play time saved at join
+	-- Players in the server over time: `area` adds up players x seconds since the server started, so a
+	-- player's average server size is (area at leave - area at join) / their seconds played.
+	online: number,
+	area: number,
+	areaAt: number,
+	areaAtJoin: { [any]: number },
+	robbedAt: { [any]: number }, -- when the player last lost a slime (SlimeLost), this session
+	losses: { [any]: number }, -- slimes lost this session
 }
 
-function GameAnalytics.new(tracker: Tracker): State
-	return { tracker = tracker, inOnboarding = {}, joinedAt = {} }
+function GameAnalytics.new(tracker: Tracker, now: (() -> number)?): State
+	return {
+		tracker = tracker,
+		now = now or os.clock,
+		inOnboarding = {},
+		joinedAt = {},
+		firstVisit = {},
+		online = 0,
+		area = 0,
+		areaAt = 0,
+		areaAtJoin = {},
+		robbedAt = {},
+		losses = {},
+	}
+end
+
+-- Adds the players x seconds since the last join or leave.
+local function advance(state: State, now: number)
+	if state.online > 0 then
+		state.area += state.online * math.max(0, now - state.areaAt)
+	end
+	state.areaAt = now
 end
 
 -- A player's session started. `data` is their loaded PlayerData.
-function GameAnalytics.join(state: State, key: any, data: { tutorialStep: number }, now: number)
+function GameAnalytics.join(state: State, key: any, data: PlayerData.Data, now: number)
+	advance(state, now)
+	state.online += 1
+	state.areaAtJoin[key] = state.area
 	state.joinedAt[key] = now
+	state.firstVisit[key] = data.stats.playSeconds < 5
 	if data.tutorialStep ~= 0 then
 		state.inOnboarding[key] = true
 		if data.tutorialStep == 1 then
@@ -198,6 +283,10 @@ function GameAnalytics.play(state: State, key: any, track: World.Track): (boolea
 	elseif op == "funnelStep" then
 		return tracker:funnelStep(key, track.name, track.step or "", track.fields)
 	elseif op == "event" then
+		if track.name == "SlimeLost" then
+			state.robbedAt[key] = state.now()
+			state.losses[key] = (state.losses[key] or 0) + 1
+		end
 		return tracker:event(key, track.name, track.value, track.fields)
 	elseif op == "count" then
 		return tracker:count(key, track.name, track.value, track.fields)
@@ -238,23 +327,40 @@ function GameAnalytics.play(state: State, key: any, track: World.Track): (boolea
 	return false, "UnknownOp"
 end
 
--- A player's session ended: logs the minutes played and sends their pending batches.
+-- A player's session ended: logs the minutes played (and a leave right after a robbery), then sends their
+-- pending batches.
 function GameAnalytics.leave(state: State, key: any, data: { rebirths: number }?, now: number)
 	local joinedAt = state.joinedAt[key]
 	if joinedAt then
-		local minutes = math.floor((now - joinedAt) / 6) / 10
+		advance(state, now)
+		local seconds = now - joinedAt
+		local minutes = math.floor(seconds / 6) / 10
 		if minutes > 0 then
+			local average = (state.area - (state.areaAtJoin[key] or state.area)) / seconds
+			state.tracker:event(key, "SessionMinutes", minutes, {
+				GameAnalytics.rankField(if data then data.rebirths else 0),
+				GameAnalytics.serverField(average),
+				if state.firstVisit[key] then "Visit - First" else "Visit - Later",
+			})
+		end
+		local robbedAt = state.robbedAt[key]
+		if robbedAt and now - robbedAt <= GameAnalytics.ROBBED_LEAVE_SECONDS then
 			state.tracker:event(
 				key,
-				"SessionMinutes",
-				minutes,
-				{ GameAnalytics.rankField(if data then data.rebirths else 0) }
+				"LeftAfterRobbed",
+				math.floor((now - robbedAt) / 6) / 10,
+				{ lossesField(state.losses[key] or 1) }
 			)
 		end
+		state.online = math.max(0, state.online - 1)
 	end
 	state.tracker:forget(key)
 	state.inOnboarding[key] = nil
 	state.joinedAt[key] = nil
+	state.firstVisit[key] = nil
+	state.areaAtJoin[key] = nil
+	state.robbedAt[key] = nil
+	state.losses[key] = nil
 end
 
 return GameAnalytics

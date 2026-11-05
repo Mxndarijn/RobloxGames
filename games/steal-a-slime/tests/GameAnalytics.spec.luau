@@ -49,7 +49,9 @@ local function harness()
 			table.insert(drops, `{reason}:{kind}:{name}`)
 		end,
 	})
-	local state = GameAnalytics.new(tracker :: any)
+	local state = GameAnalytics.new(tracker :: any, function()
+		return clock.t
+	end)
 	-- Plays what the systems queued, as the Outbox does (the key is the userId here).
 	local function flush(world: World.World)
 		for _, event in World.drain(world) do
@@ -293,13 +295,106 @@ describe("GameAnalytics play", function()
 		h.flush(world)
 		local byKey = {}
 		for _, e in h.rec.events do
-			byKey[e.key] = e.args
+			if e.args[1] == "BossHits" then
+				byKey[e.key] = e.args
+			end
 		end
 		expect(byKey[1]).toEqual(
 			table.pack("BossHits", 7, { CustomField01 = "Outcome - Won", CustomField02 = "Joined - yes" })
 		)
 		expect(byKey[2][2]).toBe(0)
 		expect(byKey[2][3].CustomField02).toBe("Joined - no")
+	end)
+
+	it("logs SlimeLost for the owner of a stolen slime", function()
+		local h = harness()
+		local world = ServerFixtures.world()
+		local victim = ServerFixtures.join(world, 1, { Fixtures.slime("gem", 3) })
+		ServerFixtures.join(world, 2)
+		ServerFixtures.unlock(victim)
+		ServerFixtures.clearEvents(world)
+		expect(Carry.grab(world, 2, "gem", 1, T0)).toBe(true)
+		expect(Carry.deposit(world, 2, T0 + 1)).toBe(true)
+		h.flush(world)
+		local lost = nil
+		for _, e in h.rec.events do
+			if e.args[1] == "SlimeLost" then
+				expect(e.key).toBe(1)
+				lost = e.args
+			end
+		end
+		expect(lost).toEqual(table.pack("SlimeLost", nil, { CustomField01 = GameAnalytics.tierField(3) }))
+		expect(#h.drops).toBe(0)
+	end)
+end)
+
+describe("GameAnalytics first times", function()
+	local function firsts(h: any): { [any]: { string } }
+		local out = {}
+		for _, e in h.rec.events do
+			if e.args[1] == "FirstTime" then
+				out[e.key] = out[e.key] or {}
+				table.insert(out[e.key], e.args[3].CustomField01)
+			end
+		end
+		return out
+	end
+
+	it("logs the first steal for the thief and the first robbery for the owner, once each", function()
+		local h = harness()
+		local world = ServerFixtures.world()
+		local victim = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3), Fixtures.slime("b", 3) })
+		local thief = ServerFixtures.join(world, 2)
+		thief.data.stats.playSeconds = 750
+		ServerFixtures.unlock(victim)
+		ServerFixtures.clearEvents(world)
+		expect(Carry.grab(world, 2, "a", 1, T0)).toBe(true)
+		expect(Carry.deposit(world, 2, T0 + 1)).toBe(true)
+		GameAnalytics.firstTime(world, thief, "Steal") -- a later steal logs nothing
+		GameAnalytics.firstTime(world, victim, "Robbed")
+		h.flush(world)
+		local got = firsts(h)
+		expect(got[2]).toEqual({ "First - Steal" })
+		expect(got[1]).toEqual({ "First - Robbed" })
+		local steal = h.find("custom", "FirstTime") :: { any }
+		expect(steal[2]).toBe(12.5) -- minutes played until then
+		expect(#h.drops).toBe(0)
+	end)
+
+	it("logs a first sale and a first rebirth", function()
+		local h = harness()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1), Fixtures.slime("b", 1) }, 1e6)
+		PlayerData.addSlime(s.data, Fixtures.slime("need", 2, { species = FIRST }))
+		ServerFixtures.clearEvents(world)
+		expect(call(world, 1, "Sell", "b").ok).toBe(true)
+		expect(call(world, 1, "Rebirth").ok).toBe(true)
+		h.flush(world)
+		expect(firsts(h)[1]).toEqual({ "First - Sell", "First - Rebirth" })
+	end)
+
+	it("logs the first boss fight only for players who hit", function()
+		local h = harness()
+		local world = ServerFixtures.world()
+		ServerFixtures.join(world, 1)
+		ServerFixtures.join(world, 2)
+		ServerFixtures.clearEvents(world)
+		GameAnalytics.bossOver(world, { [1] = 3 }, "Won")
+		GameAnalytics.bossOver(world, { [1] = 3 }, "Won")
+		h.flush(world)
+		local got = firsts(h)
+		expect(got[1]).toEqual({ "First - Boss" })
+		expect(got[2]).toBeNil()
+	end)
+
+	it("remembers first times through a save and drops unknown ids", function()
+		local data = PlayerData.new()
+		data.firsts = { Steal = true, Nonsense = true }
+		local saved = SaveData.serialize(data)
+		expect(saved.firsts).toEqual({ "Steal" })
+		expect(SaveData.deserialize(saved).firsts).toEqual({ Steal = true })
+		expect(SaveData.serialize(PlayerData.new()).firsts).toBeNil()
+		expect(SaveData.deserialize(SaveData.serialize(PlayerData.new())).firsts).toEqual({})
 	end)
 end)
 
@@ -315,6 +410,64 @@ describe("GameAnalytics sessions", function()
 		local minutes = h.find("custom", "SessionMinutes") :: { any }
 		expect(minutes[2]).toBe(2.5)
 		expect(h.find("custom", "Merged") ~= nil).toBe(true)
+	end)
+
+	it("adds the average server size and first visit or not to SessionMinutes", function()
+		local h = harness()
+		local first = PlayerData.new()
+		local veteran = PlayerData.new()
+		veteran.stats.playSeconds = 3600
+		-- Player 1 plays 0..600: alone for 300 s, then with player 2 for 300 s (average 1.5).
+		GameAnalytics.join(h.state, 1, first, 0)
+		GameAnalytics.join(h.state, 2, veteran, 300)
+		GameAnalytics.leave(h.state, 1, first, 600)
+		-- Player 2 plays 300..1200: with player 1 for 300 s, alone for 600 s (average 1.33).
+		GameAnalytics.leave(h.state, 2, veteran, 1200)
+		local byKey = {}
+		for _, e in h.rec.events do
+			if e.args[1] == "SessionMinutes" then
+				byKey[e.key] = e.args[3]
+			end
+		end
+		expect(byKey[1]).toEqual({
+			CustomField01 = GameAnalytics.rankField(0),
+			CustomField02 = "Server - 2-3",
+			CustomField03 = "Visit - First",
+		})
+		expect(byKey[2].CustomField02).toBe("Server - Alone")
+		expect(byKey[2].CustomField03).toBe("Visit - Later")
+		expect(h.state.online).toBe(0)
+	end)
+
+	it("sorts average server sizes into brackets", function()
+		expect(GameAnalytics.serverField(1)).toBe("Server - Alone")
+		expect(GameAnalytics.serverField(3.4)).toBe("Server - 2-3")
+		expect(GameAnalytics.serverField(4)).toBe("Server - 4-5")
+		expect(GameAnalytics.serverField(Config.PLOT_COUNT)).toBe("Server - 6+")
+	end)
+
+	it("logs LeftAfterRobbed for a leave soon after losing slimes, not for a later one", function()
+		local h = harness()
+		local data = PlayerData.new()
+		local function robbed(key: number, at: number)
+			h.clock.t = at
+			GameAnalytics.play(h.state, key, { op = "event", name = "SlimeLost" })
+		end
+		GameAnalytics.join(h.state, 1, data, 0)
+		robbed(1, 100)
+		robbed(1, 160)
+		GameAnalytics.leave(h.state, 1, data, 220)
+		local left = h.find("custom", "LeftAfterRobbed") :: { any }
+		expect(left[2]).toBe(1)
+		expect(left[3]).toEqual({ CustomField01 = "Lost - 2-3" })
+
+		local h2 = harness()
+		GameAnalytics.join(h2.state, 1, data, 0)
+		h2.clock.t = 100
+		GameAnalytics.play(h2.state, 1, { op = "event", name = "SlimeLost" })
+		GameAnalytics.leave(h2.state, 1, data, 100 + GameAnalytics.ROBBED_LEAVE_SECONDS + 1)
+		expect(h2.find("custom", "LeftAfterRobbed")).toBeNil()
+		expect(#h.drops + #h2.drops).toBe(0)
 	end)
 
 	it("counts play time once a second and caps a long hitch", function()
