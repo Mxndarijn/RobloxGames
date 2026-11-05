@@ -12,6 +12,7 @@ local Economy = if Shared then require(Shared.Economy) else require("../shared/E
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -55,6 +56,7 @@ function Rebirth.rebirth(world: World, session: Session): (boolean, string?)
 		value = math.floor((session.data.stats.playSeconds or 0) / 36) / 100,
 		fields = { `Rebirth - {rebirths}` },
 	})
+	GameAnalytics.firstTime(world, session, "Rebirth")
 	return true, nil
 end
 

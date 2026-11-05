@@ -237,4 +237,7 @@ return table.freeze({
 	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks
 	HABITAT_MESHES = "HabitatMeshes", -- ReplicatedStorage folder: server-made overlay MeshPart templates (MeshSwap)
 	PVP_MARKER_MESHES = "PvpMarkerMeshes", -- ReplicatedStorage folder: placed trap / pad MeshPart templates (FEATURES.PvP, MeshSwap)
+	-- Things a player does for the first time, logged once per player as the "FirstTime" analytics event
+	-- (GameAnalytics.firstTime; saved in PlayerData.firsts). Keep names stable: the dashboard compares versions.
+	FIRST_TIMES = table.freeze({ "Sell", "Steal", "Robbed", "Rebirth", "Boss", "Obby", "Egg" }),
 })

@@ -307,11 +307,11 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 	if Config.FEATURES.StealAlerts then
 		StealAlert.record(owner.data.stealLog, session.name, name, os.time())
 	end
-	World.track(world, userId, {
-		op = "event",
-		name = "StealDone",
-		fields = { GameAnalytics.tierField((result :: Genome.Slime).tier) },
-	})
+	local tierField = GameAnalytics.tierField((result :: Genome.Slime).tier)
+	World.track(world, userId, { op = "event", name = "StealDone", fields = { tierField } })
+	World.track(world, owner.userId, { op = "event", name = "SlimeLost", fields = { tierField } })
+	GameAnalytics.firstTime(world, session, "Steal")
+	GameAnalytics.firstTime(world, owner, "Robbed")
 	World.notify(world, userId, `You stole a {name}!`, "good", "Stolen")
 	World.notify(world, owner.userId, `{session.name} has stolen one of your slimes`, "bad", "Stolen")
 	World.effect(world, "Collect", { userId = userId })

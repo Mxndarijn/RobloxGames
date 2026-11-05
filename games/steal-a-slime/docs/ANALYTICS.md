@@ -64,8 +64,28 @@ past 20 as "Other"; the catalog spec checks the count.
 | RobuxPurchase | Developer Product granted | Robux | product, kind |
 | GamePassBought | Game Pass bought in game | | pass |
 | DailyClaimed / QuestClaimed / CodeRedeemed | claimed | | |
-| SessionMinutes | on leave | minutes | rank |
+| SessionMinutes | on leave | minutes | rank, average server size (Alone, 2-3, 4-5, 6+), first visit or later |
 | RebirthHours | on rebirth | total hours played | rebirth number |
+| SlimeLost | the owner's side of StealDone | | tier |
+| LeftAfterRobbed | left within 5 min of a SlimeLost | minutes since the loss | slimes lost this session (1, 2-3, 4+) |
+| FirstTime | once per player, ever: Sell, Steal, Robbed, Rebirth, Boss (hit at least once), Obby (finished), Egg | minutes played until then | which |
+| RobuxPrompt | a Robux prompt closed (product, Game Pass or subscription) | | item, bought yes/no |
+
+## Why players leave: what to read after a release
+
+- **Does being robbed drive players out?** Compare `LeftAfterRobbed` with `SlimeLost`, per day. A high share means
+  steals feel too harsh.
+- **Do players reach the fun after the tutorial?** Unique players per `FirstTime` field against onboarding `Done`.
+  The value shows how many minutes it took. A step few players reach is the next target.
+- **Are servers too empty?** Split `SessionMinutes` by server size. Short sessions in `Alone` servers point at
+  matchmaking or server size, not at the game.
+- **First visits vs. returning players:** split `SessionMinutes` by `Visit - First` / `Visit - Later`.
+- **Do offers convert?** `RobuxPrompt` per item: `Bought - yes` against all. Many prompts and few buys = price or
+  offer problem; few prompts = players don't find the shop. Subscriptions report "tried to buy" as yes (Roblox
+  gives no more than that).
+
+`FirstTime` is remembered in the save (`firsts`), so it fires once per player. Saves from before this release start
+with none: a returning tester logs their first times again.
 
 `RebirthHours` checks the economy sim's pacing (SLIME-ECONOMY.md §7.2: rebirth 1 at 0.5 h, 3 at 2.2 h, 6 at 7 h,
 10 at 17 h). It reads `stats.playSeconds`, which only started counting with this release: for players who played

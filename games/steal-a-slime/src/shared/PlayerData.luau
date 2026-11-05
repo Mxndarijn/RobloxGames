@@ -95,6 +95,7 @@ export type Data = {
 	boss: BossBadges.Record, -- boss record and save-only boss badges (BossBadges, contract/boss-event.md)
 	hotbar: { string }?, -- HotbarOrder: 9 slot keys, "" = empty; nil until the player sets one (no version bump)
 	eggLuck: { [string]: number }?, -- Mystery Egg lucky meter: misses in a row per kind id (contract/mystery-egg.md; no version bump)
+	firsts: { [string]: boolean }?, -- Constants.FIRST_TIMES ids already logged (GameAnalytics.firstTime; no version bump)
 	weekly: Weekly, -- Weekly Top Earners: totalEarned at the start of `week` (Leaderboards.rollWeek; no version bump)
 	vat: { ids: { string }, endsAt: number?, startedAt: number?, seed: number? }?, -- merge vat load, brew end and roll seed (VatState, CONTRACT.md §21)
 	-- Exclusive Shop (save v10, contract/exclusive-shop.md §2)

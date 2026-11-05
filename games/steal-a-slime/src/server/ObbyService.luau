@@ -42,6 +42,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local ObbyCourse = if Shared then require(Shared.ObbyCourse) else require("../shared/ObbyCourse")
 local ObbyRules = if Shared then require(Shared.ObbyRules) else require("../shared/ObbyRules")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local ObbyBoard = if script then require(script.Parent.ObbyBoard) else require("./ObbyBoard")
 local ObbyLock = if script then require(script.Parent.ObbyLock) else require("./ObbyLock")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -317,6 +318,7 @@ local function finish(world: World, session: Session, run: World.ObbyRun, course
 		value = math.floor(seconds + 0.5),
 		fields = { if earned then "Boost - Earned" elseif run.invalid then "Boost - Invalid" else "Boost - Cooling" },
 	})
+	GameAnalytics.firstTime(world, session, "Obby")
 end
 
 local function trackFall(world: World, session: Session, course: ObbyCourse.Course, at: number)
