@@ -42,7 +42,10 @@ local TERRAIN_GRASS = { Enum.Material.Grass, Enum.Material.LeafyGrass }
 local TERRAIN_FROST = { Enum.Material.Ground, Enum.Material.Sand } -- the dirt paths and the plaza sand
 local SAME = 1.5 / 255 -- Color is stored with 8 bits per channel: closer than this is "unchanged"
 
-local tracked: { [BasePart]: Entry } = setmetatable({}, { __mode = "k" }) :: any
+-- Strong keys on purpose: Roblox may collect the Lua wrapper of an Instance no script holds, so a weak table
+-- keyed by parts loses parts that are still in the map, and those would keep their snow. forget and draw drop
+-- the parts that leave the map.
+local tracked: { [BasePart]: Entry } = {}
 local terrainOrig: { [Enum.Material]: Color3 }? = nil
 local tracking = false
 local connection: RBXScriptConnection? = nil
@@ -116,11 +119,23 @@ local function register(inst: Instance)
 	end
 end
 
+-- A part that leaves the map is forgotten. Deferred, so a part moved inside the map keeps its saved original.
+local function forget(inst: Instance)
+	if tracked[inst :: any] then
+		task.defer(function()
+			if not inst:IsDescendantOf(workspace) then
+				tracked[inst :: any] = nil
+			end
+		end)
+	end
+end
+
 local function watch(root: Instance)
 	for _, d in root:GetDescendants() do
 		register(d)
 	end
 	root.DescendantAdded:Connect(register)
+	root.DescendantRemoving:Connect(forget)
 end
 
 -- First snow: remember the terrain colours and start following the map. Never runs while the feature is idle.
@@ -164,7 +179,7 @@ local function draw()
 	startTracking()
 	tints = SnowCover.tints(q, snowing)
 	for part, entry in tracked do
-		if part.Parent == nil then
+		if not part:IsDescendantOf(workspace) then
 			tracked[part] = nil
 		else
 			paint(part, entry)
