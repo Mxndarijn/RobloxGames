@@ -187,7 +187,8 @@ def crack(name, z0, z1, n, amp=0.07, w=0.06):
         a, c = Vector(pts[i]), Vector(pts[i + 1])
         m = (a + c) / 2
         parts.append(decal(f"{name}{i}", rect(m.x, m.y, w, (c - a).length + w * 0.9, math.atan2(c.y - a.y, c.x - a.x) - math.pi / 2),
-                           RIM_H, FRONT, off=0.014, th=0.012, on=["Body"], step=0.3))
+                           RIM_H, FRONT, off=0.014, th=0.012, on=["Body"], step=0.3,
+                           ignore=(name,)))  # segments of one line: without this each one sat further out
 
 
 crack("Crack", 2.98, 2.1, 5)

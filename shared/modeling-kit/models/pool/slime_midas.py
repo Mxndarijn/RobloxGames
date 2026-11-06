@@ -112,6 +112,7 @@ parts += fs.parts
 f.mouth("smirk", w=1.1)
 parts += f.parts
 # bling: little glints floating round the crown and chain
+not_face("Glint")  # sparkles, not eye glints: gold/diamond/rainbow colour them too
 for k, (x, y, z, sz) in enumerate([(-1.25, -0.6, 2.6, 0.2), (1.35, -0.5, 3.15, 0.16), (-1.55, -0.9, 1.15, 0.14)]):
     parts.append(slab(f"Glint{k}", star(0, 0, sz, sz * 0.28, n=4), 0.05, (x, y, z), (0.9, 0.45 * (1 if x > 0 else -1), 0), (0, 0, 1), G_W))
 ship("slime_midas", parts)

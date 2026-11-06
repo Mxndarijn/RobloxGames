@@ -30,7 +30,8 @@ for sd in (-1, 1):
 for yaw in (90, 122, 152, 180, 208, 238, 270):
     w = 0.3 if abs(yaw - 180) < 50 else 0.24
     poly = [(-w, 0.8), (-w * 0.3, 0.86), (w * 0.3, 0.86), (w, 0.8), (0.04, -0.6), (-0.04, -0.6)]
-    parts.append(decal(f"Stripe{yaw}", poly, OR_D, frame_at(yaw, 1.7, tilt=20), off=0.01, th=0.015, on=["Body"]))
+    parts.append(decal(f"Stripe{yaw}", poly, OR_D, frame_at(yaw, 1.7, tilt=20), off=0.01, th=0.015, on=["Body"],
+                       ignore=("Stripe",)))  # side by side, not stacked: without this each one sat further out
 for k, (u, rot, ln) in enumerate(((-0.24, 14, 0.32), (0.0, 0, 0.4), (0.24, -14, 0.32))):
     top = 2.5 if k == 1 else 2.42
     poly = [(-0.08, 0), (0.08, 0), (0.02, -ln), (-0.02, -ln)]

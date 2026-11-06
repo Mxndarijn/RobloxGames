@@ -88,7 +88,8 @@ parts.append(register(grid_decal("Bib", list(reversed(bib)), BELLY, FRONT, off=0
 for yaw in (78, 108, 140, 180, 220, 252, 282):
     w = 0.28 if abs(yaw - 180) < 50 else 0.22
     poly = [(-w, 0.75), (-w * 0.3, 0.8), (w * 0.3, 0.8), (w, 0.75), (0.04, -0.55), (-0.04, -0.55)]
-    parts.append(decal(f"Stripe{yaw}", poly, OR_D, frame_at(yaw, 1.75, tilt=22), off=0.01, th=0.015, on=["Body"], step=0.22))
+    parts.append(decal(f"Stripe{yaw}", poly, OR_D, frame_at(yaw, 1.75, tilt=22), off=0.01, th=0.015, on=["Body"], step=0.22,
+                       ignore=("Stripe",)))  # side by side, not stacked: without this each one sat further out
 for k, (u, rot, ln) in enumerate(((-0.24, 14, 0.3), (0.0, 0, 0.38), (0.24, -14, 0.3))):
     top = 2.42 if k == 1 else 2.35
     poly = [(-0.08, 0), (0.08, 0), (0.02, -ln), (-0.02, -ln)]
