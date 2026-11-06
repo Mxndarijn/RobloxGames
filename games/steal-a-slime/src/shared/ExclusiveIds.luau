@@ -138,7 +138,6 @@ return table.freeze({
 		WarmNest = 2075162735,
 	} :: { [string]: number }),
 	subscriptions = table.freeze({
-		-- TODO: create the SlimeClub subscription on the Creator Dashboard (universe 10774962286) and put its EXP- id in created_ids.json
-		SlimeClub = "",
+		SlimeClub = "EXP-6021486294711009790",
 	} :: { [string]: string }),
 })

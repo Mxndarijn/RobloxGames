@@ -5,9 +5,9 @@ all 117 Developer Products and the 8 Game Passes were made again there with `too
 same names, prices and descriptions and the approved style B store icons (`docs/shop-icons/upload.py`). Their ids are in
 `src/shared/ExclusiveIds.luau`; `tools/monetization/created_ids.json` is the record. The passes were created off
 sale: turn them on sale on the Creator Dashboard once a version with their ids is published. The Slime Club
-subscription has no API: Merijn creates it on the Dashboard for the new experience (99 Robux a month, Durable,
-regional pricing) and its new `EXP-` id goes into `created_ids.json` (`sub:SlimeClub`, now empty) and through
-`write_ids.py`. The old experience's ids (universe 10770917350, first created 2026-10-29) are in
+subscription (EXP-6021486294711009790, 99 Robux a month, Durable) was created by Merijn on the Dashboard for the new
+experience (subscriptions have no API) and is in `created_ids.json` as `sub:SlimeClub`. Activate it after the first
+publish, together with putting the 8 passes on sale. The old experience's ids (universe 10770917350, first created 2026-10-29) are in
 `tools/monetization/created_ids.old-10770917350.json`, and the Id column below still shows them. The tables below are the first set's original sheet.
 
 ## Developer Products: clouds, bundle, quick-buys (27)
