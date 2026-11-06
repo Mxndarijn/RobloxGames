@@ -70,6 +70,7 @@ past 20 as "Other"; the catalog spec checks the count.
 | LeftAfterRobbed | left within 5 min of a SlimeLost | minutes since the loss | slimes lost this session (1, 2-3, 4+) |
 | FirstTime | once per player, ever: Sell, Steal, Robbed, Rebirth, Boss (hit at least once), Obby (finished), Egg | minutes played until then | which |
 | RobuxPrompt | a Robux prompt closed (product, Game Pass or subscription) | | item, bought yes/no |
+| BrokeTopUp | a player with no slimes and too little cash got the broke top-up (a custom event, not an economy source: the 20 transaction names are taken) | cash given | top-ups this session (1, 2, 3+) |
 
 ## Why players leave: what to read after a release
 
@@ -80,6 +81,8 @@ past 20 as "Other"; the catalog spec checks the count.
 - **Are servers too empty?** Split `SessionMinutes` by server size. Short sessions in `Alone` servers point at
   matchmaking or server size, not at the game.
 - **First visits vs. returning players:** split `SessionMinutes` by `Visit - First` / `Visit - Later`.
+- **Do players get stuck broke?** `BrokeTopUp` per day against unique players. Many `TopUps - 2` / `3+` means
+  players lose everything again soon after the top-up (stealing too harsh, or the top-up too small).
 - **Do offers convert?** `RobuxPrompt` per item: `Bought - yes` against all. Many prompts and few buys = price or
   offer problem; few prompts = players don't find the shop. Subscriptions report "tried to buy" as yes (Roblox
   gives no more than that).
