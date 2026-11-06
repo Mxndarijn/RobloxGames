@@ -10,7 +10,7 @@ Merijn signs it off first (house rules 1–3); open [review.html](review.html) t
 | `steal-a-slime-store-video-draft-nocaptions.mp4` | **C**: the same footage, clean | no (gitignored, ~40 MB) |
 | `preview-720p.mp4`, `preview-720p-deco.mp4` | 1280×720 copies of A and B, for review.html | yes |
 | `contact-sheet.jpg`, `contact-sheet-deco.jpg` | 12 frames from A and from B | yes |
-| `end-before-after.jpg` | Merijn's draft-3 end-shot screenshot (left) and the draft-4 end shot (right) |
+| `end-before-after.jpg` | Merijn's draft-3 end-shot screenshot (left) and the draft-5 end frame (right) |
 | `before-after.jpg` | the same four moments, draft 2 capture (left) and draft 3 capture (right) | yes |
 | `reference-thumbnail.jpg` | one of the game's thumbnails, the style the captions copy | yes |
 | `render.py` | draws the captions and assembles the MP4s from captured frames | yes |
@@ -29,10 +29,10 @@ anyone else rebuilds them with `render.py` from re-captured frames.
 | 2.9–6.5 | s1 steal | The player runs into a neighbour's jar base and grabs their Rainbow Celestial (a real steal through the server's `Carry.grab`), turns and runs out with it overhead. | STEAL / RARE SLIMES! |
 | 6.5–10.1 | s3 your base | Orbit inside the player's base: Divine, Celestial and Secret slimes with Gold, Diamond and Rainbow shines, each pad label showing its +$/s income. | BUILD / YOUR BASE! |
 | 10.1–13.7 | s4 merge | Three Mythics in the merge vat finish brewing; the camera pushes in on the vat and the pad beside it as the brewed Secret appears (real `VatCollect`). | MERGE 3 / = RARER! |
-| 13.7–17.9 | s6 end | A slow rise over two jar bases near the fountain, mountains soft in the background. | STEAL / A SLIME! (title, centre) |
+| 13.7–18.1 | s6 end | Starts low over two jar bases, then pulls back and up over the fountain to the whole map with all eight jar bases. | STEAL / A SLIME! (title, centre) |
 
 Order follows the game's story (Merijn, draft 4): catch, steal, build your base, merge, end title. The steal is no
-longer in the first 3 s (it starts at 2.9 s); no PvP slap shot exists yet.
+longer in the first 3 s (it starts at 2.9 s); no PvP slap shot exists yet. Total 18.1 s.
 
 ### Caption style
 
@@ -122,6 +122,14 @@ retake (release the carry, `prep_vat.py` for the merge).
   longer flies high; it is a low, slow rise over two jar bases with a soft depth of field, like the thumbnails.
   Other shots: s1 and s4 are inside bases (no open terrain); s2 and s3 show only a strip of distant hillside, softened
   by the depth of field (s3's mountains still show faint grass patches on close inspection).
+- Draft 5: Merijn wanted the whole-map end back. It is now a pull-back from the low base view to the wide view, a bit
+  lower and more angled than draft 3 (165 studs up instead of ~210), so the sand ring and all eight bases fill most of
+  the frame and grass only shows along the top. That shot alone uses a near-neutral look (saturation +0.05, contrast
+  +0.03, the game's own haze, no sharpening), and `render.py` blurs the frame edges tilt-shift style as the camera
+  rises, which turns the grass texture into soft green. Tried and rejected: thicker game haze (washed everything out)
+  and the in-engine depth of field (everything is at the same distance from up there, so it can't blur the edges).
+  Checked the final frames' top strip at full size: no blotchy pattern; the purple patches (real terrain spots on the
+  hills) remain as soft blurred colour.
 - Every gameplay beat ran through the real server code: the steal and the wild catch through `Carry.grab`, the merge
   through `VatStart` / `VatCollect`. Server results were logged (all `ok`).
 - `ffprobe`: 1920×1080, 30 fps, 17.93 s, H.264 yuv420p, faststart.
@@ -131,8 +139,7 @@ retake (release the carry, `prep_vat.py` for the merge).
 - **Not watched as moving video by a person.** I judged motion from frame sequences and the difference check only.
 - **PvP bat bonk not in the cut.** A second real player can't join a hidden Studio without a visible window, and a
   stand-in owner has no character, so a bonk would have been a puppet; left out instead of faked.
-- **No whole-map shot any more.** The end shot shows two bases, not all eight, because the overhead view exposes the
-  terrain look above.
+- **The wide end frame is softer at the edges than the other shots** (the edge blur that hides the terrain texture).
 - **Rebirth, Top Earners podium and boss shots not in the cut.** The boss was out during capture (it walks the
   lanes), but I ran out of time to stage it. Easy follow-ups with the same tools.
 - **The drop-off at home (slime lands on a pad and starts earning) was dropped.** The game deposits as soon as the

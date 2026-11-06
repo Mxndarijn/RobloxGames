@@ -199,11 +199,15 @@ def s4_cam(t):
 SHOTS["s4"] = {"dof": (15, 16, 0.1), "dur": 3.6, "cam": s4_cam, "hidechar": True, "server_frame": s4_server,
                "pre_req": '[["req","VatStart"]]', "pre_wait": 3}
 
-# ---- S6: end shot, low over two jar bases (high overhead shots show the terrain materials as blotches) ----
+# ---- S6: end shot, pull back from the low base view up to the whole map. Wide views of the border terrain read
+# as blotchy with the full grade, so this shot uses a near-neutral look and render.py blurs the frame edges.
 def s6_cam(t):
-    u = smooth(t / 4.2)
-    pos = lerp([20, 11, 42], [32, 22, 18], u)
-    at = lerp([56, 9, 106], [62, 11, 110], u)
+    u = smooth(t / 4.4)
+    up = 1 - (1 - min(1, t / 4.4)) ** 2  # rise early, so the path clears the fountain
+    p0, p1 = [20, 11, 42], [-100, 165, -140]
+    pos = [p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * up, p0[2] + (p1[2] - p0[2]) * u]
+    at = lerp([56, 9, 106], [5, 0, 15], u)
     return pos, at
-SHOTS["s6"] = {"dof": (90, 55, 0.25), "dur": 4.2, "cam": s6_cam, "hidechar": True,
+SHOTS["s6"] = {"dur": 4.4, "cam": s6_cam, "hidechar": True,
+               "look": {"SAT": 0.05, "CON": 0.03, "BRI": 0, "HAZE": 1, "DENS": 1, "BLOOM": 0.8, "EXP": 0},
                "setup_client": "local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart hrp.Anchored = true hrp.CFrame = CFrame.new(-60, 4, -60) return {}"}

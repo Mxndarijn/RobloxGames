@@ -34,7 +34,7 @@ SHOTS = [
     ("s1", 0, 107, [("STEAL", YELLOW), ("RARE SLIMES!", MINT)], "caption", [(1180, 300, 34), (1360, 230, 24), (1240, 470, 20)]),
     ("s3", 0, 107, [("BUILD", YELLOW), ("YOUR BASE!", MINT)], "caption", [(420, 260, 30), (1500, 200, 26), (980, 160, 20)]),
     ("s4", 0, 107, [("MERGE 3", YELLOW), ("= RARER!", MINT)], "caption", [(880, 220, 28), (1080, 300, 22)]),
-    ("s6", 0, 125, [("STEAL", YELLOW), ("A SLIME!", MINT)], "title", [(620, 330, 30), (1330, 300, 26), (1450, 520, 20)]),
+    ("s6", 0, 131, [("STEAL", YELLOW), ("A SLIME!", MINT)], "title", [(620, 330, 30), (1330, 300, 26), (1450, 520, 20)]),
 ]
 
 CAPTION_DELAY = 0.12  # s after the cut before a caption pops in
@@ -105,6 +105,11 @@ def caption_image(parts, font_path, size, tilt):
     hl.putalpha(rim_only.point(lambda v: v * 110 // 255))
     out.alpha_composite(hl)
     return out.rotate(tilt, resample=Image.BICUBIC, expand=True)
+
+
+def smooth01(u):
+    u = max(0.0, min(1.0, u))
+    return u * u * (3 - 2 * u)
 
 
 def pop_scale(t, dur):
@@ -184,14 +189,31 @@ def sparkle(size):
     return out
 
 
-def load_frame(path):
+_EDGE_MASK = None
+
+
+def edge_soften(frame, amount):
+    """Tilt-shift style: blurs the frame edges (the far terrain on the wide end shot), keeps the centre sharp."""
+    global _EDGE_MASK
+    if amount <= 0.01:
+        return frame
+    if _EDGE_MASK is None:
+        m = Image.new("L", (W, H), 0)
+        ImageDraw.Draw(m).ellipse((-W * 0.12, H * 0.12, W * 1.12, H * 1.35), fill=255)
+        _EDGE_MASK = m.filter(ImageFilter.GaussianBlur(H * 0.08))
+    blurred = frame.filter(ImageFilter.GaussianBlur(6 * amount))
+    return Image.composite(frame, blurred, _EDGE_MASK)
+
+
+def load_frame(path, sharpen=True):
     im = Image.open(path).convert("RGB")
     scale = max(W / im.width, H / im.height)
     nw, nh = math.ceil(im.width * scale), math.ceil(im.height * scale)
     im = im.resize((nw, nh), Image.LANCZOS)
     left, top = (nw - W) // 2, (nh - H) // 2
     im = im.crop((left, top, left + W, top + H))
-    im = im.filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))  # undo the capture's JPEG softness
+    if sharpen:
+        im = im.filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))  # undo the capture's JPEG softness
     return im.convert("RGBA")
 
 
@@ -233,7 +255,10 @@ def main():
                     n += 1
                     continue
                 t = (k - first) / FPS
-                frame = load_frame(os.path.join(a.clips, name, "f%04d.jpg" % k))
+                wide = name == "s6"  # the wide end shot: no sharpening, soft edges as it rises over the map
+                frame = load_frame(os.path.join(a.clips, name, "f%04d.jpg" % k), sharpen=not wide)
+                if wide:
+                    frame = edge_soften(frame, smooth01((t - 1.0) / 2.0))
                 if variant == "deco":
                     for i, (sx, sy, ss) in enumerate(stars):
                         tw = 0.55 + 0.45 * math.sin(t * 5.5 + i * 2.1)
