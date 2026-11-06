@@ -14,6 +14,7 @@ RunService:BindToRenderStep("VidCam", Enum.RenderPriority.Last.Value + 2, functi
 	if typeof(p) == "Vector3" and typeof(a) == "Vector3" then
 		cam.CameraType = Enum.CameraType.Scriptable
 		cam.CFrame = CFrame.lookAt(p, a)
+		cam.Focus = CFrame.new(a) -- shadows are drawn round the focus: keep it on what the shot looks at
 	end
 	local f = workspace:GetAttribute("VFov")
 	if type(f) == "number" then cam.FieldOfView = f end

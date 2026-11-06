@@ -136,6 +136,12 @@ retake (release the carry, `prep_vat.py` for the merge).
   The character's heading now follows a critically damped spring (`Walker` in `shots.py`): every turn eases in and
   out over ~0.5 s, the run slows into stops and speeds up out of them, and the legs follow the real speed. A
   `spawnWave` (admin, memory store) fills the lane first, and the catch is a slime in the middle of the lane.
+- Draft 9 (Merijn: at the end zoom trees start disappearing; a row of sand came back at the edges).
+  Trees: Roblox draws shadows only round the camera's Focus, and the scripted camera never set it, so near the top of
+  the pull-back every tree shadow switched off at once and the trees went flat. `capture/lua/ctl.luau` now keeps the
+  Focus on the point the shot looks at (video only; in the game the Focus follows the player). Sand: from far away
+  Roblox draws the 600-stud FieldBand disc with fewer sides, its edges cut inside the circle and the sand terrain under
+  it showed. Fixed in the game on `fix/terrain-overhead` (the hidden terrain under the band is green LeafyGrass).
 
 ## What I could not get or check
 
