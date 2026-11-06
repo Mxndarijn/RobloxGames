@@ -1,0 +1,61 @@
+--- a/src/server/init.server.luau
++++ b/src/server/init.server.luau
+@@ -279,7 +279,7 @@
+ 	end
+ end
+ 
+-request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.RequestResult
++local function vidRequestHandler(player: Player, action: any, ...: any): Types.RequestResult
+ 	Profiler.count(profiler, "Request")
+ 	local args = table.pack(...)
+ 	local ok, res, ran = pcall(Actions.handle, world, player.UserId, action, args, now(), ctx)
+@@ -487,3 +487,49 @@
+ 		task.wait(Config.LEADERBOARD_INTERVAL)
+ 	end
+ end)
++
++-- VIDEO SCRATCH BUILD ONLY (never committed): scene commands through workspace attribute VidReq.
++request.OnServerInvoke = vidRequestHandler
++do
++	local HS = game:GetService("HttpService")
++	workspace:GetAttributeChangedSignal("VidReq"):Connect(function()
++		local raw = workspace:GetAttribute("VidReq")
++		if type(raw) ~= "string" or raw == "" then
++			return
++		end
++		local player = Players:GetPlayers()[1]
++		local out = {}
++		for _, c in HS:JSONDecode(raw) do
++			local kind = table.remove(c, 1)
++			local ok, res
++			if kind == "req" then
++				ok, res = pcall(vidRequestHandler, player, table.unpack(c))
++			elseif kind == "grab" then
++				ok, res = pcall(function()
++					local root = WorldView.rootPart(player)
++					local position = WorldView.slimePosition(c[1])
++					local distance = if root and position then (root.Position - position).Magnitude else math.huge
++					local a, b = Carry.grab(world, player.UserId, c[1], distance, now(), WorldView.stealReach(world, player, c[1]))
++					refreshView(now())
++					flushStates(now())
++					return { a, b, distance }
++				end)
++			elseif kind == "deposit" then
++				ok, res = pcall(function()
++					local a, b = Carry.deposit(world, player.UserId, now())
++					refreshView(now())
++					flushStates(now())
++					return { a, b }
++				end)
++			elseif kind == "eval" then
++				ok, res = pcall(function()
++					return (loadstring :: any)(c[1])()(world, player, now, ctx)
++				end)
++			end
++			table.insert(out, `{kind} {tostring(c[1])} -> {tostring(ok)} ` .. (if type(res) == "table" then HS:JSONEncode(res) else tostring(res)))
++			task.wait(0.3)
++		end
++		workspace:SetAttribute("VidReq", "")
++		workspace:SetAttribute("VidRes", HS:JSONEncode(out))
++	end)
++end

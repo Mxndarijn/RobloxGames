@@ -1,0 +1,49 @@
+--- a/src/server/AdminService.luau
++++ b/src/server/AdminService.luau
+@@ -123,6 +123,46 @@
+ 			return false, "pick an item"
+ 		end
+ 		return TestHooks.giveConsumable(world, userId, text, amount)
++	elseif id == "vidFake" then
++		-- VIDEO SCRATCH BUILD ONLY: a stand-in owner on a free plot (no Player), unlocked
++		local Sessions = require(script.Parent.Sessions)
++		local PD = require(game:GetService("ReplicatedStorage").Shared.PlayerData)
++		local data = PD.new()
++		data.padsUnlocked = Config.PADS_MAX
++		local s = Sessions.join(world, -math.floor(amount), text or "Goober", data, now)
++		if not s then
++			return false, "join failed"
++		end
++		s.lockUntil = 0
++		s.locked = false
++		World.markAllDirty(world)
++		return true, `fake on plot {s.plotIndex}`
++	elseif id == "vidSpawn" then
++		-- VIDEO SCRATCH BUILD ONLY: text = "uid,tier,shine" (uid 0 = me, shine "-" = none)
++		local parts = string.split(text or "", "_")
++		local uid = tonumber(parts[1]) or 0
++		if uid == 0 then
++			uid = userId
++		end
++		local target = World.session(world, uid)
++		if not target then
++			return false, "no session"
++		end
++		local before = {}
++		for _, sl in target.data.slimes do
++			before[sl.id] = true
++		end
++		local ok, msg = TestHooks.spawnSlime(world, uid, nil, tonumber(parts[2]) or 1)
++		if ok and parts[3] and parts[3] ~= "-" then
++			for _, sl: any in target.data.slimes do
++				if not before[sl.id] then
++					sl.shine = parts[3]
++				end
++			end
++		end
++		target.dirty = true
++		World.markAllDirty(world)
++		return ok, msg
+ 	elseif id == "spawnSlime" then
+ 		return TestHooks.spawnSlime(world, userId, text, amount)
+ 	elseif id == "hatchEggs" then

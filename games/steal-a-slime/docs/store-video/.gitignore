@@ -1,0 +1,7 @@
+# Full-quality renders (~40 MB each): rebuild with render.py, see README.md
+steal-a-slime-store-video-draft.mp4
+steal-a-slime-store-video-draft-nocaptions.mp4
+steal-a-slime-store-video-draft-deco.mp4
+capture/drv/ids.json
+capture/drv/wild.json
+capture/drv/__pycache__/
