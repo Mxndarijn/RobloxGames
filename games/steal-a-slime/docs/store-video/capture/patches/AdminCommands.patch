@@ -1,0 +1,11 @@
+--- a/src/shared/AdminCommands.luau
++++ b/src/shared/AdminCommands.luau
+@@ -60,6 +60,8 @@
+ 	cmd("giveConsumable", "Items", "cheat", "Give", { min = 1, max = Config.CONSUMABLE_HELD_MAX, default = 5 }),
+ 	cmd("spawnSlime", "Spawn", "cheat", "Spawn on a pad", { min = 1, max = Config.MAX_TIER, default = 1 }),
+ 	cmd("hatchEggs", "Spawn", "cheat", "Hatch my eggs now"),
++	cmd("vidFake", "Spawn", "cheat", "vid fake", { min = 1, max = 100000, default = 2001 }),
++	cmd("vidSpawn", "Spawn", "cheat", "vid spawn"),
+ 	cmd("spawnWave", "Spawn", "admin", "Spawn wave", { min = 1, max = AdminCommands.MAX_WAVE, default = 8 }),
+ 	cmd("dropEgg", "Spawn", "admin", "Drop a Mystery Egg"),
+ 	cmd("luckEvent", "World", "admin", "Luck event", {

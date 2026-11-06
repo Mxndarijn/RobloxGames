@@ -96,6 +96,7 @@ BorderTerrain.PEAK_MAX_HEIGHT = 230 -- soft ceiling of the mountains (nobody can
 BorderTerrain.FAR_MAX_HEIGHT = 310 -- soft ceiling of the far mountains (v6)
 BorderTerrain.OUTER_MAX_HEIGHT = 120 -- soft ceiling of the outer ridge ring (v6)
 BorderTerrain.SNOW_LINE = 188 -- v6: snow starts about here (+-14 wander); only the tallest few mountains reach it
+BorderTerrain.ROCK_MIN_HEIGHT = 45 -- no bare Rock / Slate below this: on the low hills it showed as scabs from above
 BorderTerrain.PEAK_CLEAR = 90 -- Chebyshev studs past INNER where only the low land (<= MAX_HEIGHT) exists
 BorderTerrain.WINDOW = 3
 BorderTerrain.H_BUCKETS = 5
@@ -105,7 +106,7 @@ BorderTerrain.W_BUCKETS = 4
 -- the SlimeGrass variant darkens it into patches).
 BorderTerrain.COLORS = table.freeze({
 	Grass = { 162, 206, 118 },
-	LeafyGrass = { 106, 166, 84 }, -- v6: lighter, so the patches read as a soft tone change, not camouflage
+	LeafyGrass = { 138, 188, 100 }, -- close to Grass, so the patches read as a soft tone change, also from above
 	Rock = { 150, 138, 120 }, -- v6: the lit faces of the mountains
 	Slate = { 96, 90, 86 }, -- v6: the shaded faces (warm dark grey), so the mountains read faceted
 	Snow = { 244, 246, 250 }, -- v6: caps on the tallest few only
@@ -450,7 +451,7 @@ function BorderTerrain.field(seed: number?): Field
 		end
 		local rockLine = 62 + 40 * noise2(x / 90, z / 90, 13)
 		local cliff = 0.95 + 1.5 * smoothstep(30, 80, h)
-		if slope > cliff or h > rockLine then
+		if h >= BorderTerrain.ROCK_MIN_HEIGHT and (slope > cliff or h > rockLine) then
 			-- sun from the north-west: faces turned away from it (or creased by noise) are Slate
 			local lit = -(gx * -0.6 + gz * 0.8) / math.max(slope, 0.05)
 			local facet = (noise2(x / 34, z / 34, 29) - 0.5) * 0.9
