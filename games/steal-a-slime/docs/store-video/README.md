@@ -10,7 +10,7 @@ Merijn signs it off first (house rules 1–3); open [review.html](review.html) t
 | `steal-a-slime-store-video-draft-nocaptions.mp4` | **C**: the same footage, clean | no (gitignored, ~40 MB) |
 | `preview-720p.mp4`, `preview-720p-deco.mp4` | 1280×720 copies of A and B, for review.html | yes |
 | `contact-sheet.jpg`, `contact-sheet-deco.jpg` | 12 frames from A and from B | yes |
-| `end-before-after.jpg` | Merijn's draft-3 end-shot screenshot (left) and the draft-6 end frame (right) |
+| `end-before-after.jpg` | Merijn's draft-6 screenshot of the end shot (left) and the same moment in draft 7 (right) |
 | `before-after.jpg` | the same four moments, draft 2 capture (left) and draft 3 capture (right) | yes |
 | `reference-thumbnail.jpg` | one of the game's thumbnails, the style the captions copy | yes |
 | `render.py` | draws the captions and assembles the MP4s from captured frames | yes |
@@ -128,6 +128,10 @@ retake (release the carry, `prep_vat.py` for the merge).
   throwaway video build includes that change. The end shot is the normal video look again, no edge blur, and pulls
   back from two jar bases to the draft-3 height (~208 studs) over the whole map. Checked the top strip of the last
   frames at full size: no ripples, no rock scabs, no blotches. The end title now stays up to the last frame.
+- Draft 7 (Merijn: near the edges the grass disappears and sand shows). The green border band (Map.Field.FieldBand)
+  is a flat part 0.03 studs above terrain that `FloorTerrain` turns to Sand; from far away the depth test could not
+  separate them and the sand won. Fixed in the game on `fix/terrain-overhead` (the hidden terrain under the floor now
+  sits 2 studs lower) and re-shot the end shot on that build: the band stays green through the whole rise.
 
 ## What I could not get or check
 
