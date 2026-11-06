@@ -10,6 +10,7 @@ Merijn signs it off first (house rules 1–3); open [review.html](review.html) t
 | `steal-a-slime-store-video-draft-nocaptions.mp4` | **C**: the same footage, clean | no (gitignored, ~40 MB) |
 | `preview-720p.mp4`, `preview-720p-deco.mp4` | 1280×720 copies of A and B, for review.html | yes |
 | `contact-sheet.jpg`, `contact-sheet-deco.jpg` | 12 frames from A and from B | yes |
+| `end-before-after.jpg` | Merijn's draft-3 end-shot screenshot (left) and the draft-4 end shot (right) |
 | `before-after.jpg` | the same four moments, draft 2 capture (left) and draft 3 capture (right) | yes |
 | `reference-thumbnail.jpg` | one of the game's thumbnails, the style the captions copy | yes |
 | `render.py` | draws the captions and assembles the MP4s from captured frames | yes |
@@ -28,7 +29,7 @@ anyone else rebuilds them with `render.py` from re-captured frames.
 | 3.6–6.5 | s2 catch | By the fountain slide the player grabs a wild Mythic off the lane (real `grabWild`) and runs at the camera. | CATCH / WILD SLIMES! |
 | 6.5–10.1 | s3 rares | Orbit inside the player's base: Rainbow Celestial, Gold Secret, Divine "Goo God" (+$215K/s), Diamond Celestial, Gold Divine, with their pad labels and income. | SHINY / DIVINE SLIMES! |
 | 10.1–13.7 | s4 merge | Three Mythics in the merge vat finish brewing; the camera pushes in on the vat and the pad beside it as the brewed Secret appears (real `VatCollect`). | MERGE 3 / = RARER! |
-| 13.7–17.9 | s6 end | Crane up from the fountain to the whole map with all eight jar bases. | STEAL / A SLIME! (title, centre) |
+| 13.7–17.9 | s6 end | A slow rise over two jar bases near the fountain, mountains soft in the background. | STEAL / A SLIME! (title, centre) |
 
 ### Caption style
 
@@ -110,6 +111,14 @@ retake (release the carry, `prep_vat.py` for the merge).
      Now a slow push-in with the vat and the result pad side by side (1.3% mean).
   No `minterpolate` or frame blending was ever used; no z-fighting or missing / low-detail meshes found in the frames.
   The remaining "pops" in s1, s2 and s6 are fast but even camera moves over busy detail (checked as frame triplets).
+- Draft 4 end-shot fix (Merijn: "the ground etc, seems like a rendering issue"). The overhead crane looked down on
+  large areas of the border terrain from ~200 studs up. There the grass and rock terrain materials show as blotchy,
+  wavy patches with purple-grey rock spots: that is how those materials look from high above, already visible in the
+  ungraded draft-2 frames; draft 3's colour grade (more saturation, contrast, sharpening) made it much stronger.
+  Quality Level 21 was in effect (checked earlier with a Level 1 / Automatic / 21 comparison). Fix: the end shot no
+  longer flies high; it is a low, slow rise over two jar bases with a soft depth of field, like the thumbnails.
+  Other shots: s1 and s4 are inside bases (no open terrain); s2 and s3 show only a strip of distant hillside, softened
+  by the depth of field (s3's mountains still show faint grass patches on close inspection).
 - Every gameplay beat ran through the real server code: the steal and the wild catch through `Carry.grab`, the merge
   through `VatStart` / `VatCollect`. Server results were logged (all `ok`).
 - `ffprobe`: 1920×1080, 30 fps, 17.93 s, H.264 yuv420p, faststart.
@@ -119,6 +128,8 @@ retake (release the carry, `prep_vat.py` for the merge).
 - **Not watched as moving video by a person.** I judged motion from frame sequences and the difference check only.
 - **PvP bat bonk not in the cut.** A second real player can't join a hidden Studio without a visible window, and a
   stand-in owner has no character, so a bonk would have been a puppet; left out instead of faked.
+- **No whole-map shot any more.** The end shot shows two bases, not all eight, because the overhead view exposes the
+  terrain look above.
 - **Rebirth, Top Earners podium and boss shots not in the cut.** The boss was out during capture (it walks the
   lanes), but I ran out of time to stage it. Easy follow-ups with the same tools.
 - **The drop-off at home (slime lands on a pad and starts earning) was dropped.** The game deposits as soon as the

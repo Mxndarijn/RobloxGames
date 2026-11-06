@@ -199,13 +199,11 @@ def s4_cam(t):
 SHOTS["s4"] = {"dof": (15, 16, 0.1), "dur": 3.6, "cam": s4_cam, "hidechar": True, "server_frame": s4_server,
                "pre_req": '[["req","VatStart"]]', "pre_wait": 3}
 
-# ---- S6: end crane over the whole map ----
+# ---- S6: end shot, low over two jar bases (high overhead shots show the terrain materials as blotches) ----
 def s6_cam(t):
     u = smooth(t / 4.2)
-    a = math.radians(200 + 70 * (t / 4.2))
-    r = 70 + 150 * u
-    h = 18 + 190 * u
-    pos = [math.cos(a) * r, h, math.sin(a) * r]
-    at = [0, 6 - 6 * u, 0]
+    pos = lerp([20, 11, 42], [32, 22, 18], u)
+    at = lerp([56, 9, 106], [62, 11, 110], u)
     return pos, at
-SHOTS["s6"] = {"dur": 4.2, "cam": s6_cam, "hidechar": True}
+SHOTS["s6"] = {"dof": (90, 55, 0.25), "dur": 4.2, "cam": s6_cam, "hidechar": True,
+               "setup_client": "local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart hrp.Anchored = true hrp.CFrame = CFrame.new(-60, 4, -60) return {}"}
