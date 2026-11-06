@@ -73,7 +73,7 @@ cat publish-response.json   # expect HTTP 200 and {"versionNumber":N}
 - Gate pattern (`tools/livetest/gate.sh` in steal-a-slime-b0, untracked as of 2026-10-15): build → local checks (lune tests, selene, stylua, check-place) → upload **Saved** → Luau Execution live check of that saved version → upload the same bytes as **Published** only if the check passed. `PUBLISH=0` stops after the gate. Luau Execution needs the key to also have `universe.place.luau-execution-session` **write**; details in `roblox-live-testing.md`.
 - Retry `409 "Server is busy"`, `429` and `5xx` with backoff (seen 2026-10-15); fail on other codes.
 - The response contains only `versionNumber`; record it in PLAYTEST.md (version, date, `versionType`, commit) so testers know which build they're on.
-- Only publish when told to. Example: Steal a Slime, universe 10770917350, place 135787188192378 → v10 (commit `f7f7f38`).
+- Only publish when told to. Example: Steal a Slime, universe 10770917350, place 135787188192378 (the old experience, before the 2026-11-06 move) → v10 (commit `f7f7f38`). Today: universe 10774962286, place 105898249206841.
 
 ## 4. Static world (no void spawns)
 

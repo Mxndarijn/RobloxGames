@@ -4,7 +4,7 @@ Run our server code in a real Roblox server without Studio. Background and raw r
 
 ## Rules
 
-- **Target a dedicated test place, Saved versions only, never live.** Upload the build with `versionType=Saved` and pass `--version N`. Never test by publishing. The test place doesn't exist yet (waiting on Merijn); until it does, use Saved versions on place 135787188192378 (universe 10770917350) and set `PLACE_ID`/`UNIVERSE_ID` env once it exists.
+- **Target a dedicated test place, Saved versions only, never live.** Upload the build with `versionType=Saved` and pass `--version N`. Never test by publishing. The test place doesn't exist yet (waiting on Merijn); until it does, use Saved versions on place 105898249206841 (universe 10774962286) and set `PLACE_ID`/`UNIVERSE_ID` env once it exists.
 - **DataStores are real in a task.** Every script that boots the server sets `workspace.DataStoreMode = "Memory"` first (`live.luau`, `session.luau`, `playtest.luau` do). Never call DataStore APIs from a test.
 - **Key scope:** `universe.place.luau-execution-session:write` on the universe (get task/logs accept read or write). Key from env or `~/.config/roblox-ci.env`; never print it.
 - **Never `--shim`** as a gate (diagnosis only).

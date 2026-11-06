@@ -30,7 +30,7 @@ Exit 0 = pass, 1 = test failures, 2 = error (build, upload or task).
    `ServerStorage.CloudTests` (the staged specs). The project is generated
    in a temp dir with absolute `$path`s, so the checkout isn't touched.
    `world/*.rbxmx` are tracked, so `scripts/gen-world` doesn't need to run.
-3. **Upload Saved** to universe 10770917350 / place 135787188192378.
+3. **Upload Saved** to universe 10774962286 / place 105898249206841.
    409 / 429 / 5xx are retried with a 1, 2, 4, 8 min backoff (`UPLOAD_BACKOFF`).
 4. **Run** `tools/pipeline/cloud-tests.luau` through Open Cloud Luau
    Execution against *that* version
@@ -80,7 +80,7 @@ is in `$STATUS_DIR/<sha>.log`, including the task's own log lines.
   "started": "2026-10-16T10:45:00+02:00",
   "finished": "2026-10-16T10:46:10+02:00",
   "duration_s": 70,
-  "place": "10770917350/135787188192378",
+  "place": "10774962286/105898249206841",
   "saved_version": 31,
   "passed": 612, "failed": 0, "specs": 35,
   "skipped_specs": [{ "spec": "Contract.spec", "reason": "requires \"@lune/fs\" (Lune only)" }],

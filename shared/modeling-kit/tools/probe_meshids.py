@@ -1,6 +1,6 @@
 import os,json,time,requests,sys
 K=os.environ["ROBLOX_OPEN_CLOUD_API_KEY"];H={"x-api-key":K}
-U,P="10770917350","135787188192378"
+U,P="10774962286","105898249206841"
 ids=json.load(open(sys.argv[1]))
 lua="local IS=game:GetService('InsertService');local out={}\n"
 for n,v in ids.items():

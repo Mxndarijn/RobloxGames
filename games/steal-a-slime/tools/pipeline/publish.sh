@@ -53,8 +53,8 @@ SHA="${2:?usage: publish.sh <checkout-dir> <sha>}"
 GAME_DIR="$(cd "$CHECKOUT/${GAME_SUBDIR:-games/steal-a-slime}" && pwd)" || exit 2
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-UNIVERSE_ID="${UNIVERSE_ID:-10770917350}"
-PLACE_ID="${PLACE_ID:-135787188192378}"
+UNIVERSE_ID="${UNIVERSE_ID:-10774962286}"
+PLACE_ID="${PLACE_ID:-105898249206841}"
 PIPE="${PIPE_DIR:-/workspace/roblox/pipeline}"
 STATUS_DIR="${STATUS_DIR:-$PIPE/status}"
 STUDIO_REPORTS_DIR="${STUDIO_REPORTS_DIR:-$PIPE/studio-reports}"

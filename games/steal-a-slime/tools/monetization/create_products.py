@@ -1,4 +1,4 @@
-"""Create every Exclusive Shop Developer Product for Steal a Slime (universe 10770917350), once each.
+"""Create every Exclusive Shop Developer Product for Steal a Slime (apikey.UNIVERSE), once each.
 
 Reads products.json (dumped from Config: every product, the Exclusive bases included). Dry run unless --go. Ids go to
 created_ids.json (product:<key> -> id); a key already there is skipped, so a rerun resumes. The key is never printed.
@@ -7,7 +7,7 @@ Developer Products can only be bought inside the game, so they are created on sa
 import json, os, sys, time, requests
 sys.path.insert(0, os.path.dirname(__file__))
 
-U = "10770917350"
+from apikey import UNIVERSE as U
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "created_ids.json")
 data = json.load(open(os.path.join(HERE, "products.json")))

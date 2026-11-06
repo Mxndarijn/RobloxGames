@@ -12,7 +12,7 @@ Full guide: `/guides/roblox-live-testing.md`.
 | `lune run tools/livetest/zfight <place> [Workspace.Map] [eps]` | Lists coplanar overlapping Block faces, a static hint for z-fighting. |
 | `lune run tools/livetest/cloud-local <place> [cloud/smoke.luau]` | Dry-runs an Open Cloud Luau Execution script locally. Like in the cloud, the place's own Scripts don't start. |
 | `OUT=tools/livetest/results/boot-<ts>.json tools/livetest/cloud/run.sh tools/livetest/cloud/live.luau` | **Primary live check.** Luau Execution doesn't start place Scripts or physics, so `live.luau` requires the Server modules and replays the boot plus 60 s of the Heartbeat loop (memory DataStore). It then dumps JSON to `results/`: slimes, empty GUI texts, plot signs, unanchored/below-floor parts, volcano parts, attributes and errors. It shims the v10 SlimeMesh path if needed (`boot.shim`). |
-| `ROBLOX_OPEN_CLOUD_API_KEY=… tools/livetest/cloud/run.sh [script] [version]` | Runs `cloud/smoke.luau` in a real Roblox server for the published place, polls it and prints the logs and the JSON report. Needs a key with `luau-execution-session` **write** for universe 10770917350. |
+| `ROBLOX_OPEN_CLOUD_API_KEY=… tools/livetest/cloud/run.sh [script] [version]` | Runs `cloud/smoke.luau` in a real Roblox server for the published place, polls it and prints the logs and the JSON report. Needs a key with `luau-execution-session` **write** for universe 10774962286. |
 
 Files:
 - `Runtime.luau` is the fake engine: scheduler, signals and API shims.

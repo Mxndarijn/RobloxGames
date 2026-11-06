@@ -20,7 +20,7 @@ KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KIT)
 RECORD = os.path.join(KIT, "uploaded.json")
 MESH_ASSETS = os.path.join(KIT, "..", "..", "games", "steal-a-slime", "src", "shared", "MeshAssets.luau")
-UNIVERSE, PLACE = "10770917350", "135787188192378"  # tools/probe_meshids.py
+UNIVERSE, PLACE = "10774962286", "105898249206841"  # tools/probe_meshids.py
 
 
 def probe(prefixes):

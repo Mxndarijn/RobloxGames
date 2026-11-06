@@ -306,8 +306,8 @@ local function installShims()
 	storedProperty("BasePart", "AssemblyLinearVelocity", Vector3.zero)
 	storedProperty("BasePart", "AssemblyAngularVelocity", Vector3.zero)
 	storedProperty("DataModel", "JobId", "00000000-livetest-job")
-	storedProperty("DataModel", "PlaceId", 135787188192378)
-	storedProperty("DataModel", "GameId", 10770917350)
+	storedProperty("DataModel", "PlaceId", 105898249206841)
+	storedProperty("DataModel", "GameId", 10774962286)
 	storedProperty("DataModel", "PlaceVersion", 0)
 	storedProperty("DataModel", "CreatorId", 0)
 
@@ -513,8 +513,8 @@ function Runtime.new(placePath, opts)
 	for name, value in
 		{
 			JobId = "00000000-livetest-job",
-			PlaceId = 135787188192378,
-			GameId = 10770917350,
+			PlaceId = 105898249206841,
+			GameId = 10774962286,
 			PlaceVersion = 0,
 			CreatorId = 0,
 		}

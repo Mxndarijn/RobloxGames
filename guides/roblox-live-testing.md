@@ -2,7 +2,7 @@
 
 > **Restored 2026-10-15 from workspace notes after /guides loss; verify.** Sections 0–3, "Recommendation" and the three dated sections after it are the original text as of 2026-10-15 07:33Z, rebuilt by replaying Claude Code transcript edits. Sections 4–5 are new, written from `/workspace/roblox/live-testing/` (`ci/GUIDE-SECTION.md`, `ci/run.py`, `ci/cron.sh`, `ci/install-cron.sh`, `cc*.log`). Notes marked *[restore note]* were added during the restore.
 
-Tested 2026-10-15 on Steal a Slime v10 (universe 10770917350, place 135787188192378). Work files: `/workspace/roblox/live-testing/` (`static-report.md`, `export.luau`, `render.py`, `annotate.py`, `renders/`).
+Tested 2026-10-15 on Steal a Slime v10 (the old experience: universe 10770917350, place 135787188192378; the game moved to universe 10774962286, place 105898249206841 on 2026-11-06, see `docs/release-pipeline.md`). Work files: `/workspace/roblox/live-testing/` (`static-report.md`, `export.luau`, `render.py`, `annotate.py`, `renders/`).
 Toolchain setup: `/guides/roblox-toolchain-linux.md`. Build and publish: `/guides/roblox-build-and-publish.md`.
 
 Short version:
@@ -143,7 +143,7 @@ What `run.sh` does:
 - Exit codes: 0 = ok, 1 = checks failed, 2 = task failed or HTTP error.
 - The key is read from `ROBLOX_OPEN_CLOUD_API_KEY` and reaches curl on stdin (`-H @-`): never in argv, never on disk, never echoed.
 
-Raw API, for reference (the Luau Execution scope this uses is `universe.place.luau-execution-session:write` for universe 10770917350):
+Raw API, for reference (the Luau Execution scope this uses is `universe.place.luau-execution-session:write` for universe 10774962286):
 - Create: `POST https://apis.roblox.com/cloud/v2/universes/{u}/places/{p}[/versions/{v}]/luau-execution-session-tasks` with body `{"script": "...", "timeout": "300s"}`.
 - Poll: `GET https://apis.roblox.com/cloud/v2/{path}` until `state` is `COMPLETE`, `FAILED` or `CANCELLED`.
 - Read: `output.results` for the return values (exact shape not documented), and `GET {path}/logs`.
@@ -151,13 +151,13 @@ Raw API, for reference (the Luau Execution scope this uses is `universe.place.lu
 *[restore note] Superseded: the key got this scope on 2026-10-15 around 09:20, and v10/v11 tasks have run since then (see the dated sections and §4). The text below is kept as the reference for granting the scope to a new key.*
 
 **Status before 2026-10-15 09:20: 403.** The key got
-`PERMISSION_DENIED: required scope universe.place.luau-execution-session:10770917350:write is missing`.
+`PERMISSION_DENIED: required scope universe.place.luau-execution-session:10774962286:write is missing`.
 
 **What Merijn needed to do** (the scope is `universe.place.luau-execution-session:write`; Get task and logs accept read or write):
 1. Go to https://create.roblox.com/dashboard/credentials and open the **API Keys** tab.
 2. Open the existing publish key and choose **Edit**. Or create a separate key with **Create API Key**, which is better for least privilege.
 3. Under **Access Permissions**, open **Select API System** and add **luau-execution-sessions**. The label may read "Luau Execution Sessions".
-4. Pick the experience **Steal a Slime (10770917350)**.
+4. Pick the experience **Steal a Slime (10774962286)**.
 5. Under **Operations**, choose **Write**.
 6. Under **Security → Accepted IP Addresses**, either add the box's egress IP or `0.0.0.0/0` for any IP.
 7. Under **Expiration**, set a date or leave none. Keys unused for 60 days auto-expire.
@@ -220,7 +220,7 @@ What that means:
 
 ## Live boot run on v10 (09:31, `live.luau`)
 
-Result: `steal-a-slime-b0/tools/livetest/results/boot-20261015-093107.json`. Task `f2fd7537-…` on universe 10770917350, place 135787188192378, version 10. COMPLETE, 74 s. Earlier `live-20261015-092456.json` is the failed "re-enable the Script" attempt (proves it doesn't start).
+Result: `steal-a-slime-b0/tools/livetest/results/boot-20261015-093107.json`. Task `f2fd7537-…` on universe 10770917350, place 135787188192378 (the old experience), version 10. COMPLETE, 74 s. Earlier `live-20261015-092456.json` is the failed "re-enable the Script" attempt (proves it doesn't start).
 
 - **Boot as published fails.** `Shared is not a valid member of ServerScriptService` at `Server.SlimeMesh` line 24, then `WorldView` line 37 fails. In a real server that kills `init.server.luau` at `require(script.WorldView)`. Result: no Remotes, no WildSlimes folder, no props, no spawner. This is Merijn's **"no slimes"** (fixed at HEAD 15e3fef, not published).
 - **With the path shimmed** every boot step succeeds. 0 loop errors, 15 wild slimes after 60 s and 20 after a forced rain, all tagged and anchored on the ground in the 35–62 stud ring (one caught mid-drop from the crater). `SlimeLook = Mesh`, `SlimeRain = true` / `RainActive = true` during rain, 4 Remotes.
@@ -267,7 +267,7 @@ This is web research only: no accounts created, nothing bought. Prices are on-de
 - `roblox://placeId=<id>&launchData=<string>` (app) or `https://www.roblox.com/games/start?placeId=<id>` (via browser).
 - Other parameters: `accessCode` / `linkCode` (private server), `gameInstanceId` (JobId), `launchData` (≤200 bytes, read with `Player:GetJoinData()`).
 - Roblox marks this method **deprecated** in favour of share links, but it is still documented. https://create.roblox.com/docs/production/promotion/deeplinking
-- From PowerShell: `Start-Process "roblox://placeId=135787188192378"`. This should work because Windows opens registered URI protocols, but it hasn't been tested here.
+- From PowerShell: `Start-Process "roblox://placeId=105898249206841"`. This should work because Windows opens registered URI protocols, but it hasn't been tested here.
 
 **Screenshots**
 - PowerShell: `System.Windows.Forms.Screen` bounds plus `Graphics.CopyFromScreen`. https://www.pdq.com/blog/capturing-screenshots-with-powershell-and-net/
@@ -356,7 +356,7 @@ Keep Luau Execution (with a bootstrap in the task script, see above) as the head
 PoC by Archer-overflow (cc opus), in `/workspace/roblox/live-testing/ci/`: `run.py`, `playtest.luau`, `probe.luau`, `GUIDE-SECTION.md` (the full write-up), and `result-*.json`. Nothing was published, uploaded or bought.
 
 ### What it does
-`run.py` is stdlib-only Python. It posts `playtest.luau` as a Luau Execution task against the latest **published** version of place 135787188192378, or `--version N`. It never uploads or publishes. It then polls the task and writes `result-<UTC ts>.json` with `ok`, `placeVersion`, `loopSeconds`, `assertions[]`, logs and the report. The key comes from `ROBLOX_OPEN_CLOUD_API_KEY` only and is sent only as the `x-api-key` header.
+`run.py` is stdlib-only Python. It posts `playtest.luau` as a Luau Execution task against the latest **published** version of place 105898249206841, or `--version N`. It never uploads or publishes. It then polls the task and writes `result-<UTC ts>.json` with `ok`, `placeVersion`, `loopSeconds`, `assertions[]`, logs and the report. The key comes from `ROBLOX_OPEN_CLOUD_API_KEY` only and is sent only as the `x-api-key` header.
 
 ```bash
 cd /workspace/roblox/live-testing/ci
@@ -446,7 +446,7 @@ Render tooling in `/workspace/roblox/live-testing/` (a Blender approximation, no
 The flow every release candidate goes through. Nothing in it publishes.
 
 ### Prerequisites
-- **Key scope.** Luau Execution needs `universe.place.luau-execution-session:write` on universe 10770917350 (granted 2026-10-15; see §2 for how to add it). Without it, task creation returns 403 `PERMISSION_DENIED: required scope universe.place.luau-execution-session:10770917350:write is missing`. Uploads need the separate `universe-places:write` scope the publish key already had.
+- **Key scope.** Luau Execution needs `universe.place.luau-execution-session:write` on universe 10774962286 (granted 2026-10-15; see §2 for how to add it). Without it, task creation returns 403 `PERMISSION_DENIED: required scope universe.place.luau-execution-session:10774962286:write is missing`. Uploads need the separate `universe-places:write` scope the publish key already had.
 - `ROBLOX_OPEN_CLOUD_API_KEY` in the environment. Never echo, print or log it. All our tools send it as a header via stdin (curl `-H @-`) or `urllib` only.
 
 ### Boot the game yourself
@@ -464,7 +464,7 @@ rojo build -o /tmp/place.rbxl
 lune run tests && selene src tests && stylua --check src tests
 lune run scripts/check-place /tmp/place.rbxl
 # 2. upload as Saved (does NOT go live); note versionNumber N from the JSON response
-#    POST https://apis.roblox.com/universes/v1/10770917350/places/135787188192378/versions?versionType=Saved
+#    POST https://apis.roblox.com/universes/v1/10774962286/places/105898249206841/versions?versionType=Saved
 #    tools/livetest/gate.sh does 1+2+live.luau in one go and stops after the gate (it has no publish step).
 # 3. live checks on that exact version
 cd /workspace/roblox/live-testing/ci

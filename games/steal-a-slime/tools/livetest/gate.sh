@@ -20,8 +20,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 export PATH="$HOME/.local/bin:$PATH"
-UNIVERSE_ID="${UNIVERSE_ID:-10770917350}"
-PLACE_ID="${PLACE_ID:-135787188192378}"
+UNIVERSE_ID="${UNIVERSE_ID:-10774962286}"
+PLACE_ID="${PLACE_ID:-105898249206841}"
 RESULTS=tools/livetest/results
 TS="$(date +%Y%m%d-%H%M%S)"
 

@@ -1,11 +1,14 @@
 # Exclusive Shop: Robux products and passes
 
-**Created (2026-10-29):** every Developer Product (121, with the Exclusive bases) and the 7 Game Passes exist on
-Roblox for universe 10770917350, made with `tools/monetization` (Open Cloud). Their ids are in
+**Recreated (2026-11-06) in the new experience:** the game moved to universe 10774962286 (`docs/release-pipeline.md`), so
+all 117 Developer Products and the 8 Game Passes were made again there with `tools/monetization` (Open Cloud), with the
+same names, prices and descriptions and the approved style B store icons (`docs/shop-icons/upload.py`). Their ids are in
 `src/shared/ExclusiveIds.luau`; `tools/monetization/created_ids.json` is the record. The passes were created off
 sale: turn them on sale on the Creator Dashboard once a version with their ids is published. The Slime Club
-subscription (EXP-8257242520182981195, 99 Robux a month, Durable, regional pricing) was created on the Dashboard (no
-API) and is Inactive: activate it after that publish too. The tables below are the first set's original sheet.
+subscription (EXP-6021486294711009790, 99 Robux a month, Durable) was created by Merijn on the Dashboard for the new
+experience (subscriptions have no API) and is in `created_ids.json` as `sub:SlimeClub`. Activate it after the first
+publish, together with putting the 8 passes on sale. The old experience's ids (universe 10770917350, first created 2026-10-29) are in
+`tools/monetization/created_ids.old-10770917350.json`, and the Id column below still shows them. The tables below are the first set's original sheet.
 
 ## Developer Products: clouds, bundle, quick-buys (27)
 
