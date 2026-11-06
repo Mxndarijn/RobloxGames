@@ -8,16 +8,20 @@
 	ContentProvider has fetched the world's meshes, the terrain ColorMaps and
 	the HUD's images. Without it the world showed grey primitives and
 	untextured terrain that filled in over the first seconds. LoadingGate
-	decides the bar, the label and when to lift; the screen never holds a
+	decides the bar, the tip and when to lift; the screen never holds a
 	player longer than LoadingGate.MAX_WAIT and offers a skip button.
-	LoadingScreen draws it; this script only wires it to LoadingGate.
+	LoadingScreen draws it; this script only wires it to LoadingGate. Each
+	frame the bar glides toward LoadingGate's target and the screen moves,
+	unless Roblox's Reduced Motion is on.
 ]]
 
 local ContentProvider = game:GetService("ContentProvider")
+local GuiService = game:GetService("GuiService")
 local MaterialService = game:GetService("MaterialService")
 local Players = game:GetService("Players")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local LoadingGate = require(script:WaitForChild("LoadingGate"))
@@ -29,7 +33,8 @@ ReplicatedFirst:RemoveDefaultLoadingScreen()
 
 local player = Players.LocalPlayer
 local screen = LoadingScreen.build()
-screen.setStatus(LoadingGate.LABELS.place)
+local firstTip = math.random(#LoadingGate.TIPS)
+screen.setStatus(LoadingGate.tip(0, firstTip))
 local camera = workspace.CurrentCamera
 screen.layout(if camera then camera.ViewportSize.Y else 720)
 screen.gui.Parent = player:WaitForChild("PlayerGui")
@@ -103,9 +108,15 @@ task.spawn(function()
 end)
 
 local started = os.clock()
+local target, shown = 0, 0
+local frames = RunService.RenderStepped:Connect(function(dt)
+	shown = LoadingGate.glide(shown, target, dt)
+	screen.setProgress(shown)
+	screen.animate(os.clock() - started, not (GuiService :: any).ReducedMotionEnabled)
+end)
 while true do
-	local view = LoadingGate.step(state, os.clock() - started)
-	screen.setProgress(view.progress)
+	local view = LoadingGate.step(state, os.clock() - started, firstTip)
+	target = view.progress
 	screen.setStatus(view.label)
 	screen.setSkip(view.canSkip)
 	screen.layout(screen.gui.AbsoluteSize.Y)
@@ -115,6 +126,13 @@ while true do
 	task.wait(0.1)
 end
 
+-- Let the bar finish filling before the fade (it glides fast once the target is 1).
+local finish = os.clock()
+while not skipped and target >= 1 and shown < 0.995 and os.clock() - finish < 0.5 do
+	task.wait()
+end
+frames:Disconnect()
+screen.setProgress(if skipped then shown else target)
 screen.fade(TweenService)
 task.wait(LoadingScreen.FADE)
 screen.gui:Destroy()
