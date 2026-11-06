@@ -1,0 +1,230 @@
+<title>Matte Sand</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* One reading column, same kit as lighting-look.html. Each section has its own option switcher. */
+:root {
+  --bg: #eef5f2;
+  --surface: #ffffff;
+  --ink: #0d2b2e;
+  --muted: #4f6b68;
+  --line: #d3e3de;
+  --accent: #1c8f6c;
+  --accent-soft: #d6f2e8;
+  --warn: #a8521c;
+  --warn-soft: #fbe8d8;
+  --code: #e2eeea;
+  --f-display: "Fredoka One", "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1a1c; --surface: #11262a; --ink: #e5f5f0; --muted: #9fbdb6; --line: #23413f;
+    --accent: #6cf2c2; --accent-soft: #143a33; --warn: #f2a56c; --warn-soft: #3a2616; --code: #1a3235;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1a1c; --surface: #11262a; --ink: #e5f5f0; --muted: #9fbdb6; --line: #23413f;
+  --accent: #6cf2c2; --accent-soft: #143a33; --warn: #f2a56c; --warn-soft: #3a2616; --code: #1a3235;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-weight: 600; font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 96px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 1040px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 50px); }
+h2 { font-size: 30px; margin: 64px 0 12px; }
+h3 { font-size: 22px; margin: 32px 0 6px; }
+p { margin: 0 0 12px; max-width: 68ch; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+.lede { font-size: 18px; color: var(--muted); margin-top: 14px; max-width: 64ch; }
+code { font-family: var(--f-mono); font-size: .85em; background: var(--code); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.note { font-size: 14px; color: var(--muted); }
+.callout { background: var(--warn-soft); border-radius: 14px; padding: 14px 18px; margin: 24px 0 0; max-width: 72ch; }
+.callout b { color: var(--warn); }
+.options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 20px 0 0; }
+.opt { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+.opt h4 { font-family: var(--f-display); font-weight: 400; font-size: 19px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tag { font-family: var(--f-mono); font-size: 12px; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 7px; }
+.opt p { font-size: 15px; color: var(--muted); margin: 0; }
+.switch { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding: 12px 0; margin-top: 24px; border-bottom: 1px solid var(--line); }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg button {
+  font: inherit; font-family: var(--f-display); font-size: 17px; color: var(--ink);
+  min-height: 44px; min-width: 64px; padding: 6px 16px; border-radius: 999px;
+  background: var(--surface); border: 2px solid var(--line); cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.seg button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.switch .hint { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+figure { margin: 12px 0 0; }
+figure img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.phone img { max-width: 844px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-display); font-weight: 400; font-size: 15px; }
+td code { white-space: nowrap; }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-top: 12px; }
+.decided { background: var(--surface); border: 2px dashed var(--line); border-radius: 14px; padding: 16px 18px; }
+ul { padding-left: 20px; max-width: 70ch; }
+li { margin-bottom: 6px; }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Steal a Slime · world look</div>
+  <h1>Make the sand less shiny</h1>
+  <p class="lede">Merijn: "can you make the sand not so reflecting". Real Studio screenshots, same spot for every option, at 13:00 (high sun) and 17:12 (low sun), in clear weather and in full snow. Pick one; only those values change.</p>
+
+  <div class="callout">
+    <b>Main cause, already fixed:</b> in the live game the three ground textures did not load ("Failed to load MaterialService.SlimeSand"). They belong to Merijn's account and had not been shared with the new Forgeborn experience. Without them the ground turns smooth white and mirrors the sun. They are now granted, so the next live server should look like "Now" below, not "Live before the grant". No publish is needed. The options A, B and C only polish the smaller shine that is left.
+  </div>
+
+  <section data-group="live">
+    <h2>Live before the grant vs. now</h2>
+    <p>"Live before the grant" is a Studio rebuild of what you saw: the same place with the three ground textures failing to load, which gives the same console error.</p>
+    <div class="switch" role="group" aria-label="Pick the live or the fixed look">
+      <div class="seg">
+        <button type="button" data-v="live" aria-pressed="true">Live before the grant</button>
+        <button type="button" data-v="base" aria-pressed="false">Now (textures load)</button>
+        <button type="button" data-v="A" aria-pressed="false">A</button>
+      </div>
+    </div>
+    <h3>Low sun</h3>
+    <figure><img data-spot="low-clear" alt="Path and sand toward a low sun" src="matte-sand/low-clear-live.jpg" width="1280" height="705"><figcaption></figcaption></figure>
+    <h3>Midday</h3>
+    <figure><img data-spot="high-clear" alt="The sand yard at midday" src="matte-sand/high-clear-live.jpg" width="1280" height="705"><figcaption></figcaption></figure>
+  </section>
+
+  <div class="callout">
+    <b>What still shines with the textures loaded:</b> the light yard and plaza you walk on is <b>terrain Sand</b>, and the dirt paths are <b>terrain Ground</b>. Their custom materials (<code>SlimeSand</code>, <code>SlimeGround</code>, <code>SlimeGrass</code>) only have a colour texture, so Roblox treats them as fairly smooth. With the sun low in front of you, a bright streak of sunlight shines off the path and sand. The big <code>FieldSand</code> part (SmoothPlastic) lies under the terrain and is not what you see.
+  </div>
+
+  <div class="options">
+    <div class="opt"><h4>Nothing more</h4><p>Keep the grant only. The ground looks like "Now": textured, with a small shine toward a low sun.</p></div>
+    <div class="opt"><h4>A <span class="tag">recommended</span></h4><p>Fully matte ground: a flat rough map (and a black metal map) on all three ground materials. Colours stay the same. Only the ground changes.</p></div>
+    <div class="opt"><h4>B</h4><p>A, plus the sand a bit darker and warmer (246,220,170 → 216,194,150), so the yard stops glowing near-white in the bright sun.</p></div>
+    <div class="opt"><h4>C</h4><p>A, plus the whole world's reflections 30% lower (<code>EnvironmentSpecularScale</code> 1 → 0.7). This also touches slimes, glass and props.</p></div>
+  </div>
+
+  <section data-group="low">
+    <h2>Low sun, looking into it</h2>
+    <p>This is where the reflection is strongest: the path and sand in front of the sun get a white shine streak.</p>
+    <div class="switch" role="group" aria-label="Pick an option for the low-sun shots">
+      <div class="seg">
+        <button type="button" data-v="base" aria-pressed="true">Now</button>
+        <button type="button" data-v="A" aria-pressed="false">A</button>
+        <button type="button" data-v="B" aria-pressed="false">B</button>
+        <button type="button" data-v="C" aria-pressed="false">C</button>
+      </div>
+      <p class="hint">Keys 0 to 3 also switch. Look at the path just left of the mailbox.</p>
+    </div>
+    <h3>Clear weather</h3>
+    <figure><img data-spot="low-clear" alt="Path and sand toward a low sun, clear weather" src="matte-sand/low-clear-base.jpg" width="1280" height="705"><figcaption></figcaption></figure>
+    <h3>Close-up of the shine</h3>
+    <figure><img data-spot="zoom-clear" alt="Close-up of the path where the sun shines off it" src="matte-sand/zoom-clear-base.jpg" width="800" height="400"><figcaption></figcaption></figure>
+    <h3>Snow</h3>
+    <figure><img data-spot="low-snow" alt="Same view in full snow" src="matte-sand/low-snow-base.jpg" width="1280" height="705"><figcaption></figcaption></figure>
+    <h3>Phone (844 × 390)</h3>
+    <figure class="phone"><img data-spot="phone-low-clear" alt="Same view at phone landscape size" src="matte-sand/phone-low-clear-base.jpg" width="844" height="390"><figcaption></figcaption></figure>
+  </section>
+
+  <section data-group="high">
+    <h2>High sun, the yard</h2>
+    <p>At midday the shine streak is small. Here the sand mostly looks very bright and pale, which is what option B is for. Slimes wander, so they differ between shots.</p>
+    <div class="switch" role="group" aria-label="Pick an option for the high-sun shots">
+      <div class="seg">
+        <button type="button" data-v="base" aria-pressed="true">Now</button>
+        <button type="button" data-v="A" aria-pressed="false">A</button>
+        <button type="button" data-v="B" aria-pressed="false">B</button>
+        <button type="button" data-v="C" aria-pressed="false">C</button>
+      </div>
+    </div>
+    <h3>Clear weather</h3>
+    <figure><img data-spot="high-clear" alt="The sand yard at midday, clear weather" src="matte-sand/high-clear-base.jpg" width="1280" height="705"><figcaption></figcaption></figure>
+    <h3>Snow</h3>
+    <figure><img data-spot="high-snow" alt="The sand yard at midday in full snow" src="matte-sand/high-snow-base.jpg" width="1280" height="705"><figcaption></figcaption></figure>
+  </section>
+
+  <h2>Your screenshot: the white grass</h2>
+  <p>In your screenshot the lawns and the green border band were white. Two things are going on:</p>
+  <ul>
+    <li><b>During Snow it is by design.</b> SnowGround turns grass and the yard white and puts a light frost on the paths.</li>
+    <li><b>After snow it can get stuck: that is a bug.</b> I let snow settle and then cleared it. The terrain went back to normal, but 41 of the 171 floor parts (lawns, the green band, the yard disc) stayed snow-white. The likely cause: SnowGround keeps those parts in a "weak" table, so Lua can forget some of them and never paints them back. This is a separate fix in <code>SnowGround</code>, not part of this change.</li>
+  </ul>
+
+  <h2>Exact values</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Setting</th><th>Now</th><th>A</th><th>B</th><th>C</th></tr></thead>
+      <tbody>
+        <tr><td>SlimeSand / SlimeGround / SlimeGrass RoughnessMap</td><td>none</td><td>flat white (rough 1)</td><td>flat white</td><td>flat white</td></tr>
+        <tr><td>… MetalnessMap</td><td>none</td><td>flat black (metal 0)</td><td>flat black</td><td>flat black</td></tr>
+        <tr><td>Terrain Sand colour (<code>GroundTerrain.COLORS.Sand</code>)</td><td><code>246,220,170</code></td><td><code>246,220,170</code></td><td><code>216,194,150</code></td><td><code>246,220,170</code></td></tr>
+        <tr><td>Lighting.EnvironmentSpecularScale</td><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td><td><code>0.7</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">The two 64 × 64 maps are already uploaded under Forgeborn (image ids 70760827109914 and 119839088508058), so the group game loads them without a grant. Nothing is published.</p>
+
+  <h2>What these shots do not show</h2>
+  <ul>
+    <li><b>Not checked on a real phone.</b> The phone shot is the Studio window at 844 × 390.</li>
+    <li><b>C on slimes:</b> slimes in the C shots look about the same to me, but I did not get a still close-up of one (they keep moving), and no Mythic was in view.</li>
+    <li>Rain, Starfall and night were not shot. Snow was pinned at full cover on the camera client.</li>
+    <li>The options were set from a test script in a Studio playtest; the real change goes into <code>default.project.json</code> (and <code>GroundTerrain</code> for B).</li>
+  </ul>
+
+  <h2>Decided</h2>
+  <div class="decided">
+    <p><b>Merijn picked "Texture fix only"</b> (2026-11-06). Built: the three ground ColorMaps are granted to the experience, and <code>tools/assets/check_assets.py</code> now checks and grants every asset id in <code>default.project.json</code> and <code>world/</code>, so a missing grant like this can't slip through again.</p>
+    <p>Not changed: no roughness or metal maps on the ground materials (A), no sand colour change (B), no lighting change (C). The two flat maps uploaded for the test (images 70760827109914 and 119839088508058, owned by Forgeborn) are not used.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var names = { live: "Live before the grant (textures failing)", base: "Now", A: "A (matte ground)", B: "B (matte + darker sand)", C: "C (matte + less reflection everywhere)" };
+  var groups = Array.prototype.slice.call(document.querySelectorAll("section[data-group]"));
+  groups.forEach(function (sec) {
+    var key = "matte-sand-" + sec.dataset.group;
+    var buttons = Array.prototype.slice.call(sec.querySelectorAll(".seg button"));
+    var imgs = Array.prototype.slice.call(sec.querySelectorAll("img[data-spot]"));
+    function show(v) {
+      buttons.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.v === v ? "true" : "false"); });
+      imgs.forEach(function (img) {
+        img.src = "matte-sand/" + img.dataset.spot + "-" + v + ".jpg";
+        img.parentNode.querySelector("figcaption").textContent = "Showing: " + names[v];
+      });
+      try { localStorage.setItem(key, v); } catch (e) {}
+    }
+    sec.show = show;
+    sec.buttons = buttons;
+    buttons.forEach(function (b) { b.addEventListener("click", function () { show(b.dataset.v); }); });
+    imgs.forEach(function (img) {
+      buttons.forEach(function (b) { new Image().src = "matte-sand/" + img.dataset.spot + "-" + b.dataset.v + ".jpg"; });
+    });
+    var saved = null;
+    try { saved = localStorage.getItem(key); } catch (e) {}
+    show(buttons.some(function (b) { return b.dataset.v === saved; }) ? saved : buttons[0].dataset.v);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var i = "0123".indexOf(e.key);
+    if (i === -1) return;
+    groups.forEach(function (sec) { if (sec.buttons[i]) sec.show(sec.buttons[i].dataset.v); });
+  });
+})();
+</script>
