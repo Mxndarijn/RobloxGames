@@ -1,0 +1,268 @@
+<!doctype html>
+<title>Loading screen proposal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column of option cards, each with a live in-game mockup (GooKit colours) and a PC/phone toggle. */
+:root{
+  --ink:#08262a;--bg:#0c3436;--bgdeep:#072426;--mint:#6cf2c2;--mintHi:#e6fff6;--mintLo:#2fbf92;--text:#f1fff9;--muted:#bfebdd;--glass:#d8fff1;
+  --page:#f5f1e6;--paper:#ffffff;--line:#d9d2bf;--body:#1f2a2b;--soft:#5b6b6b;--accent:#0e7f68;--warn:#c98a10;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--page:#0f1b1c;--paper:#162627;--line:#2b4243;--body:#e6f2ee;--soft:#9fb6b1;--accent:#6cf2c2;color-scheme:dark}
+}
+:root[data-theme="dark"]{--page:#0f1b1c;--paper:#162627;--line:#2b4243;--body:#e6f2ee;--soft:#9fb6b1;--accent:#6cf2c2;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--body);font:16px/1.5 Nunito,system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding-block:28px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:Fredoka,Nunito,sans-serif;font-weight:600;line-height:1.2;text-wrap:balance}
+h1{font-size:34px;margin:0 0 6px}
+h2{font-size:24px;margin:44px 0 10px;padding-top:12px;border-top:2px solid var(--line)}
+h3{font-size:20px;margin:0 0 6px}
+p{margin:8px 0;max-width:70ch}
+.lede{color:var(--soft);font-size:18px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:14px 0}
+.decided{border:2px solid var(--accent)}
+.pill{display:inline-block;font-weight:800;font-size:13px;padding:2px 10px;border-radius:99px;background:var(--accent);color:var(--paper);vertical-align:middle}
+.pill.warn{background:var(--warn);color:#fff}
+ul{margin:6px 0;padding-left:22px}
+li{margin:3px 0}
+.soft{color:var(--soft);font-size:15px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--soft)}
+.tablewrap{overflow-x:auto}
+.opt-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:99px;overflow:hidden}
+.toggle button{font:700 14px Nunito,sans-serif;border:0;background:transparent;color:var(--body);padding:6px 14px;min-height:36px;cursor:pointer}
+.toggle button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
+.toggle button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.cols{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+
+/* ---------- the screen mockup: --u is one Roblox px at the chosen screen size ---------- */
+.screen{container-type:inline-size;width:100%;max-width:100%;aspect-ratio:1280/720;border-radius:12px;border:3px solid var(--ink);overflow:hidden;position:relative;background:linear-gradient(var(--bg),var(--bgdeep));font-family:Fredoka,sans-serif}
+.screen[data-size="phone"]{aspect-ratio:740/360;max-width:560px}
+.screen .in{position:absolute;inset:0;--u:calc(100cqw / 1280)}
+.screen[data-size="phone"] .in{--u:calc(100cqw / 740)}
+.goo{container-type:size;position:absolute;left:0;right:0;top:0;height:min(24%, calc(50% - var(--u) * 112))}
+.goo .band{position:absolute;left:0;right:0;top:0;height:24%;background:var(--mint)}
+.drip{position:absolute;top:0;background:var(--mint);border-radius:0 0 999px 999px;transform:translateX(-50%);transform-origin:top center}
+.bub{position:absolute;border-radius:50%;background:var(--mint);opacity:.07;transform:translate(-50%,-50%)}
+.c{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;white-space:nowrap}
+.title{font-size:calc(var(--u)*64);color:var(--mint);-webkit-text-stroke:calc(var(--u)*3) var(--ink);paint-order:stroke fill;text-shadow:0 calc(var(--u)*6) 0 var(--ink);margin-top:calc(var(--u)*-60)}
+.bar{width:calc(var(--u)*420);height:calc(var(--u)*18);border-radius:99px;background:var(--ink);box-shadow:0 0 0 calc(var(--u)*3) rgba(108,242,194,.35);margin-top:calc(var(--u)*12);overflow:hidden}
+.fill{height:100%;width:0;border-radius:99px;background:linear-gradient(var(--mintHi),var(--mint) 45%,var(--mintLo));position:relative;overflow:hidden}
+.status{font:700 calc(var(--u)*20) Nunito,sans-serif;color:var(--muted);margin-top:calc(var(--u)*52)}
+.skip{width:calc(var(--u)*140);height:calc(var(--u)*52);margin-top:calc(var(--u)*112);border-radius:99px;border:calc(var(--u)*3) solid var(--ink);background:rgba(216,255,241,.12);color:var(--mint);font-size:calc(var(--u)*20);display:grid;place-items:center;opacity:0;transition:opacity .3s}
+.skip.on{opacity:1}
+.fadeall{transition:opacity .6s}
+.gone{opacity:0}
+
+/* A and B: goo that lives */
+.live .drip{animation:sway 3.2s ease-in-out infinite alternate}
+.live .drip:nth-child(3){animation-duration:2.6s}.live .drip:nth-child(5){animation-duration:3.8s}.live .drip:nth-child(6){animation-duration:2.9s}
+@keyframes sway{from{transform:translateX(-50%) scaleY(.88)}to{transform:translateX(-50%) scaleY(1.1)}}
+.blob{position:absolute;border-radius:50%;background:var(--mint);transform:translate(-50%,0);animation:fall 4.5s cubic-bezier(.5,0,1,1) infinite;opacity:0}
+@keyframes fall{0%,55%{opacity:0;top:var(--from)}60%{opacity:1;top:var(--from)}100%{opacity:1;top:110%}}
+.live .bub{animation:rise 9s linear infinite}
+.live .bub:nth-of-type(2n){animation-duration:12s}
+@keyframes rise{from{margin-top:0}to{margin-top:-60%}}
+.live .fill:after{content:"";position:absolute;top:0;bottom:0;width:35%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:shine 1.6s linear infinite}
+@keyframes shine{from{left:-40%}to{left:110%}}
+
+/* B: the slime on the bar */
+.rider{position:absolute;bottom:calc(var(--u)*14);left:0;transform:translateX(-50%)}
+.slime{width:calc(var(--u)*46);height:calc(var(--u)*36);background:#5fd36e;border:calc(var(--u)*3) solid var(--ink);border-radius:50% 50% 42% 42%/62% 62% 38% 38%;position:relative;animation:hop .55s ease-in-out infinite;transform-origin:bottom center}
+.slime:before,.slime:after{content:"";position:absolute;top:calc(var(--u)*11);width:calc(var(--u)*6);height:calc(var(--u)*8);background:var(--ink);border-radius:50%}
+.slime:before{left:calc(var(--u)*12)}.slime:after{right:calc(var(--u)*12)}
+@keyframes hop{0%,100%{transform:translateY(0) scale(1.15,.85)}45%{transform:translateY(calc(var(--u)*-16)) scale(.92,1.08)}}
+.barwrap{position:relative;margin-top:calc(var(--u)*12)}
+.barwrap .bar{margin-top:0}
+.tip{transition:opacity .35s}
+
+/* C: the ranch behind a goo frame */
+.ranch{position:absolute;inset:0;background:linear-gradient(#8fd8f0,#cdeff5 55%,#7cc86a 55%,#5aa851);opacity:0;transition:opacity 1.2s}
+.ranch.on{opacity:1}
+.ranch .pan{position:absolute;inset:0;width:200%;animation:pan 14s linear infinite alternate}
+@keyframes pan{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.hill{position:absolute;bottom:40%;width:40%;height:30%;background:#6dbb5f;border-radius:50% 50% 0 0}
+.jar{position:absolute;bottom:30%;width:7%;height:26%;border:calc(var(--u)*4) solid var(--ink);border-radius:20% 20% 12% 12%;background:rgba(220,250,255,.55)}
+.jar:after{content:"";position:absolute;left:18%;right:18%;bottom:8%;height:28%;border-radius:50% 50% 40% 40%;background:var(--c,#5fd36e)}
+.frame{position:absolute;inset:0;box-shadow:inset 0 0 0 calc(var(--u)*14) var(--mint),inset 0 0 0 calc(var(--u)*17) var(--ink)}
+.strip{position:absolute;left:0;right:0;bottom:0;height:calc(var(--u)*120);background:linear-gradient(transparent,rgba(7,36,38,.92) 35%)}
+.ctitle{position:absolute;left:50%;top:calc(var(--u)*40);transform:translateX(-50%);font-size:calc(var(--u)*48);color:var(--mint);-webkit-text-stroke:calc(var(--u)*3) var(--ink);paint-order:stroke fill;text-shadow:0 calc(var(--u)*5) 0 var(--ink);white-space:nowrap}
+.cbar{position:absolute;left:50%;bottom:calc(var(--u)*58);transform:translateX(-50%)}
+.cstatus{position:absolute;left:50%;bottom:calc(var(--u)*20);transform:translateX(-50%);font:700 calc(var(--u)*20) Nunito,sans-serif;color:var(--muted);white-space:nowrap}
+.cskip{position:absolute;right:calc(var(--u)*32);bottom:calc(var(--u)*34);margin:0}
+
+@media (prefers-reduced-motion: reduce){
+  .live .drip,.live .bub,.live .fill:after,.blob,.slime,.ranch .pan{animation:none}
+  .blob{display:none}
+}
+</style>
+
+<main>
+<h1>A better loading screen</h1>
+<p class="lede">Steal a Slime's join screen works, but it sits still for up to 25 seconds and has no slime on it. Three options to make it feel alive, from small to big.</p>
+
+<div class="card decided">
+  <h3>Decided <span class="pill">B</span></h3>
+  <p><strong>Option B, slime rides the bar.</strong> Merijn: "Build B", 2026-11-06. The five draft tips below ship as written until he changes them.</p>
+  <p class="soft">Built with a gold slime (Goo palette Gold) and the bar 24 px lower than now, so the hopping slime clears the title.</p>
+</div>
+
+<h2>What's wrong now</h2>
+<div class="cols">
+  <div>
+    <div class="screen" data-mock="now" data-size="pc"></div>
+  </div>
+  <div>
+    <ul>
+      <li><strong>Nothing moves.</strong> On a slow phone it looks frozen, and players leave.</li>
+      <li><strong>The bar jumps.</strong> 0 → 20% → 50%, then it creeps and sits at 99%.</li>
+      <li><strong>The text is technical.</strong> "Building the world...", "Loading textures..."</li>
+      <li><strong>No slime</strong> in a game called Steal a Slime.</li>
+    </ul>
+    <p class="soft">The look itself (teal, mint goo, title) is the Goo kit and stays in every option.</p>
+  </div>
+</div>
+
+<h2>The options</h2>
+
+<div class="card">
+  <div class="opt-head"><h3>A. Living goo <span class="pill">small</span></h3><span class="toggle" data-for="a"></span></div>
+  <div class="cols">
+    <div class="screen" data-mock="a" data-size="pc"></div>
+    <div>
+      <p>Same screen, but it moves: the drips stretch and sway, a drop falls now and then, bubbles rise, and a shine runs along the bar. The bar slides smoothly instead of jumping.</p>
+      <p class="soft">No new pictures or uploads. About half a day.</p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="opt-head"><h3>B. Slime rides the bar <span class="pill">recommended</span></h3><span class="toggle" data-for="b"></span></div>
+  <div class="cols">
+    <div class="screen" data-mock="b" data-size="pc"></div>
+    <div>
+      <p>Everything in A, plus a little slime hopping along the tip of the bar. The status line becomes one short tip that changes every 4 seconds.</p>
+      <p>The slime is drawn from Goo kit shapes, so it shows from the first frame, before any image could load. Its colour could be a random common slime each join.</p>
+      <p class="soft">No uploads. About a day. Tip wording needs your OK.</p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="opt-head"><h3>C. Peek at the ranch <span class="pill">big</span></h3><span class="toggle" data-for="c"></span></div>
+  <div class="cols">
+    <div class="screen" data-mock="c" data-size="pc"></div>
+    <div>
+      <p>Starts like B. Once the world has arrived, the teal opens into a slow camera pan over the ranch, inside a goo frame, with the bar at the bottom. It ends on your own base.</p>
+      <p class="soft">Most exciting, but the pan can show meshes that haven't loaded yet, which is the thing this screen exists to hide. Needs a camera hand-off to the player. Two to three days and a Studio check on a slow connection.</p>
+    </div>
+  </div>
+</div>
+
+<h2>Tips (for B and C)</h2>
+<p>Short, one at a time. Drafts, for you to change or cut:</p>
+<div class="tablewrap"><table>
+  <tr><th>Tip</th><th>Teaches</th></tr>
+  <tr><td>Lock your base to stop thieves</td><td>Base lock</td></tr>
+  <tr><td>Steal slimes from other bases</td><td>The core loop</td></tr>
+  <tr><td>Rarer slimes earn more cash</td><td>Rarity</td></tr>
+  <tr><td>Merge two slimes in the vat</td><td>Merge vat</td></tr>
+  <tr><td>Run the obby for a cash boost</td><td>Obby boost</td></tr>
+</table></div>
+
+<h2>Fixes in every option</h2>
+<ul>
+  <li>The bar glides to each new value and keeps creeping slowly, so it never looks stuck.</li>
+  <li>Friendly labels instead of "Loading textures..." (A keeps one label, B and C use tips), "Ready!" at the end.</li>
+  <li>Motion stops when Roblox's Reduced Motion setting is on (the game's own setting isn't loaded yet at this point).</li>
+  <li>Same load rules as now: 25 s at most, Skip after 6 s, 1 s minimum.</li>
+</ul>
+
+<h2>Not checked</h2>
+<ul>
+  <li>These are web mockups. Nothing is built in Studio yet; the real screen will be checked at all six layout sizes and on a phone screenshot before the PR.</li>
+  <li>Sizes follow the current screen's numbers (title 64 px, bar 420 px, Skip 140 × 52 px); the phone view uses a 740 × 360 screen.</li>
+</ul>
+</main>
+
+<script>
+(function(){
+  const DRIPS=[[.08,.11,.28],[.24,.13,.48],[.41,.09,.16],[.57,.12,.36],[.75,.14,.52],[.91,.09,.2]];
+  const BUBS=[[.1,.83,70],[.17,.91,34],[.84,.88,90],[.93,.75,40],[.73,.94,28]];
+  const TIPS=["Lock your base to stop thieves","Steal slimes from other bases","Rarer slimes earn more cash","Merge two slimes in the vat","Run the obby for a cash boost"];
+  const u=n=>`calc(var(--u)*${n})`;
+  function goo(){
+    // drips sized from the goo layer's height, like LoadingLook (fractions of its height)
+    let h='<div class="goo"><div class="band"></div>';
+    DRIPS.forEach(([x,w,hang])=>{h+=`<div class="drip" style="left:${x*100}%;width:${w*100}cqh;height:${(.24+hang)*100}%"></div>`});
+    return h+'</div>';
+  }
+  function bubs(){return BUBS.map(([x,y,s])=>`<div class="bub" style="left:${x*100}%;top:${y*100}%;width:${u(s)};height:${u(s)}"></div>`).join('')}
+  function blobs(){return [[.24,'14%'],[.75,'15%']].map(([x,f],i)=>`<div class="blob" style="left:${x*100}%;--from:${f};width:${u(16)};height:${u(16)};animation-delay:${i*2.2}s"></div>`).join('')}
+  const centre=(inner)=>`<div class="c">${inner}</div>`;
+  function build(el){
+    const kind=el.dataset.mock, live=kind!=='now';
+    let h=`<div class="in fadeall ${live?'live':''}">`+bubs()+goo()+(live?blobs():'');
+    if(kind==='c') h+=`<div class="ranch"><div class="pan">`+
+      [0,22,48,70].map(l=>`<div class="hill" style="left:${l}%"></div>`).join('')+
+      [[8,'#5fd36e'],[20,'#f2a3c7'],[34,'#ffd23f'],[52,'#7fb8ff'],[66,'#c49cff'],[82,'#5fd36e']].map(([l,c])=>`<div class="jar" style="left:${l}%;--c:${c}"></div>`).join('')+
+      `</div><div class="frame"></div><div class="strip"></div></div>`;
+    h+=centre(`<div class="title">Steal a Slime</div>`);
+    const bar=`<div class="bar"><div class="fill"></div></div>`;
+    if(kind==='b'||kind==='c') h+=centre(`<div class="barwrap">${bar}<div class="rider"><div class="slime"></div></div></div>`);
+    else h+=centre(bar);
+    h+=centre(`<div class="status tip"></div>`)+centre(`<div class="skip">Skip</div>`)+'</div>';
+    el.innerHTML=h;
+  }
+  document.querySelectorAll('.screen').forEach(build);
+  document.querySelectorAll('.toggle').forEach(t=>{
+    const el=document.querySelector(`.screen[data-mock="${t.dataset.for}"]`);
+    ['pc','phone'].forEach(s=>{const b=document.createElement('button');b.type='button';b.textContent=s==='pc'?'PC':'Phone';b.setAttribute('aria-pressed',String(s==='pc'));
+      b.onclick=()=>{el.dataset.size=s;t.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))};t.appendChild(b)});
+  });
+
+  // A pretend 9-second join, looped. "now" steps like LoadingGate; the options glide and creep.
+  const LOAD=9, HOLD=1.2;
+  const LABELS=[[0,'Loading the ranch...'],[1.5,'Building the world...'],[3,'Loading textures...']];
+  function stepped(t){ if(t>=LOAD) return 1; let p=0; if(t>=1.5)p+=.2; if(t>=3)p+=.3; if(t>=3) p+=.5*Math.min(1,Math.floor((t-3)/0.8)*0.8/6); return Math.min(p,.99)}
+  const shown=new Map();
+  let start=performance.now();
+  function frame(now){
+    let t=(now-start)/1000;
+    if(t>LOAD+HOLD+1.2){start=now;t=0;shown.clear()}
+    document.querySelectorAll('.screen').forEach(el=>{
+      const kind=el.dataset.mock, inn=el.querySelector('.in');
+      const target=stepped(t);
+      let p=target;
+      if(kind!=='now'){ let cur=shown.get(el)||0; const creep=t<LOAD?Math.min(.99,target+.06):1; cur+= (Math.max(cur,creep)-cur)*0.06; p=Math.min(cur,t<LOAD?.99:1); shown.set(el,p); }
+      el.querySelector('.fill').style.width=(p*100)+'%';
+      const rider=el.querySelector('.rider'); if(rider) rider.style.left=(p*100)+'%';
+      const st=el.querySelector('.status');
+      let label;
+      if(t>=LOAD) label='Ready!';
+      else if(kind==='b'||kind==='c') label=TIPS[Math.floor(t/4)%TIPS.length];
+      else if(kind==='a') label='Getting your ranch ready...';
+      else label=LABELS.filter(l=>t>=l[0]).pop()[1];
+      if(st.textContent!==label) st.textContent=label;
+      el.querySelector('.skip').classList.toggle('on',t>=6&&t<LOAD);
+      if(kind==='c'){
+        el.querySelector('.ranch').classList.toggle('on',t>=3);
+        const on=t>=3;
+        // move title, bar and text into the bottom strip once the ranch shows
+        el.querySelectorAll('.c').forEach((c,i)=>{c.style.transition='top .8s';c.style.top=on?['14%','80%','92%','80%'][i]:'50%';c.style.left=on&&i===3?'88%':'50%'});
+        el.querySelector('.title').style.fontSize=on?u(46):u(64);
+        el.querySelector('.goo').style.opacity=on?0:1;el.querySelector('.goo').style.transition='opacity .8s';
+        el.querySelectorAll('.c .status,.c .skip,.c .barwrap,.c .title').forEach(x=>{x.style.marginTop=on?'0':''});
+      }
+      inn.classList.toggle('gone',t>LOAD+HOLD);
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
