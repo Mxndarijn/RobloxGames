@@ -1,0 +1,4 @@
+Key,Source,Context,Example
+common.egg_name,{kind} Mystery Egg,,Lava Mystery Egg
+common.slime,{rarity} {name},,Rare Bubbles
+common.slime_shine,{shine} {rarity} {name},,Gold Rare Bubbles

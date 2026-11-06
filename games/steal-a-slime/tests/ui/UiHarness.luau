@@ -598,6 +598,16 @@ services.CollectionService = {
 	end,
 }
 services.Debris = { AddItem = function() end }
+-- ui/Text reads the language here: UiHarness.setLocale("pseudo") draws every catalog string in the long-text
+-- pseudo-language (Localize.pseudo); "en-us" (the default) is English.
+local localization = { RobloxLocaleId = "en-us" }
+function localization.GetAttribute(_self: any, _name: string): any
+	return nil
+end
+services.LocalizationService = localization
+function UiHarness.setLocale(localeId: string)
+	localization.RobloxLocaleId = localeId
+end
 -- ReplicatedStorage:WaitForChild("Shared") -> src/shared, "Visuals" -> src/visuals/shared, "Lib" -> shared/luau/src.
 local REPLICATED = {
 	Shared = "src/shared",

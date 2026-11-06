@@ -132,6 +132,12 @@
         }
       }
     },
+    "LocalizationService": {
+      "$className": "LocalizationService",
+      "Strings": {
+        "$path": "locale/Strings.csv"
+      }
+    },
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"

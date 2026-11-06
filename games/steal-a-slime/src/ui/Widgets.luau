@@ -51,8 +51,15 @@ Widgets.Theme = table.freeze({
 
 local Theme = Widgets.Theme
 
+-- Text classes the UI fills through ui/Text: Roblox's AutoLocalize stays off on them, so it neither
+-- translates a string a second time nor captures already-translated text into the cloud table.
+local TEXT_CLASSES = table.freeze({ TextLabel = true, TextButton = true, TextBox = true })
+
 function Widgets.create(className: string, props: { [string]: any }?, children: { Instance }?): any
 	local inst = Instance.new(className)
+	if TEXT_CLASSES[className] then
+		(inst :: any).AutoLocalize = false
+	end
 	local parent = nil
 	if props then
 		for key, value in props do
