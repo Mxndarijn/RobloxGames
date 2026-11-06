@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obby Thumbnail Picks</title>
+<style>
+  :root { --bg: #f4faf8; --card: #fff; --ink: #14302a; --muted: #4d6b64; --line: #d4e6e0; --accent: #12a57f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0f1a18; --card: #16241f; --ink: #e3f2ed; --muted: #9bb8b0; --line: #26413a; --accent: #3fd1a6; } }
+  :root[data-theme="dark"] { --bg: #0f1a18; --card: #16241f; --ink: #e3f2ed; --muted: #9bb8b0; --line: #26413a; --accent: #3fd1a6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 20px; margin: 32px 0 12px; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 760px) { .grid, .grid3 { grid-template-columns: 1fr; } }
+  figure { margin: 0; } figcaption { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  img { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+  b.pick { color: var(--accent); }
+  ul { padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Obby thumbnail: B picked</h1>
+  <p class="lead">Steal a Slime, the Goo Gauntlet sky course. 1920×1080, same style as the other thumbnails (Lilita One two-tone caption, mint slime drips, sparkles). Real game frames from a hidden Studio; nothing uploaded.</p>
+
+  <div class="card"><b>Decided:</b> pick B with "NEW OBBY / EVERY 30 MIN!" (Merijn, 2026-11-06, verbatim: "B, every 30 min"). Upload it as <code>thumb-B.jpg</code>.</div>
+  <div class="card">
+    <figure><img src="thumb-B.jpg" alt="Pick B: the player mid-jump over the goo pit, the zig-zag steps rising behind, caption NEW OBBY EVERY 30 MIN"><figcaption><b class="pick">B</b> Mid-jump from the side, the steps and the course rising behind. "NEW OBBY / EVERY 30 MIN!" (my pick: the most action, and it says what is new)</figcaption></figure>
+  </div>
+  <div class="card grid">
+    <figure><img src="thumb-A.jpg" alt="Pick A: the player jumping towards the camera, rolling goo balls on the slide behind, caption BEAT THE OBBY"><figcaption><b class="pick">A</b> Jumping at the camera, rolling goo balls behind. "BEAT THE OBBY!"</figcaption></figure>
+    <figure><img src="thumb-C.jpg" alt="Pick C: the player from behind over the goo pit, the course ahead to the finish, caption RANDOM OBBY"><figcaption><b class="pick">C</b> From behind, the course ahead to the finish arch. "RANDOM OBBY!"</figcaption></figure>
+  </div>
+
+  <h2>Caption options (on picture B)</h2>
+  <div class="card grid3">
+    <figure><img src="caption-every30.jpg" alt="Picture B with NEW OBBY EVERY 30 MIN"><figcaption>NEW OBBY / EVERY 30 MIN!</figcaption></figure>
+    <figure><img src="caption-random.jpg" alt="Picture B with RANDOM OBBY"><figcaption>RANDOM OBBY!</figcaption></figure>
+    <figure><img src="caption-beat.jpg" alt="Picture B with BEAT THE OBBY"><figcaption>BEAT THE OBBY!</figcaption></figure>
+  </div>
+  <p>Any picture can take any caption; tell me the combination.</p>
+
+  <h2>Next to an existing thumbnail</h2>
+  <div class="card grid">
+    <figure><img src="reference-thumbnail.jpg" alt="The existing STEAL A SLIME thumbnail"><figcaption>Existing thumbnail</figcaption></figure>
+    <figure><img src="thumb-B.jpg" alt="Obby pick B"><figcaption>Obby, pick B</figcaption></figure>
+  </div>
+
+  <h2>Not checked</h2>
+  <div class="card"><ul>
+    <li>Not seen at the small size of the game page tiles or on a phone.</li>
+    <li>The course is random: this one is just one rotation; players will see other sections.</li>
+    <li>The jumper is your own avatar (the Studio test player); the follow-pet cloud is hidden for these shots.</li>
+  </ul></div>
+</main>
+</body>
+</html>

@@ -223,3 +223,55 @@ def s6_cam(t):
     return pos, at
 SHOTS["s6"] = {"dur": 4.4, "cam": s6_cam, "hidechar": True,
                "setup_client": "local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart hrp.Anchored = true hrp.CFrame = CFrame.new(-60, 4, -60) return {}"}
+
+# ---- S5: the Goo Gauntlet sky course, hopping up the zig-zag steps ----
+OBBY_SETUP = PUPPET_SETUP.replace('local l2 = load("VidIdle", "rbxassetid://507766388")',
+    'local l2 = load("VidIdle", "rbxassetid://507766388")\nlocal l3 = load("VidJump", "rbxassetid://507765000")\nlocal l4 = load("VidFall", "rbxassetid://507767968")')
+STEPS = [(-2, 410.5, -9135), (2, 412.5, -9147), (-2, 416.5, -9159), (2, 418.5, -9171), (-2, 422.5, -9183), (2, 424.5, -9195)]
+HOP, LAND = 0.5, 0.12
+OB_T0 = 0.35  # run in on the first step before the first hop
+def s5_body(t):
+    """(pos, yaw, run weight, air 0..1 or None)"""
+    up = 3.0
+    if t < OB_T0:
+        a = [STEPS[0][0], STEPS[0][1] + up, STEPS[0][2] + 5]
+        b = [STEPS[0][0], STEPS[0][1] + up, STEPS[0][2]]
+        return lerp(a, b, t / OB_T0), -90, 1.0, None
+    tt = t - OB_T0
+    i = int(tt // (HOP + LAND))
+    f = tt - i * (HOP + LAND)
+    if i >= len(STEPS) - 1:
+        s = STEPS[-1]
+        return [s[0], s[1] + up, s[2]], -90, 0.6, None
+    s0, s1 = STEPS[i], STEPS[i + 1]
+    if f < HOP:
+        u = f / HOP
+        x = s0[0] + (s1[0] - s0[0]) * u
+        z = s0[2] + (s1[2] - s0[2]) * u
+        y = s0[1] + (s1[1] - s0[1]) * u + 4.5 * 4 * u * (1 - u) + up
+        return [x, y, z], math.degrees(math.atan2(s1[2] - s0[2], s1[0] - s0[0])), 0.0, u
+    return [s1[0], s1[1] + up, s1[2]], -90, 0.8, None
+_W5 = Walker(tau=0.08)
+def s5_client(t, k):
+    p, yaw, w, air = s5_body(t)
+    base = _W5.step(t, p, yaw, idle_w=1 - w)
+    jw = 0.0 if air is None else 1.0
+    jt = 0.0 if air is None else min(0.99, air * 0.9)
+    return base + """
+for _, tr in game.Players.LocalPlayer.Character.Humanoid.Animator:GetPlayingAnimationTracks() do
+	if tr.Name == "VidJump" then tr:AdjustWeight(math.max(%f, 0.001), 0) tr.TimePosition = %f * tr.Length tr:AdjustSpeed(0)
+	elseif tr.Name == "VidFall" then tr:AdjustWeight(0.001, 0)
+	elseif tr.Name == "VidRun" or tr.Name == "VidIdle" then if %f > 0.5 then tr:AdjustWeight(0.001, 0) end end
+end
+""" % (jw, jt, jw)
+def s5_track(t):
+    """the jumper's path without the hop arcs, eased: what the camera follows"""
+    pts = [s5_body(k / 30.0)[0] for k in range(max(0, int(t * 30) - 12), int(t * 30) + 13)]
+    return [sum(p[n] for p in pts) / len(pts) for n in range(3)]
+def s5_cam(t):
+    c = s5_track(t)
+    u = smooth(t / 3.0)
+    pos = [c[0] - 12 - 2 * u, c[1] + 1.5 + 1.5 * u, c[2] + 7 - 1 * u]
+    at = [c[0] + 2.5, c[1] + 1.0, c[2] - 8]
+    return pos, at
+SHOTS["s5"] = {"dof": (14, 6, 0.3), "dur": 3.0, "cam": s5_cam, "setup_client": OBBY_SETUP, "client_frame": s5_client}
