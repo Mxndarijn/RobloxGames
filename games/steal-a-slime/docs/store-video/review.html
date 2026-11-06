@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Store Video Review</title>
+<style>
+  :root {
+    --bg: #f4faf8; --card: #ffffff; --ink: #14302a; --muted: #4d6b64; --line: #d4e6e0;
+    --accent: #12a57f; --accent-ink: #ffffff; --warn: #b5651d; --warn-bg: #fff4e6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1a18; --card: #16241f; --ink: #e3f2ed; --muted: #9bb8b0; --line: #26413a;
+      --accent: #3fd1a6; --accent-ink: #0f1a18; --warn: #f0b070; --warn-bg: #2a2117;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1a18; --card: #16241f; --ink: #e3f2ed; --muted: #9bb8b0; --line: #26413a;
+    --accent: #3fd1a6; --accent-ink: #0f1a18; --warn: #f0b070; --warn-bg: #2a2117;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 32px 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  video { width: 100%; border-radius: 10px; background: #000; display: block; }
+  .tabs { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
+  .tabs button { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); font: inherit; cursor: pointer; }
+  .tabs button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .meta { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td.t { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tag { display: inline-block; font-size: 13px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); }
+  .ok { color: var(--accent); border-color: var(--accent); }
+  .no { color: var(--warn); border-color: var(--warn); }
+  .warn { background: var(--warn-bg); border: 1px solid var(--warn); border-radius: 12px; padding: 12px 16px; }
+  ul { padding-left: 20px; }
+  img { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Store-page video: draft 1</h1>
+  <p class="lead">Steal a Slime gameplay video for Creator Hub → Game details. 17.9 s, 1920×1080, 30 fps, no audio. Not uploaded: it needs your pick and OK first.</p>
+
+  <div class="card">
+    <div class="tabs" role="group" aria-label="Version">
+      <button type="button" data-v="a" aria-pressed="true">A · with captions</button>
+      <button type="button" data-v="b" aria-pressed="false">B · no captions</button>
+    </div>
+    <video id="vid" controls playsinline muted loop preload="metadata">
+      <source src="steal-a-slime-store-video-draft.mp4" type="video/mp4">
+      <source src="preview-720p.mp4" type="video/mp4">
+    </video>
+    <div class="meta" id="vmeta">Plays the full 1080p file when it is next to this page, else the 720p preview from git.</div>
+  </div>
+
+  <h2>Pick one</h2>
+  <ul>
+    <li><b>A</b>: captions (≥ 84 px) for viewers who watch muted, and a "STEAL A SLIME" title on the last shot.</li>
+    <li><b>B</b>: the same footage, clean.</li>
+    <li>Or ask for changes: a shot to drop, swap or add (see "Not in this cut" below), other caption words, a different avatar as the thief.</li>
+  </ul>
+
+  <h2>Storyboard</h2>
+  <div class="card scroll">
+    <table>
+      <thead><tr><th>Time</th><th>Planned beat</th><th>In this cut</th><th>Caption</th></tr></thead>
+      <tbody>
+        <tr><td class="t">0.0–3.6 s</td><td>Hook: sneak into another base, grab a rare slime</td><td><span class="tag ok">yes</span> Real steal of a neighbour's Rainbow Celestial, run out with it overhead</td><td>STEAL rare slimes</td></tr>
+        <tr><td class="t">3.6–6.5 s</td><td>Catch a wild slime</td><td><span class="tag ok">yes</span> Grab a wild Legendary on the lane by the fountain</td><td>Catch wild slimes</td></tr>
+        <tr><td class="t">–</td><td>It lands in your base and earns cash</td><td><span class="tag no">dropped</span> The game deposits at the base edge before the camera saw it; earning shows as +$/s labels in the next shot</td><td>–</td></tr>
+        <tr><td class="t">6.5–10.1 s</td><td>Rare slimes, Mythic to Divine, Gold/Diamond/Rainbow shines</td><td><span class="tag ok">yes</span> Orbit past Rainbow Celestial, Gold Secret, Divine "Goo God" (+$215K/s), Diamond Celestial, Gold Divine</td><td>Collect Divine and Rainbow slimes</td></tr>
+        <tr><td class="t">10.1–13.7 s</td><td>Merge vat brews a hybrid</td><td><span class="tag ok">yes</span> Three Mythics finish brewing, the result pops onto the pad (small on screen)</td><td>Merge for rarer slimes</td></tr>
+        <tr><td class="t">–</td><td>PvP bat bonk sends a stolen slime home</td><td><span class="tag no">not shot</span> Needs a second real player; a hidden Studio can't add one, and I did not want a faked puppet</td><td>–</td></tr>
+        <tr><td class="t">–</td><td>Rebirth, Top Earners podium or boss</td><td><span class="tag no">not shot</span> Ran out of time; the boss can be staged with the same tools</td><td>–</td></tr>
+        <tr><td class="t">13.7–17.9 s</td><td>End shot of the whole map with bases</td><td><span class="tag ok">yes</span> Crane up from the fountain over all eight jar bases</td><td>STEAL A SLIME</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Key frames</h2>
+  <img src="contact-sheet.jpg" alt="Twelve frames from the captioned cut: the steal, the wild catch, the rare slimes, the merge vat and the map crane">
+
+  <h2>Good to know</h2>
+  <div class="warn">
+    <ul>
+      <li>All footage is this game in Roblox Studio, on the in-memory test store. Gameplay ran through the real server code; the scene (rare slimes, three stand-in neighbours) was set up with the admin test cheats.</li>
+      <li>The thief is your own avatar (the Studio test player). Name and VIP tag are hidden.</li>
+      <li>I checked motion frame by frame and with a jump check, but no person has watched it as a moving video yet, and it has not been seen on a phone or in the Creator Hub player.</li>
+      <li>No sound by design (muted autoplay, no copyrighted music).</li>
+    </ul>
+  </div>
+</main>
+<script>
+  const files = { a: "steal-a-slime-store-video-draft.mp4", b: "steal-a-slime-store-video-draft-nocaptions.mp4" };
+  const vid = document.getElementById("vid");
+  const meta = document.getElementById("vmeta");
+  document.querySelectorAll(".tabs button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+      const v = btn.dataset.v;
+      vid.innerHTML = "";
+      const s1 = document.createElement("source"); s1.src = files[v]; s1.type = "video/mp4"; vid.appendChild(s1);
+      if (v === "a") { const s2 = document.createElement("source"); s2.src = "preview-720p.mp4"; s2.type = "video/mp4"; vid.appendChild(s2); }
+      vid.load();
+      vid.play().catch(() => {});
+    });
+  });
+  vid.addEventListener("error", () => { meta.textContent = "Version B is only in the full-quality file on the PC that rendered it (not in git)."; }, true);
+</script>
+</body>
+</html>
