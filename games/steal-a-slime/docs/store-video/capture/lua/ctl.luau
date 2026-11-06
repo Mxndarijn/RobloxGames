@@ -29,6 +29,7 @@ RunService:BindToRenderStep("VidCam", Enum.RenderPriority.Last.Value + 2, functi
 		end
 		for _, d in workspace:GetDescendants() do
 			if d:IsA("BillboardGui") then d.Enabled = false
+			elseif d:IsA("SurfaceGui") and d:FindFirstAncestor("Plots") and string.find(d:GetFullName(), "Sign") then d.Enabled = false
 			elseif d:IsA("ProximityPrompt") then d.Enabled = false end
 		end
 	end

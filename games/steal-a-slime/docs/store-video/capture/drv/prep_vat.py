@@ -12,13 +12,13 @@ r = req([["eval", """return function(world, player, now)
   local s = world.sessions[player.UserId]
   local new = {}
   for _, sl in s.data.slimes do
-    if sl.pad == 7 then sl.pad = 20 end
+    if sl.pad == 1 then sl.pad = 20 end
   end
   for _, sl in s.data.slimes do
     if sl.tier == 6 and sl.pad and sl.pad >= 9 then table.insert(new, sl) end
   end
   table.sort(new, function(a, b) return a.pad < b.pad end)
-  new[1].pad = 7
+  new[1].pad = 1
   s.dirty = true require(script.World).markAllDirty(world)
   return {new[1].id, new[2].id, new[3].id}
 end"""]])

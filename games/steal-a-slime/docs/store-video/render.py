@@ -190,7 +190,9 @@ def load_frame(path):
     nw, nh = math.ceil(im.width * scale), math.ceil(im.height * scale)
     im = im.resize((nw, nh), Image.LANCZOS)
     left, top = (nw - W) // 2, (nh - H) // 2
-    return im.crop((left, top, left + W, top + H)).convert("RGBA")
+    im = im.crop((left, top, left + W, top + H))
+    im = im.filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))  # undo the capture's JPEG softness
+    return im.convert("RGBA")
 
 
 def main():
@@ -257,7 +259,7 @@ def main():
         if not sample:
             dst = os.path.join(a.out, names[variant])
             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", os.path.join(tmp, "f%04d.png"),
-                            "-c:v", "libx264", "-preset", "slow", "-crf", "19", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                            "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
                             dst], check=True)
             print("wrote", dst, n, "frames")
         shutil.rmtree(tmp, ignore_errors=True)

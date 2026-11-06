@@ -75,12 +75,13 @@ def s1_cam(t):
     pos = lerp([113, 10, 92], [107, 8.5, 89], u)
     at = lerp([95, 4.5, 79], [86, 5.5, 83], smooth((t - 1.6) / 2.0))
     return pos, at
-SHOTS["s1"] = {"dur": 3.6, "cam": s1_cam, "setup_client": PUPPET_SETUP, "client_frame": s1_client, "server_frame": s1_server}
+SHOTS["s1"] = {"dof": (18, 18, 0.12), "dur": 3.6, "cam": s1_cam, "setup_client": PUPPET_SETUP, "client_frame": s1_client, "server_frame": s1_server}
 
 SHOTS["test"] = {"dur": 2.0, "keys": [(0, [-30, 8, 100], [0, 4, 140]), (2.0, [-14, 7, 108], [0, 4, 140])]}
 
 # ---- S2: catch a wild Legendary on the lane ----
-_W = [x for x in json.load(open(os.path.join(os.path.dirname(__file__), "wild.json"))) if x["id"].startswith("ad0e78e1")][0]
+_WILD_ALL = json.load(open(os.path.join(os.path.dirname(__file__), "wild.json")))
+_W = ([x for x in _WILD_ALL if x["id"].startswith(os.environ.get("WILD_ID", "-"))] or _WILD_ALL)[0]  # WILD_ID = id prefix
 WILD = _W["id"]
 P0, H = (_W["p"][0], _W["p"][2]), tuple(_W["h"])
 PERP = (-H[1], H[0]) if (-H[1] * 0 + H[0] * 1) > 0 else (H[1], -H[0])
@@ -132,7 +133,7 @@ def s2_cam(t):
     pos = [base[0], 7.5 + 1.5 * smooth((t - 1.6) / 1.6), base[1]]
     at = [G[0] - PERP[0] * 3, 4.5, G[1] - PERP[1] * 3]
     return pos, at
-SHOTS["s2"] = {"dur": 3.2, "cam": s2_cam, "setup_client": PUPPET_SETUP, "client_frame": s2_client, "server_frame": s2_server}
+SHOTS["s2"] = {"dof": (20, 22, 0.12), "dur": 3.2, "cam": s2_cam, "setup_client": PUPPET_SETUP, "client_frame": s2_client, "server_frame": s2_server}
 
 # ---- S2b: drop-off at home, slime lands on pad 5 ----
 HOME_LUA = """
@@ -167,18 +168,19 @@ def home_server(t, k):
 def home_cam(t):
     u = smooth(t / 2.6)
     return lerp([15, 7.5, 140], [12, 8.5, 134], u), lerp([-6, 4.5, 116], [-12, 4.5, 126], u)
-SHOTS["s2b"] = {"dur": 2.6, "cam": home_cam, "setup_client": PUPPET_SETUP, "client_frame": home_client, "server_frame": home_server}
+SHOTS["s2b"] = {"dof": (20, 20, 0.1), "dur": 2.6, "cam": home_cam, "setup_client": PUPPET_SETUP, "client_frame": home_client, "server_frame": home_server}
 
 # ---- S3: rare slimes on show, orbit inside my base ----
 def s3_cam(t):
-    a = math.radians(-70 + 110 * smooth(t / 3.6) * 0.15 + 110 * (t / 3.6) * 0.85)
+    # slow orbit: 40 degrees over the shot, a little further out than v1 (110 degrees at r 9 strobed)
+    a = math.radians(-55 + 40 * (0.15 * smooth(t / 3.6) + 0.85 * (t / 3.6)))
     c = (0, 140)
-    r = 9
+    r = 10
     pos = [c[0] + math.sin(a) * r, 6.0, c[1] + math.cos(a) * r]
     la = a + math.radians(25)
     at = [c[0] + math.sin(la) * 22, 4.2, c[1] + math.cos(la) * 22]
     return pos, at
-SHOTS["s3"] = {"dur": 3.6, "cam": s3_cam, "hidechar": True}
+SHOTS["s3"] = {"dof": (12, 10, 0.15), "dur": 3.6, "cam": s3_cam, "hidechar": True}
 
 # ---- S4: merge vat finishes a brew, the result appears on the first input's pad ----
 VAT_EVAL = "return function(world, player, now) local s = world.sessions[player.UserId] local v = s.data.vat v.endsAt = now() + 1.8 v.startedAt = now() - 3598 s.dirty = true require(script.World).markAllDirty(world) return {ends = v.endsAt} end"
@@ -189,15 +191,12 @@ def s4_server(t, k):
         return "workspace:SetAttribute('VidReq', '[[\"req\",\"VatCollect\"]]')"
     return ""
 def s4_cam(t):
-    pos = lerp([3, 9, 112], [-7, 7.5, 125], smooth((t - 0.6) / 2.2))
-    a0 = math.atan2(119 - pos[2], 11 - pos[0]); a1 = math.atan2(142 - pos[2], -22 - pos[0])
-    u = smooth((t - 1.2) / 1.1)
-    a = a0 + (a1 - a0) * u
-    d0 = math.hypot(11 - pos[0], 119 - pos[2]); d1 = math.hypot(-22 - pos[0], 142 - pos[2])
-    d = d0 + (d1 - d0) * u
-    at = [pos[0] + math.cos(a) * d, 4.0, pos[2] + math.sin(a) * d]
+    # vat and the first input's pad (pad 1, next to the vat) in one frame: a slow push-in, no whip pan
+    u = smooth(t / 3.6)
+    pos = lerp([-1, 8, 136], [2, 7.2, 132], u)
+    at = lerp([12, 4.2, 121], [16, 4.2, 125], smooth((t - 1.2) / 1.6))
     return pos, at
-SHOTS["s4"] = {"dur": 3.6, "cam": s4_cam, "hidechar": True, "server_frame": s4_server,
+SHOTS["s4"] = {"dof": (15, 16, 0.1), "dur": 3.6, "cam": s4_cam, "hidechar": True, "server_frame": s4_server,
                "pre_req": '[["req","VatStart"]]', "pre_wait": 3}
 
 # ---- S6: end crane over the whole map ----

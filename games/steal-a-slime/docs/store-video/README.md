@@ -5,11 +5,12 @@ Merijn signs it off first (house rules 1–3); open [review.html](review.html) t
 
 | File | What | In git |
 |---|---|---|
-| `steal-a-slime-store-video-draft.mp4` | **A**: 1920×1080, 30 fps, 17.9 s, H.264, no audio, thumbnail-style captions | no (gitignored, ~26 MB) |
-| `steal-a-slime-store-video-draft-deco.mp4` | **B**: A plus the slime-drip top border and twinkling sparkles | no (gitignored, ~26 MB) |
-| `steal-a-slime-store-video-draft-nocaptions.mp4` | **C**: the same footage, clean | no (gitignored, ~26 MB) |
+| `steal-a-slime-store-video-draft.mp4` | **A**: 1920×1080, 30 fps, 17.9 s, H.264, no audio, thumbnail-style captions | no (gitignored, ~40 MB) |
+| `steal-a-slime-store-video-draft-deco.mp4` | **B**: A plus the slime-drip top border and twinkling sparkles | no (gitignored, ~40 MB) |
+| `steal-a-slime-store-video-draft-nocaptions.mp4` | **C**: the same footage, clean | no (gitignored, ~40 MB) |
 | `preview-720p.mp4`, `preview-720p-deco.mp4` | 1280×720 copies of A and B, for review.html | yes |
 | `contact-sheet.jpg`, `contact-sheet-deco.jpg` | 12 frames from A and from B | yes |
+| `before-after.jpg` | the same four moments, draft 2 capture (left) and draft 3 capture (right) | yes |
 | `reference-thumbnail.jpg` | one of the game's thumbnails, the style the captions copy | yes |
 | `render.py` | draws the captions and assembles the MP4s from captured frames | yes |
 | `fonts/` | Lilita One (SIL Open Font License, `fonts/OFL.txt`) | yes |
@@ -24,9 +25,9 @@ anyone else rebuilds them with `render.py` from re-captured frames.
 | Time | Shot | What happens in game | Caption |
 |---|---|---|---|
 | 0.0–3.6 | s1 hook | The player runs into a neighbour's jar base and grabs their Rainbow Celestial (a real steal through the server's `Carry.grab`), turns and runs out with it overhead. | STEAL / RARE SLIMES! |
-| 3.6–6.5 | s2 catch | Wild slimes ride the fountain slide and roam the lanes; the player grabs a wild Legendary (real `grabWild`) and runs at the camera. | CATCH / WILD SLIMES! |
+| 3.6–6.5 | s2 catch | By the fountain slide the player grabs a wild Mythic off the lane (real `grabWild`) and runs at the camera. | CATCH / WILD SLIMES! |
 | 6.5–10.1 | s3 rares | Orbit inside the player's base: Rainbow Celestial, Gold Secret, Divine "Goo God" (+$215K/s), Diamond Celestial, Gold Divine, with their pad labels and income. | SHINY / DIVINE SLIMES! |
-| 10.1–13.7 | s4 merge | Three Mythics in the merge vat finish brewing; the camera pans to the first input's pad as the brewed slime appears (real `VatCollect`). | MERGE 3 / = RARER! |
+| 10.1–13.7 | s4 merge | Three Mythics in the merge vat finish brewing; the camera pushes in on the vat and the pad beside it as the brewed Secret appears (real `VatCollect`). | MERGE 3 / = RARER! |
 | 13.7–17.9 | s6 end | Crane up from the fountain to the whole map with all eight jar bases. | STEAL / A SLIME! (title, centre) |
 
 ### Caption style
@@ -63,8 +64,14 @@ the game is stepped by hand:
    camera (a scripted CFrame locked by `capture/lua/ctl.luau`, all HUD, billboards and prompts hidden) and poses the
    player character (position plus the R15 run/idle animation at a fixed time position), waits for the client to see
    the new time, and captures. So slime animations, wild slime walks, carries and the merge all move exactly one
-   frame per capture: no stutter (checked: no frame-to-frame jumps in any shot).
-4. `render.py` trims the shots, crops to 16:9, draws the captions (and in B the drips and sparkles) and joins the shots with hard cuts.
+   frame per capture. Particle emitters (sparkles, auras, glints) don't read the game clock, so each frame also sets
+   every emitter's `TimeScale` to (1/30 s) / (real time between captures), which steps them at video speed too.
+   `capture/lua/look.luau` sets the capture-only look on the client (draft 3): quality Level 21, mesh detail Level04,
+   `RenderFidelity = Precise` on every MeshPart, an extra ColorCorrection (saturation +0.2, contrast +0.12), half the
+   Atmosphere haze, half the Bloom, exposure -0.2, and a soft far depth of field on the close shots (`dof` in
+   `shots.py`). None of it touches the game's own `Lighting` in `src` or `world/`.
+4. `render.py` trims the shots, crops to 16:9, sharpens lightly (unsharp mask, the capture JPEGs are soft), draws the
+   captions (and in B the drips and sparkles) and joins the shots with hard cuts, x264 CRF 16 (~18 Mbit/s).
 
 ### Re-render
 
@@ -82,8 +89,9 @@ python ../../../../tools/pipeline/pc-watcher/studio_hidden.py close <pid>
 ```
 
 Shots are defined in `capture/drv/shots.py` (camera paths, character paths, the frame of the grab / collect).
-Slime ids and wild positions change every run, so s2 picks its wild slime from `wild.json` by id prefix: edit
-that prefix after running `wild.py`. A captured shot uses up its slime (stolen, caught, merged); re-stage before a
+Slime ids and wild positions change every run, so s2 picks its wild slime from `wild.json` by id prefix: run it as
+`WILD_ID=<prefix> python clip.py s2` after `wild.py` (the player needs rebirths for rare wild slimes: `scene.json`
+sets 20). A captured shot uses up its slime (stolen, caught, merged); re-stage before a
 retake (release the carry, `prep_vat.py` for the merge).
 
 ## What I checked
@@ -91,7 +99,17 @@ retake (release the carry, `prep_vat.py` for the merge).
 - Looked at every shot as contact sheets and at the final cuts (`contact-sheet.jpg`, `contact-sheet-deco.jpg`): no
   HUD, admin menu, output window, Studio chrome, name tags or debug text in frame; captions readable at 1080p.
 - Caption pop-in checked frame by frame (tiny, overshoot, settle) and compared side by side with a thumbnail.
-- Frame-to-frame difference over every shot: no jumps; the only ramp is the deliberate fast pan in s4.
+- Draft 3 "glitchy world" hunt (Merijn: "the world was glitchy, it did not look normal"). The draft-1 frames were
+  scored for one-frame pops (a frame that differs from the mean of its neighbours). Causes found and fixed:
+  1. **Particles ran in real time** while the game clock was stepped: each capture took ~1.5 s, so sparkles, auras
+     and glints jumped ~45 frames' worth between video frames and flickered (worst in s3, the rare-slime orbit:
+     9.6% of each frame popped). Fixed with the emitter `TimeScale` step above: s3 4.4%.
+  2. **s3 orbited 110° in 3.6 s** at 9 studs from the slimes, so close slimes swept across the frame like a strobe.
+     Now 40° at 10 studs.
+  3. **s4 had a whip pan** that swung the camera through the floor and the column for ~25 frames (pops up to 20%).
+     Now a slow push-in with the vat and the result pad side by side (1.3% mean).
+  No `minterpolate` or frame blending was ever used; no z-fighting or missing / low-detail meshes found in the frames.
+  The remaining "pops" in s1, s2 and s6 are fast but even camera moves over busy detail (checked as frame triplets).
 - Every gameplay beat ran through the real server code: the steal and the wild catch through `Carry.grab`, the merge
   through `VatStart` / `VatCollect`. Server results were logged (all `ok`).
 - `ffprobe`: 1920×1080, 30 fps, 17.93 s, H.264 yuv420p, faststart.
@@ -108,5 +126,4 @@ retake (release the carry, `prep_vat.py` for the merge).
   s3 through the pad income labels (+$/s) instead.
 - **Thief is Merijn's own avatar** (the Studio test player). His VIP member tag and name are hidden, but the
   avatar look is his. If that should not be on the store page, re-shoot with a different test avatar.
-- Merge result is small on screen (mid-distance pad); the caption carries it.
 - Not seen on a phone or in the Creator Hub player; no sound (by design); not uploaded (needs Merijn's OK).

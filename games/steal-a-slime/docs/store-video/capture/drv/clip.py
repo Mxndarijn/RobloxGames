@@ -4,6 +4,7 @@ import drv
 import shots
 
 FPS = 30
+LOOK = {"SAT": 0.2, "CON": 0.12, "BRI": -0.02, "HAZE": 0.5, "DENS": 0.85, "BLOOM": 0.5, "EXP": -0.2}
 
 def lerp(a, b, t): return [a[i] + (b[i] - a[i]) * t for i in range(3)]
 def ease(t): return t * t * (3 - 2 * t)
@@ -41,6 +42,11 @@ def run(name, start=0):
     ctl = open(os.path.join(os.path.dirname(__file__), "..", "lua", "ctl.luau")).read().replace("%%HIDECHAR%%", "true" if shot.get("hidechar") else "false")
     print("ctl", s.luau(drv.SID, ctl + "", datamodel="Client")[1])
     s.luau(drv.SID, "workspace:SetAttribute('VHideBB', %s) workspace:SetAttribute('VKeepGui', %s) return {}" % ("true" if shot.get("hidebb", True) else "false", repr(shot["keepgui"]) if shot.get("keepgui") else "nil"), datamodel="Client")
+    look = open(os.path.join(os.path.dirname(__file__), "..", "lua", "look.luau")).read()
+    for k, v in LOOK.items(): look = look.replace("%%" + k + "%%", str(v))
+    print("look", s.luau(drv.SID, look, datamodel="Client")[1])
+    dof = shot.get("dof", (0, 0, 0))
+    s.luau(drv.SID, "workspace:SetAttribute('VDof', Vector3.new(%s, %s, %s)) return {}" % dof, datamodel="Client")
     if shot.get("setup_server"):
         print("setup_server", s.luau(drv.SID, shot["setup_server"], datamodel="Server", timeout=120)[1])
     if shot.get("setup_client"):
@@ -48,7 +54,14 @@ def run(name, start=0):
     n = int(shot["dur"] * FPS)
     c0, v0 = base["c"], base["v"]
     t_start = time.time()
+    last = None
+    interval = 1.5
     for k in range(start, n):
+        now_real = time.time()
+        if last is not None:
+            interval = 0.7 * interval + 0.3 * (now_real - last)
+        last = now_real
+        ptscale = max(0.002, min(1.0, (1.0 / FPS) / interval))
         t = k / FPS
         dc = c0 + 1.0 / FPS * (k + 1)
         dv = v0 + 1.0 / FPS * (k + 1)
@@ -66,8 +79,12 @@ def run(name, start=0):
             local t0 = os.clock()
             while workspace:GetAttribute("VServer") ~= %r and os.clock() - t0 < 3 do RS.RenderStepped:Wait() end
             %s
+            local ts = %r
+            for _, d in workspace:GetDescendants() do
+                if d:IsA("ParticleEmitter") then d.TimeScale = ts end
+            end
             RS.RenderStepped:Wait() RS.RenderStepped:Wait()
-            return {}""" % (fmt(p), fmt(a), dv, cx)
+            return {}""" % (fmt(p), fmt(a), dv, cx, ptscale)
         ok, r, _ = s.luau(drv.SID, body, datamodel="Client")
         if not ok: print("client frame", k, r)
         drv.shot(s, os.path.join(out, "f%04d.jpg" % k))
