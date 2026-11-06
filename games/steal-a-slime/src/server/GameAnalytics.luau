@@ -69,6 +69,7 @@ GameAnalytics.CATALOG = table.freeze({
 		"LeftAfterRobbed", -- left within ROBBED_LEAVE_SECONDS of a SlimeLost; value = minutes since (field: losses this session)
 		"FirstTime", -- once per player (Constants.FIRST_TIMES); value = minutes played until then (field: which)
 		"RobuxPrompt", -- a Robux purchase prompt closed (fields: item, bought yes / no)
+		"BrokeTopUp", -- no slimes and too little cash: cash raised to BROKE_TOPUP_CASH; value = cash given (field: top-ups this session)
 	}),
 	currencies = table.freeze({ GameAnalytics.CURRENCY }),
 	progressions = table.freeze({ "Rebirth" }),
