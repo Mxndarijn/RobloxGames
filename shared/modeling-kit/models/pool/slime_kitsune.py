@@ -282,5 +282,6 @@ parts += f.parts
 # forehead flame mark
 flame = [(0, EV + 0.95), (0.07, EV + 0.75), (0.12, EV + 0.6), (0.06, EV + 0.5), (0, EV + 0.47), (-0.06, EV + 0.5),
          (-0.12, EV + 0.6), (-0.07, EV + 0.75)]
+face_part("Mark")  # the forehead flame is a face marking: shines keep it red
 parts.append(decal("Mark", flame, RED, FRONT, off=0.014, on=["Body"]))
 ship("slime_kitsune", parts)
