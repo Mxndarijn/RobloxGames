@@ -161,7 +161,7 @@ class Body:
       the top flat, for profiles that end in a point or a narrow top (round_top). Default DOME for
       the main "Body", 0 (keep the shape) for other names.
     sub: Catmull-Rom samples per profile segment (smooth from few points).
-    sx, sy: cross-section scale (x wide, y deep). lean(z) -> y offset. bump(a, z) -> radius factor add.
+    sx, sy: cross-section scale (x wide, y deep). lean(z) -> y offset. bump(a, z) -> radius factor add (a in -pi..pi, 0 front).
     color: base rgba, or paint(a, z, p) -> rgba for a pattern painted per corner (soft edges).
     bands: [(z0, z1, rgba)] crisp horizontal stripes (rings are inserted at z0/z1, painted per face).
     sectors: fn(a, z) -> rgba or None, crisp per-face colour (vertical stripes, cow patches...).
@@ -220,7 +220,10 @@ class Body:
 
     def point(self, a, z, extra=0.0):
         """surface point at yaw a (radians, 0 front) and height z (+extra studs radially)."""
-        r = self.radius(z) * (1 + self.bump(a, z)) + extra
+        # bump() gets a in -pi..pi, the same as paint(). _build walks the rings from 0 to 2pi, so without this
+        # a bump that tests abs(a) or degrees(a) went wrong on the slime's right side (Mammoth and Yeti
+        # had fur on half the face, Sphinx's headdress edge and Kitsune's cheek ruff were one-sided).
+        r = self.radius(z) * (1 + self.bump(math.atan2(math.sin(a), math.cos(a)), z)) + extra
         return Vector((math.sin(a) * r * self.sx, -math.cos(a) * r * self.sy + self.lean(z), z))
 
     def _build(self, segs):
