@@ -195,6 +195,7 @@ parts.append(pdecal("BackStar", star(0, 1.95, 0.62, 0.3), INK, frame=frame_at(18
 parts.append(pdecal("BackStarC", star(0, 1.96, 0.5, 0.24), lambda p, n: mix(G, GW, smoothstep(1.6, 2.4, p.z)), frame=frame_at(180), off=0.03, th=0.012, step=0.14))
 # sparkles
 for k, (x, y, z, sz) in enumerate([(-0.75, -0.6, 4.25, 0.2), (1.25, -0.9, 3.85, 0.18), (-2.05, -0.6, 2.6, 0.16)]):
+    not_face("Glint")  # floating sparkles, not eye glints
     parts.append(slab(f"Glint{k}", star(0, 0, sz, sz * 0.28, n=4), 0.05, (x, y, z), (1, 0, 0), (0, 0, 1), GW))
 
 if os.environ.get("TRI_DBG"):

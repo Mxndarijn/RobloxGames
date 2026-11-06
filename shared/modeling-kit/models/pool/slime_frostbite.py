@@ -45,6 +45,7 @@ for k, yaw in enumerate(range(28, 360, 38)):
 f = Face(b, eye_v=1.42, mouth_v=0.95, s=1.12)
 f.eyes("shades", color=hexc("1f4fb8")).mouth("smirk", w=1.35, color=hexc("1c3a7a"))
 parts += f.parts
+face_part("Flake")  # snowflake cheeks are face markings: shines keep them white
 for sd in (-1, 1):  # snowflake cheeks
     u, v = sd * 0.92, 1.05
     for j in range(3):

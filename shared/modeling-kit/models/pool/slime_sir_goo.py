@@ -73,6 +73,7 @@ parts.append(torus("HelmRim", b.radius(HZ) + 0.12, 0.09, (0, 0, HZ - 0.02), (0, 
 # nasal guard
 parts.append(decal("Nasal", [(-0.08, 1.45), (0.08, 1.45), (0.11, 2.05), (-0.11, 2.05)], metal(STEEL_D, STEEL, STEEL_L), FRONT, off=0.03, th=0.06, on=["Body"]))
 # visor: raised plate on the helmet front, a dark slit, rivets
+not_face("Visor")  # the helmet's visor, not a face visor: shines colour it
 vis = [(-0.78, 2.12), (0.78, 2.12), (0.7, 2.5), (0.3, 2.62), (-0.3, 2.62), (-0.7, 2.5)]
 parts.append(decal("Visor", vis, metal(STEEL_D, mix(STEEL, STEEL_L, 0.3), WHITE), FRONT, off=0.03, th=0.07, on=["Helmet"]))
 parts.append(decal("Slit", rect(0, 2.36, 1.1, 0.09), INK, FRONT, off=0.105, th=0.01, on=["Helmet"]))
