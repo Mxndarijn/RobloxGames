@@ -1,7 +1,7 @@
 # Obby thumbnail (picks)
 
 Three 1920×1080 thumbnails of the Goo Gauntlet sky course for the game page, in the style of the existing
-thumbnails. Open [review.html](review.html) to pick. **Not uploaded.**
+thumbnails. Open [review.html](review.html) to pick. **Decided: B** ("NEW OBBY / EVERY 30 MIN!", Merijn). **Not uploaded**: `thumb-B.jpg` is the file to upload.
 
 - `thumb-A.jpg`, `thumb-B.jpg`, `thumb-C.jpg`: the three picks; `caption-*.jpg`: every caption on picture B.
 - `make_thumbnails.py <stills-dir> <out-dir>` draws them from raw stills `A.jpg B.jpg C.jpg`, with the store
