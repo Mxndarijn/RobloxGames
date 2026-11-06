@@ -164,6 +164,10 @@ return table.freeze({
 	LABEL_TIER_ATTRIBUTE = "LabelTier", -- slime model: Config.RARITIES tier
 	LABEL_INCOME_ATTRIBUTE = "LabelIncome", -- slime model: cash per second of this slime
 	LABEL_STATUS_ATTRIBUTE = "LabelStatus", -- slime model: text that replaces the income row (a Mystery Egg's hatch countdown), else nil
+	-- slime model: LabelStatus / LabelName as a JSON Localize message (draw it in the player's language), nil when
+	-- the text needs no translation (a species name)
+	LABEL_STATUS_MESSAGE_ATTRIBUTE = "LabelStatusMessage",
+	LABEL_NAME_MESSAGE_ATTRIBUTE = "LabelNameMessage",
 	EGG_KIND_ATTRIBUTE = "EggKind", -- Mystery Egg model: Config.MYSTERY_EGG.KINDS id (contract/mystery-egg.md)
 	EGG_HATCH_AT_ATTRIBUTE = "EggHatchAt", -- Mystery Egg model: server time it is ready; nil while not incubating
 	EGG_HATCH_SECONDS_ATTRIBUTE = "EggHatchSeconds", -- Mystery Egg model: its kind's full incubation time

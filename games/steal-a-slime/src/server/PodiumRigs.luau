@@ -18,6 +18,7 @@ local GooBoard = require(ReplicatedStorage.Shared.GooBoard)
 local GooPalette = require(ReplicatedStorage.Shared.GooPalette)
 local PodiumAvatars = require(script.Parent.PodiumAvatars)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
+local WorldText = require(script.Parent.WorldText)
 
 local PodiumRigs = {}
 
@@ -171,7 +172,7 @@ local function label(rank: number, text: string)
 	local name, value = PodiumAvatars.splitLabel(text)
 	local nameLabel = canvas:FindFirstChild("Name") :: TextLabel
 	local valueLabel = canvas:FindFirstChild("Value") :: TextLabel
-	nameLabel.Text = name
+	WorldText.setMessage(nameLabel, "Text", WorldText.boardName(name)) -- "Hidden player" in the viewer's language
 	valueLabel.Text = value
 end
 

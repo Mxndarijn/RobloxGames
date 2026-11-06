@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 
 local Layout = require(script.Parent.Layout)
 local StealCardsLogic = require(script.Parent.StealCardsLogic)
+local Text = require(script.Parent.Text)
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
@@ -185,7 +186,7 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 		local subs: { string? } = {}
 		local parts = {}
 		for i, card in cards do
-			local who = if card.thief then ctx.playerName(card.thief) else card.name or "someone"
+			local who = if card.thief then ctx.playerName(card.thief) else card.name or Text.t("hud.steal.someone")
 			names[i] = who
 			-- Several cards: only the first keeps its hint line, so the stack stays short.
 			subs[i] = if i == 1 then StealCardsLogic.subtitle(card, who, now) else nil

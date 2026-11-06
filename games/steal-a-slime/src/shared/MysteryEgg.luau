@@ -19,6 +19,8 @@ local Genome = if script then require(script.Parent.Genome) else require("./Geno
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 local Types = if script then require(script.Parent.Types) else require("./Types")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
 
 type Data = PlayerData.Data
 
@@ -111,8 +113,17 @@ function MysteryEgg.guaranteed(data: Data, kind: EggKind.Kind): boolean
 end
 
 -- The lucky meter as the hatch prompt shows it: "Lucky 3/12".
+function MysteryEgg.meterMessage(data: Data, kind: EggKind.Kind): Localize.Message
+	return Localize.msg("world.egg.lucky_meter", {
+		count = math.min(MysteryEgg.misses(data, kind), kind.pity - 1),
+		max = kind.pity - 1,
+	})
+end
+
+-- The English of MysteryEgg.meterMessage: "Lucky 2/9".
 function MysteryEgg.meterText(data: Data, kind: EggKind.Kind): string
-	return `Lucky {math.min(MysteryEgg.misses(data, kind), kind.pity - 1)}/{kind.pity - 1}`
+	local Strings = if script then require(script.Parent.Strings) :: any else require("./Strings") :: any
+	return Localize.english(Strings.catalog, MysteryEgg.meterMessage(data, kind))
 end
 
 -- Starts the hatch clock of an egg that has none yet (its first pad) and fixes its hatch roll: `seed` (a whole

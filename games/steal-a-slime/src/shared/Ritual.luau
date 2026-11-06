@@ -16,6 +16,8 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
 
 export type Phase = "Idle" | "Charging" | "Cooldown"
 export type Candidate = { userId: number, x: number, y: number, z: number }
@@ -194,16 +196,34 @@ function Ritual.forget(state: State, userId: number)
 	state.blessed[userId] = nil
 end
 
--- The sign text: (title, line). `now` is the server clock.
-function Ritual.label(state: State, now: number): (string, string)
+-- shared/TaggedText (the English of a message), loaded on first use.
+local function english(message: any): string
+	local TaggedText = if script then require(script.Parent.TaggedText) :: any else require("./TaggedText") :: any
+	return TaggedText.english(message)
+end
+
+-- The orb's label as Localize messages: (title, line). `now` is the server clock.
+function Ritual.labelMessages(state: State, now: number): (Localize.Message, Localize.Text)
 	local r = Config.RITUAL
 	if state.phase == "Cooldown" then
 		local left = math.max(0, math.ceil(state.readyAt - now))
-		return "Ritual resting", string.format("%d:%02d", left // 60, left % 60)
+		return Localize.msg("world.ritual.resting"), string.format("%d:%02d", left // 60, left % 60)
 	elseif state.phase == "Charging" and state.chargeEndsAt then
-		return "Hold still!", `{state.count}/{r.MIN_PLAYERS} - {math.max(0, math.ceil(state.chargeEndsAt - now))}s`
+		return Localize.msg("world.ritual.hold_still"),
+			Localize.msg("world.ritual.charging", {
+				count = state.count,
+				max = r.MIN_PLAYERS,
+				seconds = math.max(0, math.ceil(state.chargeEndsAt - now)),
+			})
 	end
-	return "Slime Ritual", `{state.count}/{r.MIN_PLAYERS} players`
+	return Localize.msg("world.ritual.title"),
+		Localize.msg("world.ritual.players", { count = state.count, max = r.MIN_PLAYERS })
+end
+
+-- The English of Ritual.labelMessages: (title, line).
+function Ritual.label(state: State, now: number): (string, string)
+	local title, line = Ritual.labelMessages(state, now)
+	return english(title), english(line)
 end
 
 -- How far from the camera (studs) the orb's label still shows on a viewport `viewportHeight` px tall: shorter on a
@@ -226,20 +246,28 @@ function Ritual.signSpot(): (number, number)
 	return cx - ux * off + uz * side, cz - uz * off - ux * side
 end
 
-local function duration(seconds: number): string
+local function duration(seconds: number): Localize.Message
 	if seconds % 60 == 0 then
-		return `{seconds // 60} min`
+		return Localize.msg("world.ritual.minutes", { count = seconds // 60 })
 	end
-	return `{seconds}s`
+	return Localize.msg("world.ritual.seconds", { count = seconds })
 end
 
--- The explanation sign, generated from Config so it can't drift from the rules.
-function Ritual.signText(): string
+-- The explanation sign as a Localize message, generated from Config so it can't drift from the rules.
+function Ritual.signMessage(): Localize.Message
 	local r = Config.RITUAL
 	local percent = math.floor((r.BONUS[r.MIN_PLAYERS] or 0) * 100 + 0.5)
-	return `Slime Ritual: {r.MIN_PLAYERS} players stand here {r.HOLD_SECONDS}s = +{percent}% income for {duration(
-		r.BLESS_SECONDS
-	)}`
+	return Localize.msg("world.ritual.sign", {
+		players = r.MIN_PLAYERS,
+		hold = r.HOLD_SECONDS,
+		percent = percent,
+		duration = duration(r.BLESS_SECONDS),
+	})
+end
+
+-- The English of Ritual.signMessage.
+function Ritual.signText(): string
+	return english(Ritual.signMessage())
 end
 
 return table.freeze(Ritual)

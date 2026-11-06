@@ -12,10 +12,12 @@ local SlimeRoster = require("../src/shared/SlimeRoster")
 local Spawner = require("../src/server/Spawner")
 local SpeciesDex = require("../src/shared/SpeciesDex")
 local Steal = require("../src/shared/Steal")
+local TaggedText = require("../src/shared/TaggedText")
 local TestRunner = require("./TestRunner")
 local TripleMerge = require("../src/shared/TripleMerge")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+local en = TaggedText.english -- Dex hints are Localize messages; the specs read their English
 local T0 = ServerFixtures.T0
 
 local function blank(): SpeciesDex.Data
@@ -138,7 +140,7 @@ describe("SpeciesDex.view (State.dex)", function()
 		local data = blank()
 		data.found.gummy = true
 		local soda = entry(SpeciesDex.view(data, NOW, SOURCES), "soda")
-		expect(soda.hint).toBe("Fizzy, chewy and soft.")
+		expect(en(soda.hint)).toBe("Fizzy, chewy and soft.")
 		expect(table.concat(soda.ingredients :: { string }, ",")).toBe(",gummy,")
 		expect(soda.name).toBe("Soda Pop")
 		data.found.bubbles, data.found.mochi = true, true
@@ -164,7 +166,7 @@ describe("SpeciesDex.view (State.dex)", function()
 	end)
 	it("bosses say Defeat the boss event", function()
 		local boss = entry(SpeciesDex.view(blank(), NOW, SOURCES), "mecha_goo")
-		expect(boss.hint).toBe("Defeat the boss event")
+		expect(en(boss.hint)).toBe("Defeat the boss event")
 		expect(boss.name).toBe("Mecha Goo")
 	end)
 	it("event Secrets are all named; the featured and owned ones show their week", function()
@@ -173,10 +175,10 @@ describe("SpeciesDex.view (State.dex)", function()
 		local view = SpeciesDex.view(data, NOW, SOURCES)
 		local glitch = entry(view, "glitch") -- featured this week
 		expect(glitch.name).toBe("Gl1tch")
-		expect(glitch.hint).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(WEEKS.glitch)}`)
+		expect(en(glitch.hint)).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(WEEKS.glitch)}`)
 		local doodle = entry(view, "doodle") -- owned, featured next week
 		expect(doodle.name).toBe("Doodle")
-		expect(doodle.hint).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(WEEKS.doodle)}`)
+		expect(en(doodle.hint)).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(WEEKS.doodle)}`)
 		local disco = entry(view, "disco") -- neither
 		expect(disco.name).toBe("Disco")
 		expect(disco.hint).toBeNil()

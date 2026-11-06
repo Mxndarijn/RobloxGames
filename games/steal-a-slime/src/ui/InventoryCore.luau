@@ -23,6 +23,7 @@
 ]]
 
 local ItemIcons = if script then require(script.Parent.ItemIcons) else require("./ItemIcons")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 local Shared = if script then game:GetService("ReplicatedStorage"):WaitForChild("Shared") :: any else nil
 local HotbarOrder = if Shared then require(Shared:WaitForChild("HotbarOrder")) else require("../shared/HotbarOrder")
 
@@ -92,6 +93,18 @@ function InventoryCore.withTools(base: any): any
 end
 
 InventoryCore.BAT = "Bat"
+-- The Tools' display names by their English name (ItemIcons), as catalog keys.
+InventoryCore.TOOL_NAMES = table.freeze({
+	["Bat"] = "menus.inventory.tool_bat",
+	["Speed Coil"] = "menus.inventory.tool_speed_coil",
+} :: { [string]: string })
+
+-- A Tool's name in the player's language; a Tool with no catalog key keeps its own name.
+function InventoryCore.toolName(english: string): string
+	local key = InventoryCore.TOOL_NAMES[english]
+	return if key then Text.t(key) else english
+end
+
 InventoryCore.PVP_ACTION = "EquipPvpItem"
 InventoryCore.USE_ACTION = "UseConsumable"
 
@@ -146,7 +159,7 @@ function InventoryCore.entries(input: Input): { Entry }
 			kind = "tool",
 			itemId = name,
 			iconId = icon,
-			name = if spec then spec.name else name,
+			name = InventoryCore.toolName(if spec then spec.name else name),
 			equipped = info ~= nil and info.equipped,
 			count = count(input, name),
 		})
@@ -162,7 +175,7 @@ function InventoryCore.entries(input: Input): { Entry }
 					kind = "pvp",
 					itemId = def.id,
 					iconId = ItemIcons.shopIconId({ id = def.id, action = "BuyPvpItem" }),
-					name = def.name,
+					name = Text.data("pvpTool", def.id, "name", def.name),
 					equipped = pvp.equipped == def.id,
 					count = pvpCount(input, pvp, def.id),
 					readyAt = if type(readyAt) == "number" and input.now and readyAt > input.now then readyAt else nil,
@@ -181,7 +194,7 @@ function InventoryCore.entries(input: Input): { Entry }
 					kind = "consumable",
 					itemId = def.id,
 					iconId = ItemIcons.shopIconId({ id = def.id, action = "BuyConsumable" }),
-					name = def.name,
+					name = Text.data("consumable", def.id, "name", def.name),
 					equipped = input.heldConsumable == def.id,
 					count = math.floor(n),
 				})
@@ -325,7 +338,7 @@ function InventoryCore.pvpUseRequest(
 		return nil, nil
 	end
 	if entry.readyAt and entry.readyAt > now then
-		return nil, `Ready in {math.ceil(entry.readyAt - now)}s`
+		return nil, Text.t("menus.inventory.ready_in", { seconds = math.ceil(entry.readyAt - now) })
 	end
 	local use: PvpUse = {
 		action = InventoryCore.PVP_USE_ACTION,
@@ -339,26 +352,31 @@ function InventoryCore.pvpUseRequest(
 	if mode == "target" then
 		local other = pickTarget(aim, reach)
 		if not other then
-			return nil, if aim.self then "No one in reach" else "Can't find you"
+			return nil,
+				if aim.self then Text.t("menus.inventory.no_one_in_reach") else Text.t("menus.inventory.cant_find_you")
 		end
 		use.target = other.userId
 	elseif mode == "shot" then
 		use.aim = positionOf(aim, aim.hovered) or aim.point or aim.far
 		if use.aim == nil then
-			return nil, "Aim somewhere"
+			return nil, Text.t("menus.inventory.aim_somewhere")
 		end
 	elseif mode == "point" then
 		use.aim = aim.point
 		if use.aim == nil then
-			return nil, "Aim at the ground"
+			return nil, Text.t("menus.inventory.aim_ground")
 		end
 	end
 	return use, nil
 end
 
--- A server refusal ("too far away") as hotbar tip text ("Too far away").
+-- A server refusal as hotbar tip text in the player's language, starting with a capital ("too far away" ->
+-- "Too far away"; only a first ASCII letter changes, so other scripts are left as they are).
 function InventoryCore.reasonText(message: any): string
-	local text = if type(message) == "string" and message ~= "" then message else "Can't use that here"
+	local text = if type(message) == "table" then Text.text(message) else message
+	if type(text) ~= "string" or text == "" then
+		return Text.t("menus.inventory.cant_use_here")
+	end
 	return string.upper(string.sub(text, 1, 1)) .. string.sub(text, 2)
 end
 

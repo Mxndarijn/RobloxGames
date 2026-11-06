@@ -38,6 +38,7 @@ local PeriodBoard = require(ReplicatedStorage.Lib.ranking.PeriodBoard)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 local WorldProps = require(script.Parent.WorldProps)
+local WorldText = require(script.Parent.WorldText)
 
 local BOARD = Config.OBBY.BOARD
 
@@ -46,6 +47,7 @@ local ObbyBoardView = {}
 -- The board face's layout, as fractions of the padded face (BoardFace.CHROME holds the px spacing).
 ObbyBoardView.FACE = table.freeze({
 	title = "FASTEST RUNS",
+	titleKey = "world.obby.fastest_runs", -- the title in each player's language
 	accent = table.freeze({ 20, 116, 108 }), -- goo teal title bar; white title text on it stays >= 4.5:1
 	mesh = "phoenix_top_earners_board", -- the Hall of Fame board frame
 	maxDistance = 200, -- landmark sign, like the portal sign
@@ -181,7 +183,12 @@ function ObbyBoardView.build(): Model?
 		return existing
 	end
 	local F = ObbyBoardView.FACE
-	local model = Props().leaderboardBoard({ model = Constants.OBBY_BOARD, title = F.title, accent = F.accent })
+	local model = Props().leaderboardBoard({
+		model = Constants.OBBY_BOARD,
+		title = F.title,
+		titleKey = F.titleKey,
+		accent = F.accent,
+	})
 	local gui = model:FindFirstChild("BoardGui", true) :: SurfaceGui
 	gui.MaxDistance = F.maxDistance
 	dress(gui:FindFirstChild("Content") :: Instance)
@@ -192,15 +199,17 @@ end
 -- The OBBY sign's face: the title bar's height and the cards under it, as fractions of the padded face.
 ObbyBoardView.SIGN = table.freeze({
 	title = "OBBY",
+	titleKey = "world.sign.obby",
 	header = 0.22,
 	cardGap = 0.04, -- between the cards
 	text = 0.62, -- a card's text, of its height
 })
 
--- The sign's lock line: "Base locks run 50% slower in a run" (nil when the lock runs at full speed).
-function ObbyBoardView.lockLine(rate: number): string?
+-- The sign's lock line as a Localize message: "Base locks run 50% slower in a run" (nil when the lock runs at full
+-- speed).
+function ObbyBoardView.lockLine(rate: number): any?
 	local slower = math.floor((1 - rate) * 100 + 0.5)
-	return if slower > 0 then `Base locks run {slower}% slower in a run` else nil
+	return if slower > 0 then WorldText.msg("world.obby.lock_rule", { percent = slower }) else nil
 end
 
 -- Builds workspace.Obby.SignBoard on the ring's other side (once). Returns it, nil when the props can't be built.
@@ -217,7 +226,12 @@ function ObbyBoardView.buildSign(): Model?
 	local P = Props()
 	local palette = P.BOARD_PALETTE
 	local chrome = BoardFace.CHROME
-	local model = P.leaderboardBoard({ model = Constants.OBBY_SIGN, title = S.title, accent = F.accent })
+	local model = P.leaderboardBoard({
+		model = Constants.OBBY_SIGN,
+		title = S.title,
+		titleKey = S.titleKey,
+		accent = F.accent,
+	})
 	local gui = model:FindFirstChild("BoardGui", true) :: SurfaceGui
 	gui.MaxDistance = F.maxDistance
 	local content = gui:FindFirstChild("Content") :: Frame
@@ -231,7 +245,9 @@ function ObbyBoardView.buildSign(): Model?
 	local header = content:FindFirstChild("Header") :: Frame
 	header.Position = UDim2.fromOffset(stroke, stroke)
 	header.Size = UDim2.new(1, -2 * stroke, S.header, -stroke)
-	local lines: { { string } } = {
+	-- The status and course cards are rewritten per player by ui/ObbyHud (in the player's language there), so they
+	-- carry plain English until then; the lock rule is the server's (WorldText).
+	local lines: { { any } } = {
 		{ Constants.OBBY_SIGN_STATUS, `Step in: up to x{1 + Config.OBBY.BONUS} income!` },
 		{ Constants.OBBY_SIGN_COURSE, ObbyView.everyText() },
 	}
@@ -252,7 +268,12 @@ function ObbyBoardView.buildSign(): Model?
 		corner.CornerRadius = UDim.new(0.25, 0)
 		corner.Parent = card
 		BoardFace.pad(card, chrome.inset, 0)
-		local text = label(card, line[1], line[2], rgb(if k == 1 then palette.Value else palette.Text))
+		local text = label(card, line[1], "", rgb(if k == 1 then palette.Value else palette.Text))
+		if type(line[2]) == "string" then
+			text.Text = line[2]
+		else
+			WorldText.setMessage(text, "Text", line[2])
+		end
 		text.Position = UDim2.fromScale(0, (1 - S.text) / 2)
 		text.Size = UDim2.fromScale(1, S.text)
 		card.Parent = content
@@ -269,15 +290,15 @@ local function fill(model: Model, view: ObbyBoard.BoardView)
 	if not content then
 		return
 	end
-	local function set(inst: Instance?, text: string)
-		if inst and inst:IsA("TextLabel") and inst.Text ~= text then
-			inst.Text = text
+	local function set(inst: Instance?, text: any)
+		if inst and inst:IsA("TextLabel") then
+			WorldText.setMessage(inst, "Text", text)
 		end
 	end
 	local header = content:FindFirstChild("Header")
-	set(header and header:FindFirstChild("Course"), view.sub)
+	set(header and header:FindFirstChild("Course"), view.subText)
 	local footer = content:FindFirstChild("Footer")
-	set(footer, view.footer or "")
+	set(footer, view.footerText or "")
 	local rows = content:FindFirstChild("Rows")
 	local empty = #view.rows == 1 and view.rows[1].rank == ""
 	for k = 1, BOARD.SIZE do
@@ -287,7 +308,12 @@ local function fill(model: Model, view: ObbyBoard.BoardView)
 			frame.Visible = row ~= nil
 			if row then
 				set(frame:FindFirstChild("Rank"), row.rank)
-				set(frame:FindFirstChild("Name"), row.name)
+				set(
+					frame:FindFirstChild("Name"),
+					if row.name == ObbyBoard.EMPTY_TEXT
+						then WorldText.msg("world.obby.no_times")
+						else WorldText.boardName(row.name)
+				)
 				set(frame:FindFirstChild("Value"), row.value)
 				local medal = if empty then nil else P.MEDAL_FILL[k]
 				local fillColor = rgb(medal or P.BOARD_PALETTE.RowAlt)

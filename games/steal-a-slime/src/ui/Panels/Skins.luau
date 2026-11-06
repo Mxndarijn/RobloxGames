@@ -22,7 +22,6 @@
 ]]
 
 local UI = script.Parent.Parent
-local ExclusiveShopView = require(UI.ExclusiveShopView)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
@@ -32,6 +31,7 @@ local PlotBasesView = require(UI.PlotBasesView)
 local PlotSkinsView = require(UI.PlotSkinsView)
 local SlimeDex = require(UI.SlimeDex)
 local SlimePreview = require(UI.SlimePreview)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -87,12 +87,12 @@ function Skins.cells(inner: number): (number, number)
 	return columns, math.floor((inner - STYLE.cellGap * (columns - 1)) / columns)
 end
 
--- The tabs, in order. "base" is the one the menu opens on.
+-- The tabs, in order, with their labels (Strings keys). "base" is the one the menu opens on.
 Skins.TABS = table.freeze({
-	table.freeze({ key = "base", label = "Base" }),
-	table.freeze({ key = "building", label = "Building" }),
-	table.freeze({ key = "cloud", label = "Cloud" }),
-	table.freeze({ key = "pet", label = "Pet" }),
+	table.freeze({ key = "base", label = "collection.skins.tab_base" }),
+	table.freeze({ key = "building", label = "collection.skins.tab_building" }),
+	table.freeze({ key = "cloud", label = "collection.skins.tab_cloud" }),
+	table.freeze({ key = "pet", label = "collection.skins.tab_pet" }),
 })
 Skins.PET_TAB = "pet"
 Skins.AUTO_GLYPH = "\u{2728}" -- sparkles: the Auto row's well
@@ -109,7 +109,7 @@ local ITEM_TABS: { [string]: ItemTab } = table.freeze({
 })
 
 function Skins.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "SkinsPanel", "Skins", "🏠")
+	local panel = Widgets.panel(parent, "SkinsPanel", Text.t("collection.skins.title"), "🏠")
 	local c = Layout.PANEL_CHROME
 	local icons = ItemIcons.of(ctx)
 	local builders: SlimePreview.Builders =
@@ -142,7 +142,7 @@ function Skins.new(parent: Instance, ctx: any)
 
 	local empty = Widgets.label({
 		Name = "Empty",
-		Text = PlotSkinsView.EMPTY,
+		Text = Text.t(PlotSkinsView.EMPTY),
 		TextColor3 = Theme.Muted,
 		TextSize = Layout.MIN_TEXT,
 		TextWrapped = true,
@@ -186,7 +186,7 @@ function Skins.new(parent: Instance, ctx: any)
 		local button = Widgets.button(
 			{
 				Name = `Tab_{def.key}`,
-				Text = def.label,
+				Text = Text.t(def.label),
 				TextSize = STYLE.tabText,
 				Size = UDim2.fromOffset(0, STYLE.tabH),
 				Parent = content,
@@ -197,6 +197,7 @@ function Skins.new(parent: Instance, ctx: any)
 				repaint()
 			end
 		)
+		Widgets.fitText(button.instance)
 		button.instance.Parent = content
 		tabs[def.key] = button
 	end
@@ -279,14 +280,14 @@ function Skins.new(parent: Instance, ctx: any)
 			Parent = image,
 		}, icons)
 		local textX = STYLE.rowPad * 2 + STYLE.icon
-		local title = Widgets.label({
+		local title = Widgets.fitText(Widgets.label({
 			Name = "Title",
 			Font = Theme.Font,
 			TextSize = STYLE.name,
 			Position = UDim2.fromOffset(textX, 10),
 			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, STYLE.nameH),
 			Parent = frame,
-		})
+		}))
 		local stateLabel = Widgets.label({
 			Name = "State",
 			Font = Theme.Font,
@@ -350,10 +351,12 @@ function Skins.new(parent: Instance, ctx: any)
 		r.title.TextColor3 = if locked then Theme.Muted else Theme.Text
 		-- An Exclusive skin not owned yet: a gold "Exclusive" instead of a progress bar.
 		r.state.Visible = not locked or row.exclusive
-		r.state.Text = if row.exclusive
-			then ExclusiveShopView.EXCLUSIVE
-			elseif row.state == "equipped" then PlotSkinsView.EQUIPPED
-			else "Unlocked"
+		r.state.Text = Text.t(
+			if row.exclusive
+				then PetSeatsView.EXCLUSIVE
+				elseif row.state == "equipped" then PlotSkinsView.EQUIPPED
+				else "collection.unlocked"
+		)
 		r.state.TextColor3 = if row.exclusive
 			then Theme.Gold
 			elseif row.state == "equipped" then Theme.Good
@@ -435,7 +438,7 @@ function Skins.new(parent: Instance, ctx: any)
 		})
 		local tag = Widgets.chip({
 			Name = "Exclusive",
-			Text = PetSeatsView.EXCLUSIVE,
+			Text = Text.t(PetSeatsView.EXCLUSIVE),
 			TextSize = STYLE.state,
 			Position = UDim2.fromOffset(textX, lineY),
 			Size = UDim2.fromOffset(0, STYLE.seatTagH),
@@ -510,7 +513,7 @@ function Skins.new(parent: Instance, ctx: any)
 		r.title.Text = row.title
 		r.title.TextColor3 = if locked then Theme.Muted else Theme.Text
 		r.state.Visible = not locked
-		r.state.Text = if row.state == "equipped" then PlotSkinsView.EQUIPPED else "Unlocked"
+		r.state.Text = Text.t(if row.state == "equipped" then PlotSkinsView.EQUIPPED else "collection.unlocked")
 		r.state.TextColor3 = if row.state == "equipped" then Theme.Good else Theme.Muted
 		-- An Exclusive not owned yet: the gold tag and its price instead of an unlock line and bar.
 		r.tag.Visible = row.exclusive
@@ -588,14 +591,14 @@ function Skins.new(parent: Instance, ctx: any)
 		image.AnchorPoint = Vector2.new(0, 0.5)
 		image.Position = UDim2.new(0, STYLE.rowPad, 0.5, 0)
 		local textX = STYLE.rowPad * 2 + STYLE.icon
-		local title = Widgets.label({
+		local title = Widgets.fitText(Widgets.label({
 			Name = "Title",
 			Font = Theme.Font,
 			TextSize = STYLE.name,
 			Position = UDim2.fromOffset(textX, 10),
 			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, STYLE.nameH),
 			Parent = frame,
-		})
+		}))
 		local stateLabel = Widgets.label({
 			Name = "State",
 			Font = Theme.Font,
@@ -681,7 +684,7 @@ function Skins.new(parent: Instance, ctx: any)
 	-- Cloud tab: the Exclusive tag and the "How to unlock" box.
 	local paneTag = Widgets.chip({
 		Name = "Exclusive",
-		Text = PetSeatsView.EXCLUSIVE,
+		Text = Text.t(PetSeatsView.EXCLUSIVE),
 		TextSize = STYLE.state,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Size = UDim2.fromOffset(0, STYLE.seatTagH + 4),
@@ -716,7 +719,7 @@ function Skins.new(parent: Instance, ctx: any)
 	local equipButton = Widgets.button(
 		{
 			Name = "Equip",
-			Text = PlotSkinsView.EQUIP,
+			Text = Text.t(PlotSkinsView.EQUIP),
 			TextSize = STYLE.buttonText,
 			Size = UDim2.fromOffset(0, STYLE.button),
 			Parent = pane,
@@ -756,7 +759,7 @@ function Skins.new(parent: Instance, ctx: any)
 	local shopButton = Widgets.button(
 		{
 			Name = "ExclusiveShop",
-			Text = PetSeatsView.EXCLUSIVE_ACTION,
+			Text = Text.t(PetSeatsView.EXCLUSIVE_ACTION),
 			TextSize = STYLE.buttonText,
 			Size = UDim2.fromOffset(0, STYLE.button),
 			Visible = false,
@@ -1023,7 +1026,7 @@ function Skins.new(parent: Instance, ctx: any)
 		local itemRowsList: { PetSeatsView.Row } = if isCloud
 			then PetSeatsView.rows(latest.petSeats, ctx.Config)
 			else PlotBasesView.rows(latest.plotBases, ctx.Config)
-		empty.Text = if isCloud then PetSeatsView.EMPTY else PlotBasesView.EMPTY
+		empty.Text = Text.t(if isCloud then PetSeatsView.EMPTY else PlotBasesView.EMPTY)
 		empty.Visible = #itemRowsList == 0
 		list.Visible = false
 		for k, l in itemLists do
@@ -1212,7 +1215,7 @@ function Skins.new(parent: Instance, ctx: any)
 		for _, l in itemLists do
 			l.Visible = false
 		end
-		empty.Text = PlotSkinsView.EMPTY
+		empty.Text = Text.t(PlotSkinsView.EMPTY)
 		local skinRows = PlotSkinsView.rows(latest.plotSkins, ctx.Config)
 		empty.Visible = #skinRows == 0
 		list.Visible = #skinRows > 0

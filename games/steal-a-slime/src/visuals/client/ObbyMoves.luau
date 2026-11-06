@@ -56,6 +56,7 @@ local ObbyLook = require(Visuals:WaitForChild("ObbyLook"))
 local ObbyParts = require(Visuals:WaitForChild("ObbyParts"))
 local ObbyVinePose = require(script.Parent:WaitForChild("ObbyVinePose"))
 local ObbyZone = require(Visuals:WaitForChild("ObbyZone"))
+local TaggedText = require(Shared:WaitForChild("TaggedText"))
 local Vine = require(Shared:WaitForChild("ObbySections"):WaitForChild("Vine"))
 
 local ObbyMoves = {}
@@ -88,7 +89,7 @@ ObbyMoves.VINE_DOTS = 6 -- dots of the let-go flight while you hang
 ObbyMoves.VINE_DOT = 0.4
 ObbyMoves.PUFF = "rbxasset://textures/particles/smoke_main.dds" -- built-in (never uploaded)
 ObbyMoves.HINT_GRABS = 3 -- the "Jump to let go" hint shows on this many grabs
-ObbyMoves.HINT_TEXT = "Jump to let go"
+ObbyMoves.HINT_TEXT = "world.obby.vine_hint" -- Strings key: "Jump to let go"
 ObbyMoves.JUMP_GRACE = 0.2 -- seconds after a grab or a seat in which a jump press does not count (the held jump)
 
 -- cannon
@@ -388,7 +389,7 @@ function ObbyMoves.start(): Controller
 		label.TextColor3 = rgb(GooPalette.Text)
 		label.Font = Enum.Font.GothamBold
 		label.TextSize = 18
-		label.Text = ObbyMoves.HINT_TEXT
+		TaggedText.set(label, "Text", ObbyMoves.HINT_TEXT)
 		local corner = Instance.new("UICorner")
 		corner.CornerRadius = UDim.new(0.5, 0)
 		corner.Parent = label

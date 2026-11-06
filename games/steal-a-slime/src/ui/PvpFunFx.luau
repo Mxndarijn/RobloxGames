@@ -34,6 +34,7 @@ local PvpFunRules = require(Shared:WaitForChild("PvpFunRules"))
 
 local Logic = require(script.Parent.PvpFunFxLogic)
 local PvpEffects = require(script.Parent.PvpEffects)
+local Text = require(script.Parent.Text)
 
 local FUN = Config.PVP_FUN
 local SPARK = "rbxasset://textures/particles/sparkles_main.dds"
@@ -1046,7 +1047,7 @@ function PvpFunFx.start(opts: Options): Handle
 			lifetime = { 0.25, 0.5 },
 		})
 		sound("PvpBubble", at, payload.target == localPlayer.UserId, 1.6, 1.2)
-		popText(record, root.Position, "POP!", 0.8)
+		popText(record, root.Position, Text.t("hud.fx.pop"), 0.8)
 	end
 
 	-- The trampoline of a placed Bounce Pad (client only, no collisions: the server detects the steps).
@@ -1208,16 +1209,26 @@ function PvpFunFx.start(opts: Options): Handle
 		})
 		local duration = tonumber(payload.duration) or 0
 		if payload.slimeId ~= nil then
-			popText(record, position, if combo then "MEGA SQUEAK!" else "SQUEAK!", if combo then 1.4 else 1)
+			popText(
+				record,
+				position,
+				if combo then Text.t("hud.fx.mega_squeak") else Text.t("hud.fx.squeak"),
+				if combo then 1.4 else 1
+			)
 			proxyPlay(slimeById(payload.slimeId), Logic.slimeSquash(combo))
 			return
 		end
 		local target = payload.target
 		if type(target) ~= "number" then
-			popText(record, position, "squeak", 0.7)
+			popText(record, position, Text.t("hud.fx.squeak_small"), 0.7)
 			return
 		end
-		popText(record, position, if combo then "MEGA SQUEAK!" else "SQUEAK!", if combo then 1.4 else 1)
+		popText(
+			record,
+			position,
+			if combo then Text.t("hud.fx.mega_squeak") else Text.t("hud.fx.squeak"),
+			if combo then 1.4 else 1
+		)
 		local character = characterOf(target)
 		if duration <= 0 or not character then
 			playAnim(target, "hit")
@@ -1259,7 +1270,7 @@ function PvpFunFx.start(opts: Options): Handle
 		if root and inRange(root.Position) then
 			local record = newRecord(1.2)
 			sound("PvpBoing", root, target == localPlayer.UserId, 1.15)
-			popText(record, root.Position, "BOING!", 1.1)
+			popText(record, root.Position, Text.t("hud.fx.boing"), 1.1)
 		end
 	end
 

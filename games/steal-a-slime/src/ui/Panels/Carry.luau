@@ -9,6 +9,7 @@
 local UI = script.Parent.Parent
 local Layout = require(UI.Layout)
 local SlimePreview = require(UI.SlimePreview)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -68,7 +69,7 @@ function Carry.new(parent: Instance, ctx: any)
 	local drop = Widgets.button(
 		{
 			Name = "Drop",
-			Text = "Drop",
+			Text = Text.t("hud.carry.drop"),
 			AnchorPoint = Vector2.new(1, 0),
 			Position = UDim2.new(1, -12, 0, 12),
 			Size = UDim2.fromOffset(100, Layout.BUTTON),
@@ -101,16 +102,16 @@ function Carry.new(parent: Instance, ctx: any)
 			local slime = carrying.slime
 			SlimePreview.mountSlime(preview, slime, builders)
 			swatch.BackgroundColor3 = if preview.Visible then wellColor else Widgets.color3(slime.color)
-			name.Text = ctx.Genome.displayName(slime)
+			name.Text = Text.slime(slime)
 			local stolen = carrying.kind == "stolen"
 			border.Color = if stolen then Theme.Bad else Theme.Gold
-			sub.Text = if stolen then "Bring the slime to your plot!" else "Wild slime - bring it to your plot"
+			sub.Text = if stolen then Text.t("hud.carry.stolen") else Text.t("hud.carry.wild")
 			sub.TextColor3 = if stolen then Theme.Warn else Theme.Muted
 			-- In my own full plot (State.plotFull, contract/notice-cards.md): guidance instead of the slime.
 			if state.plotFull == true then
 				border.Color = Theme.Gold
-				name.Text = "Your plot is full"
-				sub.Text = "Sell or merge a slime"
+				name.Text = Text.t("hud.carry.full")
+				sub.Text = Text.t("hud.carry.full_hint")
 				sub.TextColor3 = Theme.Muted
 			end
 		end

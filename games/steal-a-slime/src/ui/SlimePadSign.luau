@@ -22,6 +22,8 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local Genome = require(Shared:WaitForChild("Genome"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local SlimeLabel = require(Shared:WaitForChild("SlimeLabel"))
+local SlimeLabelText = require(script.Parent.SlimeLabelText)
+local Text = require(script.Parent.Text)
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
@@ -386,6 +388,7 @@ end
 
 -- Draws `view` on a built plank.
 function SlimePadSign.render(part: Part, view: SlimeLabel.View)
+	view = SlimeLabelText.view(view)
 	local board = (part:FindFirstChild("Face") :: SurfaceGui):FindFirstChild("Board") :: Frame
 	local band = board:FindFirstChild("Band") :: Frame
 	local rarity = band:FindFirstChild("Rarity") :: TextLabel
@@ -407,18 +410,18 @@ function SlimePadSign.render(part: Part, view: SlimeLabel.View)
 	local ink, strokeHidden = SlimePadSign.bandInk(view)
 	rarity.TextColor3 = ink
 	bandStroke.Transparency = strokeHidden
-	rarity.Text = view.rarity
+	rarity.Text = Text.data("rarity", view.rarity, "name", view.rarity)
 	title.Text = view.name
 	local shine = board:FindFirstChild("Shine") :: TextLabel
 	shine.Visible = view.shine ~= nil
 	if view.shine then
 		local pillFill, shading, pillInk, pillStroke = SlimePadSign.shineLook(view.shine)
-		shine.Text = view.shine.id
+		shine.Text = Text.data("shine", view.shine.id, "name", view.shine.id)
 		shine.BackgroundColor3 = pillFill
 		shine.TextColor3 = pillInk
 		shine.TextStrokeTransparency = pillStroke;
 		(shine:FindFirstChild("Fill") :: UIGradient).Color = shading;
-		(shine:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimePadSign.pillAspect(view.shine.id)
+		(shine:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimePadSign.pillAspect(shine.Text)
 	end
 	income.Text = view.income or ""
 	fill.Size = UDim2.fromScale(math.clamp(view.growth, 0, 100) / 100, 1)

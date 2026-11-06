@@ -15,6 +15,7 @@
 
 local LabelFit =
 	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
+local Text = require(script.Parent.Text)
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
@@ -34,14 +35,19 @@ local function hexOf(c: Color3): string
 	return string.format("%02X%02X%02X", byte(c.R), byte(c.G), byte(c.B))
 end
 
-local LOOKS: { [string]: Look } = {
-	vip = { text = "VIP", color = Theme.Gold, hex = hexOf(Theme.Gold) },
-	club = { text = "CLUB", color = Theme.Plum, hex = hexOf(Theme.Plum) },
+-- `key`: the tag word's Strings key.
+local LOOKS: { [string]: { key: string, color: Color3, hex: string } } = {
+	vip = { key = "hud.member.vip", color = Theme.Gold, hex = hexOf(Theme.Gold) },
+	club = { key = "hud.member.club", color = Theme.Plum, hex = hexOf(Theme.Plum) },
 }
 
--- The tag of a `Member` attribute value, or nil (not a member, junk).
+-- The tag of a `Member` attribute value (its word in the player's language), or nil (not a member, junk).
 function MemberTags.look(member: any): Look?
-	return if type(member) == "string" then LOOKS[member] else nil
+	local look = if type(member) == "string" then LOOKS[member] else nil
+	if not look then
+		return nil
+	end
+	return { text = Text.t(look.key), color = look.color, hex = look.hex }
 end
 
 -- The chat name prefix for a `Member` value: "<font color=...>[VIP]</font> ", or "" for none.

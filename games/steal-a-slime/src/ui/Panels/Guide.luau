@@ -10,6 +10,7 @@
 local UI = script.Parent.Parent
 local GuideTips = require(UI.GuideTips)
 local Layout = require(UI.Layout)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -20,8 +21,17 @@ local Guide = {}
 Guide.GOAL_H = 96
 Guide.TIP_H = 44
 Guide.GAP = 8
-Guide.SHOW_TEXT = "📖  Show the tutorial again"
-Guide.SKIP_TEXT = "Hold to skip the tutorial"
+Guide.SHOW_TEXT = "onboarding.guide.show_tutorial" -- string keys
+Guide.SKIP_TEXT = "onboarding.guide.skip_tutorial"
+
+-- The two tutorial buttons' labels in the player's language.
+function Guide.showText(): string
+	return "📖  " .. Text.t(Guide.SHOW_TEXT)
+end
+
+function Guide.skipText(): string
+	return Text.t(Guide.SKIP_TEXT)
+end
 
 local function slotY(slot: number): number
 	return Guide.GOAL_H + Guide.GAP + (slot - 1) * (Guide.TIP_H + Guide.GAP)
@@ -33,7 +43,7 @@ function Guide.contentHeight(slots: number): number
 end
 
 function Guide.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "GuidePanel", "Guide", "🧙")
+	local panel = Widgets.panel(parent, "GuidePanel", Text.t("onboarding.guide.title"), "🧙")
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
@@ -54,7 +64,7 @@ function Guide.new(parent: Instance, ctx: any)
 	}, "🎯", Theme.BgLight, 60)
 	Widgets.label({
 		Name = "Heading",
-		Text = "Next goal",
+		Text = Text.t("onboarding.guide.next_goal"),
 		Font = Theme.Font,
 		TextSize = Layout.MIN_TEXT,
 		TextColor3 = Theme.Accent,
@@ -106,7 +116,7 @@ function Guide.new(parent: Instance, ctx: any)
 	local showTutorial = Widgets.button(
 		{
 			Name = "ShowTutorial",
-			Text = Guide.SHOW_TEXT,
+			Text = Guide.showText(),
 			TextSize = 15,
 			Visible = false,
 			Position = UDim2.fromOffset(0, slotY(1)),
@@ -128,7 +138,7 @@ function Guide.new(parent: Instance, ctx: any)
 	local skipTutorial = Widgets.holdButton(
 		{
 			Name = "SkipTutorial",
-			Text = Guide.SKIP_TEXT,
+			Text = Guide.skipText(),
 			TextSize = 15,
 			Visible = false,
 			Position = UDim2.fromOffset(0, slotY(1)),
@@ -148,7 +158,7 @@ function Guide.new(parent: Instance, ctx: any)
 	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
-		local view = GuideTips.view(state, rarityNames, ctx.serverNow())
+		local view = GuideTips.view(state, rarityNames, ctx.serverNow(), ctx.Config)
 		goalIcon.Text = view.goalIcon
 		goalText.Text = view.goal
 		goalDetail.Text = view.goalDetail

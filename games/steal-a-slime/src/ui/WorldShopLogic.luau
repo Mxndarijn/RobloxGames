@@ -19,6 +19,7 @@ local PvpRules = if Shared then require(Shared:WaitForChild("PvpRules")) else re
 local Shops = if Shared then require(Shared:WaitForChild("Shops")) else require("../shared/Shops")
 local Format = if script then require(script.Parent.Format) else require("./Format")
 local ShopCatalog = if script then require(script.Parent.ShopCatalog) else require("./ShopCatalog")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Status = "buy" | "locked" | "maxed" | "owned" | "soldOut" | "unavailable" -- ShopCatalog.Status
 
@@ -47,33 +48,39 @@ WorldShopLogic.ICON_PREFIX = table.freeze({
 	BuyPvpItem = "Pvp_",
 })
 
--- Deny code -> toast text (CONTRACT.md §27.7). Unavailable shows the server's message when there is one.
+-- Deny code -> the Strings key of its toast (CONTRACT.md §27.7). Unavailable shows the server's message when
+-- there is one.
 WorldShopLogic.MESSAGES = table.freeze({
-	BadShop = "That shop doesn't exist",
-	NotInShop = "Not sold here",
-	NotOpen = "Open the shop first",
-	OutOfRange = "Walk closer to the shop",
-	Dead = "You can't shop right now",
-	NoCash = "Not enough cash",
-	Maxed = "Already maxed",
-	Locked = "Rebirth to unlock",
-	SoldOut = "Sold out - restocks soon",
-	Owned = "You already own this",
-	BadTarget = "Pick one of your slimes",
-	Busy = "Slow down a little",
-	Unavailable = "Can't buy that right now",
+	BadShop = "shop.deny.bad_shop",
+	NotInShop = "shop.deny.not_in_shop",
+	NotOpen = "shop.deny.not_open",
+	OutOfRange = "shop.deny.out_of_range",
+	Dead = "shop.deny.dead",
+	NoCash = "shop.deny.no_cash",
+	Maxed = "shop.deny.maxed",
+	Locked = "shop.deny.locked",
+	SoldOut = "shop.deny.sold_out",
+	Owned = "shop.deny.owned",
+	BadTarget = "shop.deny.bad_target",
+	Busy = "shop.deny.busy",
+	Unavailable = "shop.deny.unavailable",
 })
 
+-- True for a server message worth showing: a non-empty string or a Localize message.
+local function hasText(value: any): boolean
+	return (type(value) == "string" and value ~= "") or (type(value) == "table" and type(value.key) == "string")
+end
+
 function WorldShopLogic.messageFor(code: any, serverMessage: any): string
-	local hasServerText = type(serverMessage) == "string" and serverMessage ~= ""
+	local hasServerText = hasText(serverMessage)
 	if code == "Unavailable" and hasServerText then
-		return serverMessage :: string
+		return Text.text(serverMessage)
 	end
-	local text = if type(code) == "string" then (WorldShopLogic.MESSAGES :: any)[code] else nil
-	if text then
-		return text
+	local key = if type(code) == "string" then (WorldShopLogic.MESSAGES :: any)[code] else nil
+	if key then
+		return Text.t(key)
 	end
-	return if hasServerText then serverMessage :: string else WorldShopLogic.MESSAGES.Unavailable
+	return if hasServerText then Text.text(serverMessage) else Text.t(WorldShopLogic.MESSAGES.Unavailable)
 end
 
 -- The toast of a failed Request result: a shop code is mapped, any other failure keeps its message.
@@ -81,7 +88,7 @@ function WorldShopLogic.failText(result: any, fallback: string): string
 	if type(result) == "table" and type(result.code) == "string" then
 		return WorldShopLogic.messageFor(result.code, result.message)
 	end
-	return if type(result) == "table" and type(result.message) == "string" then result.message else fallback
+	return if type(result) == "table" and hasText(result.message) then Text.text(result.message) else fallback
 end
 
 -- A denial reaches the client twice (the Request result and ShopEvent Denied): one toast per code per window.
@@ -100,10 +107,10 @@ function WorldShopLogic.toastGate(window: number?)
 end
 
 -- Two lines of 13 px fit beside the badge and the Buy button on a phone; the server texts of the consumables
--- do not, so the rows say it shorter.
+-- do not, so the rows say it shorter (Strings keys).
 WorldShopLogic.CONSUMABLE_SHORT = table.freeze({
-	LuckPotion = "Better fountain rarity odds",
-	WeatherTotem = "Calls the next weather",
+	LuckPotion = "shop.consumable_short.luck_potion",
+	WeatherTotem = "shop.consumable_short.weather_totem",
 })
 
 -- Item names longer than this get the smaller size so they stay on one line beside the Buy button.
@@ -112,12 +119,37 @@ WorldShopLogic.NAME_SIZE_LONG = 15
 WorldShopLogic.NAME_LONG = 15
 
 function WorldShopLogic.nameSize(name: string): number
-	return if #name > WorldShopLogic.NAME_LONG then WorldShopLogic.NAME_SIZE_LONG else WorldShopLogic.NAME_SIZE
+	return if (utf8.len(name) or #name) > WorldShopLogic.NAME_LONG
+		then WorldShopLogic.NAME_SIZE_LONG
+		else WorldShopLogic.NAME_SIZE
+end
+
+-- A data name as the shop shows it: sentence case in English ("Speed coil"); other languages keep the
+-- translation's own casing.
+function WorldShopLogic.caseName(name: string): string
+	return if string.sub(Text.locale(), 1, 2) == "en" then Format.sentenceCase(name) else name
+end
+
+-- A word field that may come from the server as a Localize message.
+local function word(value: any): string?
+	if value == nil then
+		return nil
+	end
+	return if type(value) == "string" then value else Text.text(value)
 end
 
 function WorldShopLogic.title(shopId: string): string
 	local shop = Shops.shop(shopId)
-	return if shop then Format.sentenceCase(shop.name) else "Shop"
+	return if shop
+		then WorldShopLogic.caseName(Text.data("shops", shop.id, "name", shop.name))
+		else Text.t("shop.world.title")
+end
+
+-- A shop item's name in the player's language (the Shared.Shops row's data name; `english`: the server's
+-- name, else the row's).
+function WorldShopLogic.itemName(item: Shops.Item, english: any): string
+	local fallback = word(english) or item.name
+	return WorldShopLogic.caseName(Text.data("shopItem", item.id, "name", fallback))
 end
 
 -- The ItemIcons registry id of a shop item.
@@ -136,12 +168,12 @@ local function row(shopId: string, item: Shops.Item, fields: { [string]: any }):
 		shopId = shopId,
 		name = item.name,
 		icon = WorldShopLogic.iconId(item),
-		description = item.text,
+		description = Text.data("shopItem", item.id, "text", item.text),
 	}
 	for key, value in fields do
 		out[key] = value
 	end
-	out.name = Format.sentenceCase(out.name)
+	out.name = WorldShopLogic.itemName(item, fields.name)
 	return out :: Row
 end
 
@@ -196,6 +228,8 @@ end
 
 -- Restocking consumables: the entry of State.consumables.items; no entry (or no consumables view) = sold out.
 local function consumableRow(shopId: string, item: Shops.Item, state: any, actions: any): Row
+	local shortKey = (WorldShopLogic.CONSUMABLE_SHORT :: any)[item.id]
+	local short = if shortKey then Text.t(shortKey) else nil
 	local entry: any = nil
 	local view = if type(state) == "table" then state.consumables else nil
 	for _, c in if type(view) == "table" and type(view.items) == "table" then view.items else {} do
@@ -205,10 +239,10 @@ local function consumableRow(shopId: string, item: Shops.Item, state: any, actio
 	end
 	if entry == nil then
 		return row(shopId, item, {
-			description = (WorldShopLogic.CONSUMABLE_SHORT :: any)[item.id] or item.text,
+			description = short or Text.data("consumable", item.id, "text", item.text),
 			status = "soldOut",
 			enabled = false,
-			buttonText = "Sold out",
+			buttonText = Text.t("shop.button.sold_out"),
 		})
 	end
 	local catalog = ShopCatalog.consumableViews({
@@ -219,7 +253,7 @@ local function consumableRow(shopId: string, item: Shops.Item, state: any, actio
 	}, actions)[1]
 	return row(shopId, item, {
 		name = entry.name or item.name,
-		description = (WorldShopLogic.CONSUMABLE_SHORT :: any)[item.id] or catalog.description,
+		description = short or catalog.description,
 		status = catalog.status,
 		enabled = catalog.enabled,
 		buttonText = catalog.buttonText,
@@ -227,6 +261,25 @@ local function consumableRow(shopId: string, item: Shops.Item, state: any, actio
 		stockText = catalog.stockText,
 		price = catalog.price,
 	})
+end
+
+-- The Strings key of a PvP line's "<line> tool, tier N" text; a line missing here shows its Config name.
+WorldShopLogic.LINE_TIER = table.freeze({
+	Knockback = "shop.pvp.knockback_tier",
+	Trap = "shop.pvp.trap_tier",
+	Blaster = "shop.pvp.blaster_tier",
+})
+
+-- A PvP tool's description: "Fun item", or "Knockback tool, tier 2".
+function WorldShopLogic.pvpLine(tool: any): string
+	if tool.kind == "fun" then
+		return Text.t("shop.pvp.fun_item")
+	end
+	local key = (WorldShopLogic.LINE_TIER :: any)[tool.line]
+	if key then
+		return Text.t(key, { tier = tool.tier })
+	end
+	return Text.t("shop.pvp.line_tier", { line = tostring(tool.line), tier = tool.tier })
 end
 
 -- PvP tools (FEATURES.PvP): owned / rank gate from State.pvp, price from PvpRules.price. A Goo Trap is a stack of
@@ -254,22 +307,21 @@ local function pvpRow(shopId: string, item: Shops.Item, state: any, actions: any
 	local buttonText = Format.formatCash(price)
 	local enabled = cashOf(state) >= price
 	if actions.BuyPvpItem == nil then
-		kind, buttonText, enabled = "unavailable", "Coming soon", false
+		kind, buttonText, enabled = "unavailable", Text.t("shop.button.coming_soon"), false
 	elseif stack and held >= config.PVP.TRAP_MAX_HELD then
-		kind, buttonText, enabled = "maxed", "Full", false
+		kind, buttonText, enabled = "maxed", Text.t("shop.button.full"), false
 	elseif owned and not stack then
-		kind, buttonText, enabled = "owned", "Owned", false
+		kind, buttonText, enabled = "owned", Text.t("shop.button.owned"), false
 	elseif rank < tool.rebirths then
-		kind, buttonText, enabled = "locked", `Rebirth {tool.rebirths}`, false
+		kind, buttonText, enabled = "locked", Text.t("shop.button.rebirth", { rebirths = tool.rebirths }), false
 	end
-	local line = if tool.kind == "fun" then "Fun item" else `{tool.line} tool`
 	return row(shopId, item, {
-		description = if tool.kind == "fun" then line else `{line}, tier {tool.tier}`,
+		description = WorldShopLogic.pvpLine(tool),
 		status = kind,
 		enabled = enabled,
 		buttonText = buttonText,
 		levelText = nil,
-		stockText = if stack then `{held}/{config.PVP.TRAP_MAX_HELD} held` else nil,
+		stockText = if stack then Text.t("shop.pvp.held", { held = held, max = config.PVP.TRAP_MAX_HELD }) else nil,
 		price = price,
 	})
 end
@@ -311,9 +363,9 @@ function WorldShopLogic.buyText(r: Row, cash: number): string
 	end
 	local price = r.price :: number
 	if cash < price then
-		return `Need {Format.formatCash(price - cash)} more`
+		return Text.t("shop.button.need_more", { amount = Format.formatCash(price - cash) })
 	end
-	return `Buy {Format.formatCash(price)}`
+	return Text.t("shop.button.buy_price", { price = Format.formatCash(price) })
 end
 
 -- The restock time (unix seconds) shown in the Item Shop header; nil when the shop has no consumables.
@@ -342,48 +394,57 @@ export type Entry = {
 }
 export type View = { tabs: { Tab }, tab: string?, entries: { Entry } }
 
+-- Item Shop tabs; `label` is a Strings key (view() gives each Tab its text).
 WorldShopLogic.TABS = table.freeze({
-	table.freeze({ id = "Items", label = "Items" }),
-	table.freeze({ id = "PvP", label = "PvP" }),
-	table.freeze({ id = "Fun", label = "Fun" }),
+	table.freeze({ id = "Items", label = "shop.tab.items" }),
+	table.freeze({ id = "PvP", label = "shop.tab.pvp" }),
+	table.freeze({ id = "Fun", label = "shop.tab.fun" }),
 })
 
--- PvP lines in card order, with their card titles. A line missing here gets a card after these, titled by its line.
+-- PvP lines in card order, with the Strings keys of their card title (`title`), their "every tier owned" row
+-- (`maxed`) and, for a stack line, its "other ... held" line (`others`). A line missing here gets a card after
+-- these, titled by its line.
 WorldShopLogic.LADDERS = table.freeze({
-	table.freeze({ line = "Knockback", title = "Gloves" }),
-	table.freeze({ line = "Trap", title = "Traps" }),
-	table.freeze({ line = "Blaster", title = "Blasters" }),
+	table.freeze({ line = "Knockback", title = "shop.ladder.gloves", maxed = "shop.ladder.gloves_maxed" }),
+	table.freeze({
+		line = "Trap",
+		title = "shop.ladder.traps",
+		maxed = "shop.ladder.traps_maxed",
+		others = "shop.ladder.traps_others",
+	}),
+	table.freeze({ line = "Blaster", title = "shop.ladder.blasters", maxed = "shop.ladder.blasters_maxed" }),
 })
 
--- One short line per PvP tool for its ladder card (one line on a phone; the second line says what you own).
+-- The Strings key of one short line per PvP tool for its ladder card (one line on a phone; the second line says what you own).
 WorldShopLogic.PVP_SHORT = table.freeze({
-	KnockGlove1 = "A plain bonk",
-	KnockGlove2 = "Bonks bounce you up",
-	KnockGlove3 = "Blast pushes a crowd",
-	KnockGlove4 = "Chains to 2 more",
-	KnockGlove5 = "Sweeps a wide arc",
-	GooTrap1 = "Slows a thief",
-	GooTrap2 = "Sticks a thief",
-	GooTrap3 = "Pulls in and sticks",
-	GooBlaster1 = "Quick slowing shots",
-	GooBlaster2 = "Three-blob spread",
-	GooBlaster3 = "Splash and puddle",
+	KnockGlove1 = "shop.pvp_short.knock_glove1",
+	KnockGlove2 = "shop.pvp_short.knock_glove2",
+	KnockGlove3 = "shop.pvp_short.knock_glove3",
+	KnockGlove4 = "shop.pvp_short.knock_glove4",
+	KnockGlove5 = "shop.pvp_short.knock_glove5",
+	GooTrap1 = "shop.pvp_short.goo_trap1",
+	GooTrap2 = "shop.pvp_short.goo_trap2",
+	GooTrap3 = "shop.pvp_short.goo_trap3",
+	GooBlaster1 = "shop.pvp_short.goo_blaster1",
+	GooBlaster2 = "shop.pvp_short.goo_blaster2",
+	GooBlaster3 = "shop.pvp_short.goo_blaster3",
 })
 
--- Upgrade Shop groups, in order. An upgrade missing here goes in a last "More" group.
+-- Upgrade Shop groups (label: a Strings key), in order. An upgrade missing here goes in a last "More" group.
 WorldShopLogic.UPGRADE_GROUPS = table.freeze({
-	table.freeze({ label = "Earn more", ids = table.freeze({ "Income", "OfflineCap" }) }),
-	table.freeze({ label = "Faster", ids = table.freeze({ "CarrySpeed", "QuickBrew" }) }),
-	table.freeze({ label = "Luck", ids = table.freeze({ "Luck" }) }),
+	table.freeze({ label = "shop.group.earn_more", ids = table.freeze({ "Income", "OfflineCap" }) }),
+	table.freeze({ label = "shop.group.faster", ids = table.freeze({ "CarrySpeed", "QuickBrew" }) }),
+	table.freeze({ label = "shop.group.luck", ids = table.freeze({ "Luck" }) }),
 })
 
+-- Section label keys.
 WorldShopLogic.LABELS = table.freeze({
-	gear = "Gear",
-	consumables = "Potions and totems",
-	owned = "Owned",
-	ladders = "Tap a number to see that tier",
-	fun = "Fun items",
-	more = "More",
+	gear = "shop.label.gear",
+	consumables = "shop.label.consumables",
+	owned = "shop.label.owned",
+	ladders = "shop.label.ladders",
+	fun = "shop.label.fun",
+	more = "shop.label.more",
 })
 
 -- The effect of `level` levels of an upgrade whose per-level text is `text` ("+10% income", "+1h offline income
@@ -406,13 +467,13 @@ function WorldShopLogic.upgradeEffect(id: string, text: string, level: number, m
 	if not now or not nextAmount or not rest then
 		return ShopCatalog.upgradeText(id, text)
 	end
-	local phrase = (ShopCatalog.UPGRADE_SHORT :: any)[id] or rest
+	local phrase = ShopCatalog.effectPhrase(id, rest)
 	if level >= maxLevel then
-		return `{now} {phrase}`
+		return Text.t("shop.upgrade.amount", { amount = now, effect = phrase })
 	elseif level <= 0 then
-		return `Next: {nextAmount} {phrase}`
+		return Text.t("shop.upgrade.next", { amount = nextAmount, effect = phrase })
 	end
-	return `{now} → {nextAmount} {phrase}`
+	return Text.t("shop.upgrade.change", { from = now, to = nextAmount, effect = phrase })
 end
 
 local function toolOf(config: any, id: string): any
@@ -474,6 +535,12 @@ function WorldShopLogic.ladder(
 	local owned = if type(pvp.owned) == "table" then pvp.owned else {}
 	local charges = if type(pvp.charges) == "table" then pvp.charges else {}
 	local stack = PvpRules.usesCharges(tools[1])
+	local def: any = nil
+	for _, l in WorldShopLogic.LADDERS do
+		if l.line == line then
+			def = l
+		end
+	end
 	local function held(t: any): number
 		return if type(charges[t.id]) == "number" then charges[t.id] else 0
 	end
@@ -505,10 +572,10 @@ function WorldShopLogic.ladder(
 				kind = "row",
 				thin = true,
 				row = withFields(rowsById[top.id], {
-					description = `{title}: every tier owned`,
+					description = if def then Text.t(def.maxed) else Text.t("shop.ladder.line_maxed", { line = title }),
 					status = "maxed",
 					enabled = false,
-					buttonText = "Max",
+					buttonText = Text.t("shop.button.max"),
 					stockText = nil,
 				}),
 			}
@@ -534,10 +601,22 @@ function WorldShopLogic.ladder(
 			others += held(t)
 		end
 	end
-	local short = (WorldShopLogic.PVP_SHORT :: any)[shown.id] or rowsById[shown.id].description
-	local second = if stack
-		then (if others > 0 then `Other {string.lower(title)} held: {others}` else `Tier {shown.tier} of {#tools}`)
-		else `Yours: {if ownTool then Format.sentenceCase(ownTool.name) else "none yet"}`
+	local shortKey = (WorldShopLogic.PVP_SHORT :: any)[shown.id]
+	local short = if shortKey then Text.t(shortKey) else rowsById[shown.id].description
+	local second
+	if stack and others > 0 then
+		second = if def and def.others
+			then Text.t(def.others, { count = others })
+			else Text.t("shop.ladder.line_others", { line = title, count = others })
+	elseif stack then
+		second = Text.t("shop.ladder.tier_of", { tier = shown.tier, count = #tools })
+	elseif ownTool then
+		second = Text.t("shop.ladder.yours", {
+			name = WorldShopLogic.caseName(Text.data("pvpTool", ownTool.id, "name", ownTool.name)),
+		})
+	else
+		second = Text.t("shop.ladder.yours_none")
+	end
 	return {
 		key = `ladder_{line}`,
 		kind = "ladder",
@@ -568,7 +647,7 @@ local function itemEntries(tab: string, rows: { Row }, state: any, config: any, 
 			if #list == 0 then
 				return
 			end
-			table.insert(out, { key = `label_{key}`, kind = "label", text = label, aside = aside })
+			table.insert(out, { key = `label_{key}`, kind = "label", text = Text.t(label), aside = aside })
 			for _, r in list do
 				table.insert(
 					out,
@@ -594,7 +673,7 @@ local function itemEntries(tab: string, rows: { Row }, state: any, config: any, 
 			end
 		end
 		for _, l in WorldShopLogic.LADDERS do
-			add(l.line, l.title)
+			add(l.line, Text.t(l.title))
 		end
 		for _, t in config.PVP_TOOLS do
 			if t.kind ~= "fun" and not seen[t.line] then
@@ -602,7 +681,7 @@ local function itemEntries(tab: string, rows: { Row }, state: any, config: any, 
 			end
 		end
 		if #cards > 0 then
-			table.insert(out, { key = "label_ladders", kind = "label", text = WorldShopLogic.LABELS.ladders })
+			table.insert(out, { key = "label_ladders", kind = "label", text = Text.t(WorldShopLogic.LABELS.ladders) })
 			for _, e in cards do
 				table.insert(out, e)
 			end
@@ -617,7 +696,7 @@ local function itemEntries(tab: string, rows: { Row }, state: any, config: any, 
 			table.insert(tiles, withFields(r, { buttonText = text }))
 		end
 		if #tiles > 0 then
-			table.insert(out, { key = "label_fun", kind = "label", text = WorldShopLogic.LABELS.fun })
+			table.insert(out, { key = "label_fun", kind = "label", text = Text.t(WorldShopLogic.LABELS.fun) })
 			table.insert(out, { key = "grid_fun", kind = "grid", tiles = tiles })
 		end
 	end
@@ -647,11 +726,12 @@ local function upgradeEntries(rows: { Row }, state: any): { Entry }
 				local level = r.level or 0
 				local maxLevel = r.maxLevel or level
 				local notYet = level <= 0 and r.status == "locked"
+				-- The server's English text: upgradeEffect reads the amount from it.
 				local text = if type(u.text) == "string" then u.text else r.description
 				local fields: { [string]: any } =
 					{ description = WorldShopLogic.upgradeEffect(id, text, level, maxLevel) }
 				if notYet then
-					fields.description = `Unlocks at Rebirth {u.requires or "?"}`
+					fields.description = Text.t("shop.upgrade.unlocks_at", { rebirths = u.requires or "?" })
 				end
 				local shown = withFields(r, fields)
 				if r.status == "maxed" or notYet then
@@ -664,7 +744,7 @@ local function upgradeEntries(rows: { Row }, state: any): { Entry }
 		if #full + #thin == 0 then
 			return
 		end
-		table.insert(out, { key = `label_{key}`, kind = "label", text = label })
+		table.insert(out, { key = `label_{key}`, kind = "label", text = Text.t(label) })
 		for _, r in full do
 			table.insert(out, { key = `row_{r.id}`, kind = "row", row = r })
 		end
@@ -715,7 +795,7 @@ function WorldShopLogic.view(
 			for _, r in list do
 				dot = dot or buyable(r)
 			end
-			table.insert(tabs, { id = def.id, label = def.label, dot = dot })
+			table.insert(tabs, { id = def.id, label = Text.t(def.label), dot = dot })
 			if def.id == o.tab then
 				current = def.id
 			end
@@ -743,11 +823,11 @@ function WorldShopLogic.slot(r: { status: Status, buttonText: string }): Slot
 	if status == "buy" then
 		return { kind = "buy", text = r.buttonText }
 	elseif status == "maxed" then
-		return { kind = "stamp", text = "Max" }
+		return { kind = "stamp", text = Text.t("shop.button.max") }
 	elseif status == "owned" then
-		return { kind = "status", text = "Owned", good = true, check = true }
+		return { kind = "status", text = Text.t("shop.button.owned"), good = true, check = true }
 	elseif status == "locked" then
-		return { kind = "status", text = `🔒 {r.buttonText}`, sub = "to unlock" }
+		return { kind = "status", text = `🔒 {r.buttonText}`, sub = Text.t("shop.button.to_unlock") }
 	end
 	return { kind = "status", text = r.buttonText }
 end
@@ -760,11 +840,11 @@ end
 -- "Speed coil bought" / "Slime snacks bought, Lv 3" for ShopEvent Purchased (the row's sentence-case name).
 function WorldShopLogic.purchasedText(shopId: any, itemId: any, level: any): string
 	local item = Shops.find(shopId, itemId)
-	local name = Format.sentenceCase(if item then item.name else "Item")
+	local name = if item then WorldShopLogic.itemName(item, nil) else Text.t("shop.world.item")
 	if type(level) == "number" then
-		return `{name} bought, Lv {level}`
+		return Text.t("shop.world.bought_level", { name = name, level = level })
 	end
-	return `{name} bought`
+	return Text.t("shop.world.bought", { name = name })
 end
 
 export type Deps = {

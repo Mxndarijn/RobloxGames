@@ -3,7 +3,8 @@
 	Tutorial
 
 	The tutorial card's text (TutorialCard, contract/tutorial.md): per step an icon, a title and one short hint
-	that names the current device's control. Pure (tests/ui/Tutorial.spec.luau).
+	that names the current device's control, drawn through Text (Strings/Onboarding "onboarding.tutorial.*").
+	Pure (tests/ui/Tutorial.spec.luau).
 
 	Steps follow TutorialProgress.STEPS; `fromState` reads `State.tutorialStepId`. nil / unknown means no card
 	(finished). The server owns progression; the UI never advances it.
@@ -11,16 +12,16 @@
 
 local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
 local InputKind = if Lib then require(Lib.ui.InputKind) else require("../../../../shared/luau/src/ui/InputKind")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Kind = InputKind.Kind
+-- `key` names the step's strings ("onboarding.tutorial.<key>.title", ".done", and ".body", or for a step with
+-- a prompt ".body_key" with the key's name and ".body_touch"); `prompt` is the prompt the hint names, if any.
 export type Step = {
 	id: string,
 	icon: string,
-	title: string,
-	done: string, -- the short mint card once the step is done
-	template: string,
-	body: string,
-	bodies: { [Kind]: string },
+	key: string,
+	prompt: ("press" | "hold")?,
 }
 export type StepView = {
 	id: string,
@@ -40,9 +41,9 @@ Tutorial.KINDS = table.freeze({ "keyboard", "touch", "gamepad" } :: { Kind })
 -- prompts and leaves GamepadKeyCode at the ProximityPrompt default (ButtonX).
 Tutorial.PROMPT_KEYS = table.freeze({ keyboard = "E", gamepad = "ButtonX" })
 
--- The mint card when the last step is done.
-Tutorial.FINISHED = "Tutorial done"
-Tutorial.FINISHED_SUB = "Next things to do are in Goals"
+-- The mint card when the last step is done (string keys).
+Tutorial.FINISHED = "onboarding.tutorial.finished"
+Tutorial.FINISHED_SUB = "onboarding.tutorial.finished_sub"
 
 -- Short names for UserInputService:GetStringForKeyCode on a gamepad (Xbox letters, PlayStation shapes).
 local PAD_NAMES = table.freeze({
@@ -61,18 +62,31 @@ function Tutorial.gamepadLabel(name: string): string
 	return PAD_NAMES[name] or (name:gsub("^Button", ""))
 end
 
--- What each device does for a tap ({press}, {Press}) and for the hold prompts ({hold}, {Hold}); `key` is the
--- shown name of the prompt's key / button on that device.
-function Tutorial.words(kind: Kind, key: string?): { [string]: string }
-	if kind == "touch" then
-		return { press = "tap the prompt", Press = "Tap the prompt", hold = "hold the prompt", Hold = "Hold the prompt" }
-	end
-	local k = if key and key ~= "" then key else Tutorial.gamepadLabel(Tutorial.PROMPT_KEYS[kind])
-	return { press = `press {k}`, Press = `Press {k}`, hold = `hold {k}`, Hold = `Hold {k}` }
+local function stringKey(step: Step, field: string): string
+	return `onboarding.tutorial.{step.key}.{field}`
 end
 
-local function render(template: string, kind: Kind, key: string?): string
-	return (template:gsub("{(%w+)}", Tutorial.words(kind, key)))
+function Tutorial.title(step: Step): string
+	return Text.t(stringKey(step, "title"))
+end
+
+-- The short mint card once the step is done.
+function Tutorial.done(step: Step): string
+	return Text.t(stringKey(step, "done"))
+end
+
+-- The hint line on `kind` (default keyboard); `key` is the shown name of the prompt's key / button on that
+-- device (default E / X). Touch taps or holds the prompt itself.
+function Tutorial.body(step: Step, kind: Kind?, key: string?): string
+	if step.prompt == nil then
+		return Text.t(stringKey(step, "body"))
+	end
+	local k: Kind = kind or "keyboard"
+	if k == "touch" then
+		return Text.t(stringKey(step, "body_touch"))
+	end
+	local name = if key and key ~= "" then key else Tutorial.gamepadLabel(Tutorial.PROMPT_KEYS[k])
+	return Text.t(stringKey(step, "body_key"), { key = name })
 end
 
 -- Every text the card may show for `step`: each device's default wording plus the gamepad one with the longest
@@ -86,38 +100,26 @@ function Tutorial.texts(step: Step): { string }
 	end
 	local out: { string } = {}
 	for _, kind: Kind in Tutorial.KINDS :: { Kind } do
-		table.insert(out, step.bodies[kind])
+		table.insert(out, Tutorial.body(step, kind))
 	end
-	table.insert(out, render(step.template, "gamepad", widest))
+	table.insert(out, Tutorial.body(step, "gamepad", widest))
 	return out
 end
 
-local function define(id: string, icon: string, title: string, done: string, template: string): Step
-	local bodies = {} :: { [Kind]: string }
-	for _, kind: Kind in Tutorial.KINDS :: { Kind } do
-		bodies[kind] = render(template, kind)
-	end
-	local step: Step = {
-		id = id,
-		icon = icon,
-		title = title,
-		done = done,
-		template = template,
-		body = render(template, "keyboard"),
-		bodies = table.freeze(bodies),
-	}
+local function define(id: string, icon: string, key: string, prompt: ("press" | "hold")?): Step
+	local step: Step = { id = id, icon = icon, key = key, prompt = prompt }
 	return table.freeze(step)
 end
 
 Tutorial.STEPS = table.freeze({
-	define("Grab", "👐", "Grab a slime", "Slime grabbed", "Go to a free slime and {press}"),
-	define("Deposit", "🏠", "Bring it home", "Slime home", "Walk into your plot while you carry it"),
-	define("Lock", "🔒", "Lock your base", "Base locked", "Stand on your lock pad"),
-	define("Leaderboard", "🏆", "Check the leaderboard", "Leaderboard found", "Walk to the Top Earners board"),
-	define("Guide", "🧙", "Meet the Guide", "Guide met", "{Press} at the Guide to talk"),
-	define("BuyPad", "🟩", "Buy a pad", "Pad bought", "{Hold} at the glowing pad"),
-	define("Merge", "🧪", "Merge slimes", "First merge", "Brew 3 alike in your merge vat"),
-	define("BuyItem", "🛒", "Buy an item", "Item bought", "Buy anything at a shop"),
+	define("Grab", "👐", "grab", "press"),
+	define("Deposit", "🏠", "deposit"),
+	define("Lock", "🔒", "lock"),
+	define("Leaderboard", "🏆", "leaderboard"),
+	define("Guide", "🧙", "guide", "press"),
+	define("BuyPad", "🟩", "buy_pad", "hold"),
+	define("Merge", "🧪", "merge"),
+	define("BuyItem", "🛒", "buy_item"),
 } :: { Step })
 
 function Tutorial.find(id: string): Step?
@@ -136,8 +138,8 @@ local function makeView(entry: Step, index: number, total: number, kind: Kind?, 
 		index = index,
 		total = total,
 		icon = entry.icon,
-		title = entry.title,
-		body = if key then render(entry.template, k, key) else entry.bodies[k],
+		title = Tutorial.title(entry),
+		body = Tutorial.body(entry, k, key),
 		counter = `{index}/{total}`,
 	}
 end

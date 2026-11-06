@@ -24,6 +24,7 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local Leaderboards = if Shared then require(Shared.Leaderboards) else require("../shared/Leaderboards")
 local Visuals = if script then (game:GetService("ReplicatedStorage") :: any).Visuals else nil
 local BoardFace = if Visuals then require(Visuals.BoardFace) else require("../visuals/shared/BoardFace")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Row = { rank: number, name: string, value: string, isMe: boolean }
 
@@ -79,7 +80,9 @@ end
 -- The "You" line's label: "You #48" with my rank (State.boardRanks), "You" before the first ranking.
 function WorldLeaderboard.youLabel(myRank: any): string
 	local rank = Leaderboards.rankText(myRank)
-	return if rank then `You {rank}` else "You"
+	return if rank
+		then Text.t("menus.leaderboard.board_you_rank", { rank = rank })
+		else Text.t("menus.leaderboard.board_you")
 end
 
 -- The "You" line under a board's top 10: my value as the board shows it, or nil when I am in the rows already or
@@ -254,6 +257,8 @@ function WorldLeaderboard.render(gui: SurfaceGui, rows: { Row })
 		local rank = frame:FindFirstChild("Rank") :: TextLabel
 		local name = frame:FindFirstChild("Name") :: TextLabel
 		local value = frame:FindFirstChild("Value") :: TextLabel
+		-- the text is already in the player's language (ui/Text): Roblox must not translate it again
+		rank.AutoLocalize, name.AutoLocalize, value.AutoLocalize = false, false, false
 		local row = rows[k]
 		if row == nil then
 			frame.BackgroundTransparency = 1
@@ -262,7 +267,7 @@ function WorldLeaderboard.render(gui: SurfaceGui, rows: { Row })
 				edge.Enabled = false
 			end
 			rank.Text, value.Text = "", ""
-			name.Text = "No entries yet"
+			name.Text = Text.t("menus.leaderboard.empty")
 			name.TextColor3 = colors().Muted
 			continue
 		end
@@ -300,10 +305,12 @@ function WorldLeaderboard.renderYou(gui: SurfaceGui, text: string?, label: strin
 	you.Visible = text ~= nil
 	local value = you:FindFirstChild("Value")
 	if text and value and value:IsA("TextLabel") then
+		value.AutoLocalize = false
 		value.Text = text
 	end
 	local name = you:FindFirstChild("Name")
 	if label and name and name:IsA("TextLabel") then
+		name.AutoLocalize = false
 		name.Text = label
 	end
 end

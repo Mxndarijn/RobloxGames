@@ -25,7 +25,15 @@ local Config = if script then require(script.Parent.Parent.Shared.Config) else r
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
 export type Vec = { number }
-export type Event = { startAt: number, display: number, buyer: string, label: string?, gift: boolean? }
+-- `labelText`: the label as a Localize message from the server (bannerMessage), nil from an older server.
+export type Event = {
+	startAt: number,
+	display: number,
+	buyer: string,
+	label: string?,
+	labelText: any?,
+	gift: boolean?,
+}
 export type Frame = {
 	hand: Vec,
 	prize: { pos: Vec, scale: number }?,
@@ -142,11 +150,28 @@ function ClawShow.frame(display: number, t: number): Frame
 	}
 end
 
+-- shared/TaggedText (the English of a message), loaded on first use.
+local function english(message: any): string
+	local TaggedText = if script
+		then require((script.Parent.Parent :: any).Shared.TaggedText) :: any
+		else require("../../shared/TaggedText") :: any
+	return TaggedText.english(message)
+end
+
 function ClawShow.bannerText(event: Event): string
-	if event.label and event.label ~= "" then
-		return if event.gift then `{event.buyer} gifted {event.label}!` else `{event.buyer} got {event.label}!`
+	return english(ClawShow.bannerMessage(event))
+end
+
+-- ClawShow.bannerText as a Localize message ({ key, args }); the buyer's name stays as it is.
+function ClawShow.bannerMessage(event: Event): any
+	local label = event.labelText or event.label
+	if label and label ~= "" then
+		return {
+			key = if event.gift then "world.claw.gifted" else "world.claw.got",
+			args = { buyer = event.buyer, item = label },
+		}
 	end
-	return `{event.buyer} got a prize!`
+	return { key = "world.claw.prize", args = { buyer = event.buyer } }
 end
 
 function ClawShow.schedule(queue: Queue, now: number): number?

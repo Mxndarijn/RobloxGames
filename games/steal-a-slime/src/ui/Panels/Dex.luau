@@ -24,6 +24,7 @@ local UI = script.Parent.Parent
 local Layout = require(UI.Layout)
 local SlimeDex = require(UI.SlimeDex)
 local SlimePreview = require(UI.SlimePreview)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -95,9 +96,10 @@ local RECIPE = table.freeze({
 	showAllW = 110,
 })
 
-Dex.HINT = "Put all three in the Merge vat to make the slime."
-Dex.SEE_MERGES = "See merges"
-Dex.SHOW_ALL = "Show all"
+-- Strings keys (Strings/Collection), drawn with Text.t.
+Dex.HINT = "collection.dex.merge_hint"
+Dex.SEE_MERGES = "collection.dex.see_merges"
+Dex.SHOW_ALL = "collection.dex.show_all"
 
 local C = SlimeDex.CARD
 local PREVIEW_MARGIN = C.h * 2 -- cards this far past the scroll window keep their preview
@@ -161,7 +163,7 @@ local function previewWell(parent: Instance, size: number, name: string?): (Fram
 end
 
 function Dex.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "DexPanel", "SlimeDex", "📖")
+	local panel = Widgets.panel(parent, "DexPanel", Text.t("collection.dex.title"), "📖")
 	local c = Layout.PANEL_CHROME
 
 	-- Band chips, right to left from the close button: the found count, then the percent.
@@ -210,7 +212,7 @@ function Dex.new(parent: Instance, ctx: any)
 		local tab = Widgets.button(
 			{
 				Name = `Tab_{def.key}`,
-				Text = def.label,
+				Text = Text.t(def.label),
 				TextSize = STYLE.tabText,
 				Size = UDim2.fromOffset(0, STYLE.tabH),
 				Parent = content,
@@ -303,7 +305,7 @@ function Dex.new(parent: Instance, ctx: any)
 	local seeMerges = Widgets.button(
 		{
 			Name = "SeeMerges",
-			Text = Dex.SEE_MERGES,
+			Text = Text.t(Dex.SEE_MERGES),
 			TextSize = STYLE.tabText,
 			Size = UDim2.fromOffset(0, STYLE.tabH),
 			Parent = pane,
@@ -328,7 +330,7 @@ function Dex.new(parent: Instance, ctx: any)
 	local showAll = Widgets.button(
 		{
 			Name = "ShowAll",
-			Text = Dex.SHOW_ALL,
+			Text = Text.t(Dex.SHOW_ALL),
 			TextSize = STYLE.tabText,
 			AnchorPoint = Vector2.new(1, 0),
 			Size = UDim2.fromOffset(RECIPE.showAllW, STYLE.tabH),
@@ -675,10 +677,10 @@ function Dex.new(parent: Instance, ctx: any)
 			table.insert(names, used.title)
 		end
 		local values = {
-			{ "How to get it", detail.how },
-			{ "Set", detail.set or "" },
-			{ "You have", detail.have },
-			{ "Used in merges", table.concat(names, ", ") },
+			{ Text.t("collection.dex.fact_how"), detail.how },
+			{ Text.t("collection.dex.fact_set"), detail.set or "" },
+			{ Text.t("collection.dex.fact_have"), detail.have },
+			{ Text.t("collection.dex.fact_used_in"), table.concat(names, ", ") },
 		}
 		for i, fact in facts do
 			local text = values[i][2]
@@ -984,7 +986,7 @@ function Dex.new(parent: Instance, ctx: any)
 					name = card.title
 				end
 			end
-			legend.Text = if name then `Merges with {name}` else Dex.HINT
+			legend.Text = if name then Text.t("collection.dex.merges_with", { name = name }) else Text.t(Dex.HINT)
 		else
 			local cards = SlimeDex.ofKind(pendingCards, currentTab)
 			if selectedCard() == nil then

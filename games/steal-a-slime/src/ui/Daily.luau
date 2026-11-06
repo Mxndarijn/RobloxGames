@@ -7,6 +7,8 @@
 	server decides everything: the card shows `daily.track` / `daily.reward` and calls `Request("Daily")`.
 ]]
 
+local Text = if script then require(script.Parent.Text) else require("./Text")
+
 export type Reward = {
 	day: number,
 	kind: string,
@@ -46,7 +48,9 @@ function Daily.dayLabel(cell: Cell): string
 	if cell.state == "claimed" then
 		return ""
 	end
-	return if cell.state == "today" or cell.reward.skin then `Day {cell.day}` else tostring(cell.day)
+	return if cell.state == "today" or cell.reward.skin
+		then Text.t("onboarding.daily.day", { day = cell.day })
+		else tostring(cell.day)
 end
 
 -- Auto-open once per availability edge: the first State with a claim ready, or when one becomes ready while

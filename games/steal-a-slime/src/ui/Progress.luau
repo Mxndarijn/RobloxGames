@@ -12,6 +12,7 @@
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Tier = {
 	rebirth: number, -- rebirth count once reached
@@ -67,27 +68,35 @@ function Progress.rebirthTiers(
 end
 
 function Progress.tierText(tier: Tier): string
-	local head = if tier.current then `Now · rebirth {tier.rebirth}` else `Rebirth {tier.rebirth}`
-	local cost = if tier.cost then ` · {Format.formatCash(tier.cost)}` else ""
-	return `{head}: {Format.formatMultiplier(tier.multiplier)} income · {math.floor(tier.lockSeconds)}s lock{cost}`
+	local args = {
+		rebirth = tier.rebirth,
+		income = Format.formatMultiplier(tier.multiplier),
+		seconds = math.floor(tier.lockSeconds),
+	}
+	local key = if tier.current then "hud.progress.tier_now" else "hud.progress.tier"
+	local text = Text.t(key, args)
+	return if tier.cost then `{text} · {Format.formatCash(tier.cost)}` else text
 end
 
 function Progress.rebirthStatus(state: any, maxRebirths: number): RebirthStatus
 	if num(state.rebirths) >= maxRebirths then
-		return { ready = false, maxed = true, fraction = 1, text = "Max rebirths reached" }
+		return { ready = false, maxed = true, fraction = 1, text = Text.t("hud.progress.max_reached") }
 	end
 	local cost = num(state.rebirthCost)
 	local cash = num(state.cash)
 	local fraction = if cost > 0 then math.clamp(cash / cost, 0, 1) else 1
 	if state.canRebirth == true then
-		return { ready = true, maxed = false, fraction = 1, text = "READY! Rebirth now" }
+		return { ready = true, maxed = false, fraction = 1, text = Text.t("hud.progress.ready_now") }
 	end
 	local pct = math.floor(fraction * 100)
 	return {
 		ready = false,
 		maxed = false,
 		fraction = fraction,
-		text = `{Format.formatCash(math.max(0, cost - cash))} more needed ({pct}%)`,
+		text = Text.t("hud.progress.more_needed", {
+			amount = Format.formatCash(math.max(0, cost - cash)),
+			percent = `{pct}%`,
+		}),
 	}
 end
 
@@ -150,9 +159,9 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 		have = have,
 		fraction = fraction,
 		need = if maxed
-			then "Max rebirths"
-			elseif ready then "Ready!"
-			else `{Format.formatCash(math.max(0, cost - have))} more`,
+			then Text.t("hud.progress.max")
+			elseif ready then Text.t("hud.progress.ready")
+			else Text.t("hud.progress.more", { amount = Format.formatCash(math.max(0, cost - have)) }),
 		progress = `{Format.formatCash(have)} / {Format.formatCash(cost)}`,
 		current = math.max(1, num(state.rebirthMultiplier)),
 		multiplier = num(state.nextRebirthMultiplier),
@@ -163,9 +172,10 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 	}
 end
 
--- "a Flan", "an Imp".
+-- "a Flan", "an Imp" (the English article follows the name's first letter; each has its own key).
 local function withArticle(name: string): string
-	return (if string.match(name, "^[AEIOUaeiou]") then "an " else "a ") .. name
+	local key = if string.match(name, "^[AEIOUaeiou]") then "hud.progress.slime_an" else "hud.progress.slime_a"
+	return Text.t(key, { name = name })
 end
 
 -- "x", "x and y", "x, y and z".
@@ -173,14 +183,18 @@ local function joinAnd(items: { string }): string
 	if #items <= 1 then
 		return items[1] or ""
 	end
-	return `{table.concat(items, ", ", 1, #items - 1)} and {items[#items]}`
+	local list = items[1]
+	for i = 2, #items - 1 do
+		list = Text.t("hud.list.comma", { list = list, item = items[i] })
+	end
+	return Text.t("hud.list.and", { list = list, item = items[#items] })
 end
 
 -- What the disabled Rebirth well says is missing: "Need $178.8K more" (cash only), "Need a Flan" (slimes
 -- only), "Need $15.5M and a Flan" or "Need $15.5M, a Flan and an Imp" (both), "All rebirths done" at the top. "" once it is ready.
 function Progress.rebirthReason(nextUp: NextRebirth): string
 	if nextUp.maxed then
-		return "All rebirths done"
+		return Text.t("hud.progress.all_done")
 	end
 	if nextUp.ready then
 		return ""
@@ -194,13 +208,13 @@ function Progress.rebirthReason(nextUp: NextRebirth): string
 		if short > 0 then
 			table.insert(items, 1, Format.formatCash(short))
 		end
-		return `Need {joinAnd(items)}`
+		return Text.t("hud.progress.need", { items = joinAnd(items) })
 	elseif short > 0 then
-		return `Need {Format.formatCash(short)} more`
+		return Text.t("hud.progress.need_more", { amount = Format.formatCash(short) })
 	elseif #nextUp.brewing > 0 then
-		return `Wait for the vat: {nextUp.brewing[1].name} is brewing`
+		return Text.t("hud.progress.wait_vat", { name = nextUp.brewing[1].name })
 	end
-	return "Not ready yet" -- every need met but the server has not said so yet
+	return Text.t("hud.progress.not_ready") -- every need met but the server has not said so yet
 end
 
 -- State.dex (CONTRACT.md §36.4): species found over the 50 entries, and per rarity (event Secrets are bonus
@@ -239,17 +253,28 @@ end
 
 -- v13 rank lines; both nil on a server without ranks.
 function Progress.rank(state: any): { title: string?, next: string? }
-	local title = if type(state.rebirthTitle) == "string" then state.rebirthTitle else nil
+	-- A rank title is a Config name: drawn from its data key (rebirthTier, id = the English title).
+	local function rankTitle(value: any): string?
+		if type(value) == "string" then
+			return Text.data("rebirthTier", value, "title", value)
+		end
+		return if type(value) == "table" then Text.text(value) else nil
+	end
+	local title = rankTitle(state.rebirthTitle)
 	if title == nil then
 		return { title = nil, next = nil }
 	end
 	local nextTier = state.nextRebirthTier
-	local nextText = "Top rank reached!"
+	local nextText = Text.t("hud.progress.top_rank")
 	if type(nextTier) == "table" then
-		local perk = if type(nextTier.text) == "string" and #nextTier.text > 0 then ` - {nextTier.text}` else ""
-		nextText = `Next: {nextTier.title} at {num(nextTier.rebirths)} rebirths{perk}`
+		local perkText = nextTier.text
+		local perk = if type(perkText) == "string" or type(perkText) == "table" then Text.text(perkText) else ""
+		local args = { title = rankTitle(nextTier.title) or "", rebirths = num(nextTier.rebirths), perk = perk }
+		nextText = if #perk > 0
+			then Text.t("hud.progress.next_rank_perk", args)
+			else Text.t("hud.progress.next_rank", args)
 	end
-	return { title = `Rank: {title}`, next = nextText }
+	return { title = Text.t("hud.progress.rank", { title = title }), next = nextText }
 end
 
 -- SlimeDex rewards (State.dexRewards): the next unclaimed milestone as one line
@@ -259,17 +284,21 @@ function Progress.dexRewards(state: any): { next: string?, bonus: string?, dexPe
 	if type(rewards) ~= "table" then
 		return { next = nil, bonus = nil, dexPercent = nil }
 	end
-	local nextText = "All SlimeDex rewards collected!"
+	local nextText = Text.t("hud.progress.dex_all")
 	for _, r in rewards do
 		if type(r) == "table" and r.claimed ~= true then
-			nextText = `Next: {num(r.count)} species +{Format.formatCash(num(r.reward))}, +{pct(num(r.bonus))} income`
+			nextText = Text.t("hud.progress.dex_next", {
+				count = num(r.count),
+				cash = `+{Format.formatCash(num(r.reward))}`,
+				percent = `+{pct(num(r.bonus))}`,
+			})
 			break
 		end
 	end
 	local bonus = num(state.dexBonus)
 	return {
 		next = nextText,
-		bonus = if bonus > 0 then `SlimeDex bonus: +{pct(bonus)} income` else nil,
+		bonus = if bonus > 0 then Text.t("hud.progress.dex_bonus", { percent = `+{pct(bonus)}` }) else nil,
 		dexPercent = if bonus > 0 then `+{pct(bonus)}` else nil,
 	}
 end
@@ -278,9 +307,9 @@ end
 -- ("Friends +20% income"): "SlimeDex +5% · Friends +20% income"; either may be nil.
 function Progress.incomeLine(dexPercent: string?, friends: string?): string?
 	if dexPercent and friends then
-		return `SlimeDex {dexPercent} · {friends}`
+		return `{Text.t("hud.progress.dex_short", { percent = dexPercent })} · {friends}`
 	elseif dexPercent then
-		return `SlimeDex bonus: {dexPercent} income`
+		return Text.t("hud.progress.dex_bonus", { percent = dexPercent })
 	end
 	return friends
 end

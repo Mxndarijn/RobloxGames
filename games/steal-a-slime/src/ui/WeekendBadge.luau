@@ -7,6 +7,7 @@
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type View = { active: boolean, multiplier: number, endsAt: number? }
 
@@ -19,15 +20,15 @@ function WeekendBadge.banner(view: View?, now: number): string?
 	if type(view.multiplier) ~= "number" or view.multiplier ~= view.multiplier or view.multiplier <= 1 then
 		return nil
 	end
-	local text = string.format("💰 x%g Weekend", view.multiplier)
+	local mult = string.format("x%g", view.multiplier)
 	if type(view.endsAt) == "number" then
 		local remaining = Format.remainingSeconds(view.endsAt, now)
 		if remaining <= 0 then
 			return nil
 		end
-		text ..= ` - {Format.formatTimeLeft(remaining)} left`
+		return "💰 " .. Text.t("hud.weekend.left", { mult = mult, time = Format.formatTimeLeft(remaining) })
 	end
-	return text
+	return "💰 " .. Text.t("hud.weekend.name", { mult = mult })
 end
 
 return table.freeze(WeekendBadge)

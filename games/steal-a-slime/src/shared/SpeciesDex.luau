@@ -13,6 +13,13 @@
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local FountainTiers = if script then require(script.Parent.FountainTiers) else require("./FountainTiers")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
+
+-- shared/TaggedText, loaded on first use: it reads the Strings catalog, which reads this module.
+local function tagged(): any
+	return if script then require(script.Parent.TaggedText) :: any else require("./TaggedText") :: any
+end
 
 type Entry = SlimeRoster.Entry
 
@@ -35,7 +42,7 @@ export type EntryView = {
 	kind: string,
 	found: boolean,
 	name: string,
-	hint: string?,
+	hint: Localize.Text?, -- a Localize message (ui/Text.text draws it)
 	ingredients: { string }?,
 	ingredientSets: { string }?, -- hybrids: each slot's set ("Meadow", "Garden", ...), sent even while the slot is ""
 }
@@ -64,7 +71,7 @@ local SpeciesDex = {
 	ENTRIES = table.freeze(ENTRIES),
 	BONUS = BONUS,
 	TOTAL = #ENTRIES,
-	BOSS_HINT = "Defeat the boss event",
+	BOSS_HINT = "Defeat the boss event", -- the English of world.dex.boss_hint, the boss entry's hint
 }
 
 -- A species the Dex knows: an entry or a bonus entry.
@@ -177,15 +184,15 @@ local function entryView(data: Data, entry: Entry, now: number, sources: Sources
 			end
 			view.ingredients = slots
 			view.ingredientSets = sets
-			view.hint = recipe.hint
+			view.hint = tagged().known(`world.recipe.{entry.id}`, recipe.hint)
 		end
 	elseif entry.kind == "boss" then
-		view.hint = SpeciesDex.BOSS_HINT
+		view.hint = Localize.msg("world.dex.boss_hint")
 	elseif entry.kind == "event" then
 		local week = sources.featuredWeek(entry.id, now)
 		local featuredNow = week ~= nil and week <= now
 		if (found or featuredNow) and week then
-			view.hint = `Featured Secret: week of {SpeciesDex.weekLabel(week)}`
+			view.hint = Localize.msg("world.dex.featured_week", { date = SpeciesDex.weekLabel(week) })
 		end
 	end
 	return view

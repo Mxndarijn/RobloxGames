@@ -37,6 +37,7 @@ local PlayerSettings = require("../../src/shared/PlayerSettings")
 local Remotes = require("../../src/shared/Remotes")
 local Shops = require("../../src/shared/Shops")
 local SlimeDex = require("../../src/ui/SlimeDex")
+local Text = require("../../src/ui/Text")
 local Tutorial = require("../../src/ui/Tutorial")
 local WorldShopLogic = require("../../src/ui/WorldShopLogic")
 
@@ -532,7 +533,7 @@ function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 		end
 		table.insert(out, {
 			name = `tutorial {step.id} title`,
-			text = step.title,
+			text = Tutorial.title(step),
 			size = N.title,
 			bold = true,
 			w = stepW,
@@ -551,7 +552,7 @@ function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 		end
 		table.insert(out, {
 			name = `tutorial {step.id} done`,
-			text = step.done,
+			text = Tutorial.done(step),
 			size = N.title,
 			bold = true,
 			w = inner,
@@ -561,7 +562,7 @@ function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 	end
 	table.insert(out, {
 		name = "tutorial finished",
-		text = Tutorial.FINISHED,
+		text = Text.t(Tutorial.FINISHED),
 		size = N.title,
 		bold = true,
 		w = inner,
@@ -570,7 +571,7 @@ function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 	})
 	table.insert(out, {
 		name = "tutorial finished sub",
-		text = Tutorial.FINISHED_SUB,
+		text = Text.t(Tutorial.FINISHED_SUB),
 		size = N.sub,
 		w = inner,
 		h = lines(N.sub, 2),
@@ -983,7 +984,7 @@ function LayoutAssert.guideTexts(panel: Rect): { TextDesc }
 	local out: { TextDesc } = {}
 	local tips = { "Thief has your slime: use your bat!", "Free pad: bring home another slime" }
 	for _, tip in GuideTips.GENERAL do
-		table.insert(tips, tip.text)
+		table.insert(tips, Text.t(tip.key))
 	end
 	for i, text in tips do
 		table.insert(out, { name = `Guide tip {i}`, text = `🚨  {text}`, size = 15, w = w, h = GuidePanel.TIP_H })
@@ -1265,7 +1266,7 @@ function LayoutAssert.panelChecks(check: Checker)
 		check.text({ name = closeName, text = "X", size = 24, bold = true, w = close.w, h = close.h })
 		-- Nav hints stay up while a menu is open and draw above it (phones hide the nav, and its hint, then).
 		for id, hint in Hint.STEPS do
-			local place = Hint.place(screen, { id = id, text = hint.text, target = hint.target })
+			local place = Hint.place(screen, { id = id, text = Hint.text(id), target = hint.target })
 			if place and not screen.compact then
 				check.noOverlap(`Hint.{id} bubble`, place.bubble, closeName, close)
 			end
@@ -1295,7 +1296,7 @@ function LayoutAssert.overlays(screen: Layout.Screen): { { name: string, rect: R
 		table.insert(out, { name = "Panel", rect = screen.panel })
 	end
 	for id, hint in Hint.STEPS do
-		local place = Hint.place(screen, { id = id, text = hint.text, target = hint.target })
+		local place = Hint.place(screen, { id = id, text = Hint.text(id), target = hint.target })
 		if place then
 			table.insert(out, { name = `Hint.{id} bubble`, rect = place.bubble })
 		end
@@ -1658,7 +1659,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 
 	-- Hints for every step that points at a button.
 	for id, hint in Hint.STEPS do
-		local view = { id = id, text = hint.text, target = hint.target }
+		local view = { id = id, text = Hint.text(id), target = hint.target }
 		local place = Hint.place(screen, view)
 		if place == nil then
 			check.fail(`hint {id} has no target`)
@@ -1668,7 +1669,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			check.noOverlap(`Hint.{id} bubble`, place.bubble, "Nav", screen.nav)
 			check.text({
 				name = `Hint.{id}`,
-				text = hint.text,
+				text = Hint.text(id),
 				size = Hint.TEXT_SIZE,
 				bold = true,
 				w = place.bubble.w - Hint.PAD_X * 2,

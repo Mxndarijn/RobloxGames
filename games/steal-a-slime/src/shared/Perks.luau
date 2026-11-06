@@ -14,6 +14,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local DataKey = if script then require(script.Parent.Strings.DataKey) else require("./Strings/DataKey")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local MergeGate = if script then require(script.Parent.MergeGate) else require("./MergeGate")
 
@@ -91,6 +92,34 @@ function Perks.tierText(tier: Config.RebirthTier): string
 	return table.concat(parts, ", ")
 end
 
+-- The rank's perks as one Localize message (State: rebirthTiers[].text, nextRebirthTier.text), or "" for the first
+-- rank's empty text. The same words as tierText, as a whole sentence per mix of perks (world.rank.*), so it can be translated.
+function Perks.tierMessage(tier: Config.RebirthTier): any
+	local parts, args = {}, {}
+	if tier.unlock then
+		table.insert(parts, "unlock")
+		args.upgrade = { key = DataKey.dataKey("upgrade", tier.unlock), args = nil }
+	end
+	if tier.income then
+		table.insert(parts, "income")
+		args.percent = math.floor(tier.income * 100 + 0.5)
+	end
+	local merges = MergeGate.opensAtTiers(tier)
+	if merges then
+		table.insert(parts, "merges")
+		local list: any = nil
+		for _, t in merges do
+			local name = { key = DataKey.dataKey("rarity", Config.RARITIES[t].name) }
+			list = if list == nil then name else { key = "hud.list.and", args = { list = list, item = name } }
+		end
+		args.rarities = list
+	end
+	if #parts == 0 then
+		return ""
+	end
+	return { key = `world.rank.{table.concat(parts, "_")}`, args = args }
+end
+
 -- Best value of `field` over every reached rank.
 local function best(rebirths: number, field: string, default: number): number
 	local value = default
@@ -147,7 +176,7 @@ end
 -- Follow-pet passive: derived from the saved favourite, never stored
 ---------------------------------------------------------------------------
 
-export type PetPassive = { kind: string, value: number, icon: string, text: string }
+export type PetPassive = { kind: string, value: number, icon: string, text: any } -- text: a Localize message
 
 -- The favourite slime's perk, or nil with no favourite or an unknown tier.
 function Perks.petPassive(data: Progress): PetPassive?
@@ -168,7 +197,8 @@ function Perks.petPassive(data: Progress): PetPassive?
 				kind = kind,
 				value = value,
 				icon = def.icon,
-				text = `+{math.floor(value * 100 + 0.5)}% {def.word}`,
+				-- "+3% income" as a Localize message (world.pet_perk.<kind>); draw it with ui/Text.text.
+				text = { key = `world.pet_perk.{kind}`, args = { percent = math.floor(value * 100 + 0.5) } },
 			}
 		end
 	end

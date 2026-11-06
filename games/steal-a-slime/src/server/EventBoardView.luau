@@ -21,6 +21,7 @@ local WorldLayout = if Shared
 local BoardFace = if Shared then require(Shared.Parent.Visuals.BoardFace) else require("../visuals/shared/BoardFace")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
+local WorldText = if script then require(script.Parent.WorldText) else require("./WorldText")
 
 type World = World.World
 
@@ -54,11 +55,12 @@ function EventBoardView.input(world: World, now: number, unix: number?): EventBo
 	local raining, rainEndsAt, rainAt = Spawner.rain(world, now)
 	local event, eventEndsAt = nil, nil
 	if world.adminEvent then
-		event, eventEndsAt = world.adminEvent.def.label, world.adminEvent.endsAt
+		local def = world.adminEvent.def
+		event, eventEndsAt = WorldText.data("adminEvent", def.id, "label", def.label), world.adminEvent.endsAt
 	elseif unix and WeeklyEvents.enabled() then
 		local running = WeeklyEvents.current(unix)[1]
 		if running then
-			event = running.label
+			event = WorldText.data("weeklyTrait", running.id, "label", running.label)
 		end
 	end
 	return {
@@ -103,14 +105,14 @@ local function stroke(parent: Instance, color: Color3, thickness: number)
 	s.Parent = parent
 end
 
-local function text(parent: Instance, name: string, value: string, color: Color3, outline: number?): TextLabel
+local function text(parent: Instance, name: string, value: any, color: Color3, outline: number?): TextLabel
 	local t = Instance.new("TextLabel")
 	t.Name = name
 	t.BackgroundTransparency = 1
 	t.Font = Enum.Font.FredokaOne
 	t.TextScaled = true
 	t.TextColor3 = color
-	t.Text = value
+	WorldText.setMessage(t, "Text", value) -- a Localize message (EventBoard rows) or a glyph
 	if outline then
 		local s = Instance.new("UIStroke")
 		s.Color = rgb(INK)
@@ -204,10 +206,10 @@ local function fill(list: Frame, rows: { EventBoard.Row }, rebuild: boolean)
 	for k, row in rows do
 		local f = list:FindFirstChild(`Card_{k}`)
 		if f then
-			for field, value in { Title = row.title, Detail = row.detail } :: { [string]: string } do
+			for field, value in { Title = row.title, Detail = row.detail } :: { [string]: any } do
 				local label = f:FindFirstChild(field)
-				if label and label:IsA("TextLabel") and label.Text ~= value then
-					label.Text = value
+				if label and label:IsA("TextLabel") then
+					WorldText.setMessage(label, "Text", value)
 				end
 			end
 			local pill = f:FindFirstChild("TimePill")
@@ -215,8 +217,8 @@ local function fill(list: Frame, rows: { EventBoard.Row }, rebuild: boolean)
 			if pill and pill:IsA("Frame") then
 				pill.Visible = row.time ~= ""
 			end
-			if time and time:IsA("TextLabel") and time.Text ~= row.time then
-				time.Text = row.time
+			if time and time:IsA("TextLabel") then
+				WorldText.setMessage(time, "Text", row.time)
 			end
 		end
 	end
@@ -262,7 +264,7 @@ local function dress(content: Instance): Frame
 	})
 	gradient.Parent = header
 	header.Parent = bg
-	local title = text(header, "Title", string.upper(EventBoard.TITLE), rgb(WHITE), 4)
+	local title = text(header, "Title", WorldText.msg(EventBoard.TITLE), rgb(WHITE), 4)
 	title.Position = UDim2.fromScale(0.04, 0.1)
 	title.Size = UDim2.fromScale(0.92, 0.8)
 	-- The cards, under the title bar's outline and a gutter, down to the face's padding.

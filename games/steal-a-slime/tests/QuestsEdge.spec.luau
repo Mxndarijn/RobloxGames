@@ -4,6 +4,7 @@
 -- Cloud-eligible: pure require paths, no @lune.
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
+local Localize = require("../../../shared/luau/src/locale/Localize")
 local Milestones = require("../src/server/Milestones")
 local PlayerData = require("../src/shared/PlayerData")
 local Quests = require("../src/shared/Quests")
@@ -11,6 +12,7 @@ local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
 local Sessions = require("../src/server/Sessions")
 local Snapshot = require("../src/server/Snapshot")
+local Strings = require("../src/shared/Strings")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -161,17 +163,22 @@ describe("Quests UTC day boundary", function()
 			expect(key(again)).toBe(key(data))
 		end
 	end)
-	it("every pool quest has a view: title without placeholders, positive target, known reward kind", function()
+	it("every pool quest has a view: a catalog title, positive target, known reward kind", function()
 		for _, def in Config.DAILY_QUESTS.pool do
 			for _, target in def.choices do
 				local data = PlayerData.new()
-				data.quests =
-					{ day = Quests.day(T0), slots = { { id = def.id, target = target, base = 0, claimed = false } } }
+				data.quests = {
+					day = Quests.day(T0),
+					slots = { { id = def.id, target = target, base = 0, claimed = false } },
+				}
 				local q = Quests.view(data, T0).quests[1]
-				expect(string.find(q.title, "<", 1, true)).toBeNil()
+				expect(Localize.has(Strings.catalog, q.title.key)).toBe(true)
+				local title = Localize.english(Strings.catalog, q.title)
+				expect(string.find(title, "[<{]")).toBeNil()
 				expect(q.target).toBe(target)
 				expect(q.rewardKind == "cash" or q.rewardKind == "boost").toBe(true)
-				expect(#q.reward > 0).toBe(true)
+				local reward = Localize.english(Strings.catalog, q.reward)
+				expect(#reward > 0 and string.find(reward, "{", 1, true) == nil).toBe(true)
 			end
 		end
 	end)

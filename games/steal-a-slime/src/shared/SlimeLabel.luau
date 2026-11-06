@@ -14,6 +14,13 @@ local EggKind = if script then require(script.Parent.EggKind) else require("./Eg
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Growth = if script then require(script.Parent.Growth) else require("./Growth")
 local NumberFormat = if script then require(script.Parent.NumberFormat) else require("./NumberFormat")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
+
+-- shared/TaggedText, loaded on first use (it reads the Strings catalog).
+local function tagged(): any
+	return if script then require(script.Parent.TaggedText) :: any else require("./TaggedText") :: any
+end
 
 export type View = {
 	name: string, -- "Lop", "BOSS Lop"
@@ -25,6 +32,10 @@ export type View = {
 	growth: number, -- whole percent 0..100 (the pad sign's bar)
 	pad: number?, -- pad index while the slime rests on a pad: the label is the pad sign, not the tag
 	shine: Genome.ShineRow?, -- the Config.SHINES row, drawn as a pill next to the rarity
+	-- The JSON Localize messages of the name and the status row (attributes LabelNameMessage / LabelStatusMessage),
+	-- nil when there is none: decode and draw them in the player's language in place of `name` / `income`.
+	nameMessage: string?,
+	statusMessage: string?,
 }
 
 -- What the label reads; the attribute names are in `SlimeLabel.ATTRIBUTES`.
@@ -39,6 +50,8 @@ export type Attributes = {
 	status: any,
 	shine: any,
 	owner: any, -- OwnerUserId: 0 / nil for a wild slime
+	nameMessage: any, -- LabelNameMessage: the name as a JSON Localize message, nil for a plain species name
+	statusMessage: any, -- LabelStatusMessage: the status row as a JSON Localize message
 }
 
 local SlimeLabel = {}
@@ -55,6 +68,8 @@ SlimeLabel.ATTRIBUTES = table.freeze({
 	status = Constants.LABEL_STATUS_ATTRIBUTE,
 	shine = Constants.SHINE_ATTRIBUTE, -- written by server/SlimeShineView
 	owner = "OwnerUserId",
+	nameMessage = Constants.LABEL_NAME_MESSAGE_ATTRIBUTE,
+	statusMessage = Constants.LABEL_STATUS_MESSAGE_ATTRIBUTE,
 })
 
 local function finite(n: any): number?
@@ -98,11 +113,24 @@ end
 -- The shine is not in the name: the tag draws it as a pill (SlimeLabel.shine).
 function SlimeLabel.attributes(slime: Genome.Slime): (string, number)
 	local kind = EggKind.of(slime)
+	local message = SlimeLabel.nameMessage(slime)
+	local name = if message then tagged().english(message) else slime.name
+	return name, if kind then kind.tier else Genome.rarity(slime.tier).tier
+end
+
+-- The label name as a Localize message: an egg's egg name, a brewed slime's "Brewed <name>"; nil for a plain
+-- species name (a proper noun, shown as it is).
+function SlimeLabel.nameMessage(slime: Genome.Slime): Localize.Message?
+	local kind = EggKind.of(slime)
 	if kind then
-		return EggKind.displayName(kind), kind.tier
+		return Localize.msg("common.egg_name", {
+			kind = tagged().known(`data.eggKind.{kind.id}.name`, kind.name),
+		})
 	end
-	local name = if slime.brewed == 1 then `Brewed {slime.name}` else slime.name
-	return name, Genome.rarity(slime.tier).tier
+	if slime.brewed == 1 then
+		return Localize.msg("world.label.brewed", { name = slime.name })
+	end
+	return nil
 end
 
 -- The Config.SHINES row the tag shows as a pill for a model's Shine attribute; nil without a known shine.
@@ -121,17 +149,23 @@ end
 
 -- The status row of a Mystery Egg at `now` (LabelStatus), nil for a slime.
 function SlimeLabel.eggStatus(slime: Genome.Slime, now: number): string?
+	local message = SlimeLabel.eggStatusMessage(slime, now)
+	return if message then tagged().english(message) else nil
+end
+
+-- SlimeLabel.eggStatus as a Localize message.
+function SlimeLabel.eggStatusMessage(slime: Genome.Slime, now: number): Localize.Message?
 	local kind = EggKind.of(slime)
 	if not kind then
 		return nil
 	end
 	local hatchAt = slime.egg and slime.egg.hatchAt
 	if not hatchAt then
-		return `Hatches in {SlimeLabel.clock(kind.hatchSeconds)} on a pad`
+		return Localize.msg("world.label.hatches_on_pad", { time = SlimeLabel.clock(kind.hatchSeconds) })
 	elseif hatchAt <= now then
-		return "Ready to hatch!"
+		return Localize.msg("world.label.ready_to_hatch")
 	end
-	return `Hatches in {SlimeLabel.clock(hatchAt - now)}`
+	return Localize.msg("world.label.hatches_in", { time = SlimeLabel.clock(hatchAt - now) })
 end
 
 -- Whether the label of a model hatched at server time `hatchedAt` (its HatchedAt attribute) waits for the hatch
@@ -181,6 +215,8 @@ function SlimeLabel.view(attrs: Attributes, multiplier: number?): View?
 		growth = Growth.percentAt((finite(attrs.growth) or 0) / 100),
 		pad = if pad and pad >= 1 then math.floor(pad) else nil,
 		shine = SlimeLabel.shine(attrs.shine),
+		nameMessage = if type(attrs.nameMessage) == "string" then attrs.nameMessage else nil,
+		statusMessage = if type(attrs.statusMessage) == "string" then attrs.statusMessage else nil,
 	}
 end
 

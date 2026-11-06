@@ -30,6 +30,7 @@
 
 local UI = script.Parent
 local Layout = require(UI.Layout)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -86,17 +87,17 @@ end
 -- MergeGate.opensText) or "vatRefused" with the reason ("The vat is full", "The vat takes Common slimes", ...).
 function SlimeMove.vatClass(vat: any, slime: any, rebirths: number?): (PadClass, string?)
 	if type(slime) ~= "table" then
-		return "vatRefused", "Pick one of your slimes"
+		return "vatRefused", Text.t("menus.move.pick_slime")
 	end
 	local ids = if type(vat) == "table" and type(vat.ids) == "table" then vat.ids else {}
 	local tier = if type(vat) == "table" and type(vat.tier) == "number" then vat.tier else nil
 	local brewing = type(vat) == "table" and type(vat.endsAt) == "number"
 	local ok, reason = VatState.checkLoad(ids, tier, brewing, slime)
 	if not ok then
-		return "vatRefused", reason
+		return "vatRefused", if reason ~= nil then Text.text(reason) else nil
 	end
 	if rebirths and not MergeGate.allows(slime.tier, rebirths) then
-		return "vatGated", MergeGate.opensText(slime.tier)
+		return "vatGated", Text.text(MergeGate.opensText(slime.tier))
 	end
 	return "vat", nil
 end
@@ -104,22 +105,22 @@ end
 -- The bar's name for `slime`: its species name ("Lop"), an egg's egg name; `isEgg` / `eggName` from Genome.
 function SlimeMove.shortName(slime: any, isEgg: (any) -> boolean, eggName: (any) -> string): string
 	if type(slime) ~= "table" then
-		return "slime"
+		return Text.t("menus.move.slime")
 	end
 	if isEgg(slime) then
 		return eggName(slime)
 	end
-	return if type(slime.name) == "string" then slime.name else "slime"
+	return if type(slime.name) == "string" then slime.name else Text.t("menus.move.slime")
 end
 
 -- The bar's status line for the vat as the target: the load after it goes in, or why it can't.
 function SlimeMove.vatStatus(class: PadClass, count: number, reason: string?): string
 	if class == "vat" then
-		return `Merge vat ({count + 1}/{VatState.SIZE})`
+		return Text.t("menus.move.vat", { count = count + 1, size = VatState.SIZE })
 	elseif class == "vatGated" then
-		return `Merge vat ({count + 1}/{VatState.SIZE}): {reason or ""}`
+		return Text.t("menus.move.vat_gated", { count = count + 1, size = VatState.SIZE, reason = reason or "" })
 	end
-	return reason or "The vat can't take this slime"
+	return reason or Text.t("menus.move.vat_cant")
 end
 
 -- The target nearest `point`: an unlocked pad (1..padsUnlocked) or the vat (SlimeMove.VAT); nil when none.
@@ -139,15 +140,17 @@ end
 -- The bar's status line for a target pad (`otherName` = the slime a swap would trade with).
 function SlimeMove.statusText(class: PadClass?, pad: number?, otherName: string?): string
 	if class == nil or pad == nil then
-		return "Point at a pad"
+		return Text.t("menus.move.point")
 	elseif class == "same" then
-		return `Pad {pad}: its own pad`
+		return Text.t("menus.move.own_pad", { pad = pad })
 	elseif class == "locked" then
-		return `Pad {pad} is locked`
+		return Text.t("menus.move.pad_locked", { pad = pad })
 	elseif class == "swap" then
-		return `Pad {pad}: swap with {otherName or "that slime"}`
+		return if otherName
+			then Text.t("menus.move.swap", { pad = pad, name = otherName })
+			else Text.t("menus.move.swap_unknown", { pad = pad })
 	end
-	return `Pad {pad}`
+	return Text.t("menus.move.pad", { pad = pad })
 end
 
 local function classColor(class: PadClass?): Color3
@@ -313,7 +316,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 	local placeBtn = Widgets.button(
 		{
 			Name = "Place",
-			Text = "Place",
+			Text = Text.t("menus.move.place"),
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -(B.pad + B.buttonW + B.gap), 0.5, 0),
 			Size = UDim2.fromOffset(B.buttonW, Layout.BUTTON),
@@ -327,7 +330,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 	local cancelBtn = Widgets.button(
 		{
 			Name = "Cancel",
-			Text = "Cancel",
+			Text = Text.t("menus.move.cancel"),
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -B.pad, 0.5, 0),
 			Size = UDim2.fromOffset(B.buttonW, Layout.BUTTON),
@@ -340,7 +343,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 	cancelBtn.instance.Parent = frame
 
 	local function shortName(slime: any): string
-		return SlimeMove.shortName(slime, ctx.Genome.isEgg, ctx.Genome.displayName)
+		return SlimeMove.shortName(slime, ctx.Genome.isEgg, Text.slime)
 	end
 
 	local state: any = nil -- the latest State
@@ -523,7 +526,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			status.Text = a.error
 			status.TextColor3 = Theme.Bad
 		elseif a.pending then
-			status.Text = "Moving..."
+			status.Text = Text.t("menus.move.moving")
 			status.TextColor3 = Theme.Muted
 		elseif target == SlimeMove.VAT and class then
 			local vat = vatOf()
@@ -589,9 +592,9 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 					finish()
 				else
 					a.pending = false
-					a.error = if type(result) == "table" and type(result.message) == "string"
-						then result.message
-						else "the vat didn't take it"
+					a.error = if type(result) == "table" and result.message ~= nil
+						then Text.text(result.message)
+						else Text.t("menus.move.vat_failed")
 					refresh()
 					a.error = nil
 				end
@@ -620,10 +623,10 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 				finish(true)
 			else
 				a.pending = false
-				local message = if type(result) == "table" and type(result.message) == "string"
-					then result.message
-					else "the move didn't go through"
-				a.error = `Can't move: {message}`
+				local message = if type(result) == "table" and result.message ~= nil
+					then Text.text(result.message)
+					else Text.t("menus.move.move_failed")
+				a.error = Text.t("menus.move.cant_move", { reason = message })
 				refresh()
 				a.error = nil
 			end
@@ -785,7 +788,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 				view = v
 			end
 		end
-		name.Text = `Moving {shortName(view and view.slime)}`
+		name.Text = Text.t("menus.move.moving_name", { name = shortName(view and view.slime) })
 		frame.Visible = true
 		refresh()
 	end

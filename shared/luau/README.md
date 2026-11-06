@@ -42,6 +42,10 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | | `MenuMouse` | adapter, client | Frees the cursor in first person / shift lock while the game says a menu is open (one hidden `Modal` button) |
 | | `LabelFit` | pure | World-label maths: px per stud, read distance, phone pixel scale and MaxDistance; `mark(gui)` tags a pixel tag for the fitter ([guide](../../guides/roblox-world-labels.md)) |
 | | `LabelFitView` | adapter, client | Shrinks every marked BillboardGui on a phone-sized screen (Size × scale plus a UIScale) and applies its phone MaxDistance; re-fits on screen-size changes |
+| `src/locale` | `Localize` | pure | Player-facing text catalog: stable keys, English source patterns with `{name}` parameters, messages that cross remotes (`msg`), translated-pattern lookup with a fallback when a translation lost a parameter, the long-text pseudo-language (`pseudo`, `untranslated`) and the Rojo LocalizationTable CSV |
+| | `LocaleFonts` | pure | Which writing system a Roblox locale id uses, and the game's display-font swap for it |
+| | `RobloxTranslator` | adapter, client | Looks catalog entries up in Roblox's Translator for the player (by key, then by source text), English and pseudo translators for servers and checks |
+| | `LocalizedTree` | adapter | Server-made world text (prompt texts, world labels): the server writes English plus the message in an attribute, every client writes its own language |
 | `testing` | `TestRunner` | Lune only | describe / it / expect used by these specs; games can reuse it |
 
 ## Mounting in a game

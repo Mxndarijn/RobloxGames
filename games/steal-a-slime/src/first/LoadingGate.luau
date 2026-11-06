@@ -14,7 +14,10 @@
 	lift: once everything is ready, or at MAX_WAIT whatever is still loading,
 	and never before MIN_SHOW (no one-frame flash). canSkip turns true at
 	SKIP_AFTER so a slow connection is never stuck behind the screen. The
-	label is a tip that changes every TIP_EVERY seconds, then DONE.
+	label is a tip that changes every TIP_EVERY seconds, then DONE; `key` is
+	its Strings key, which the adapter translates once the UI's Text module
+	can load (this screen runs before Shared, so the English stays here as the
+	fallback; tests/LoadingGate.spec checks it matches the catalog).
 
 	glide() moves the drawn bar toward that target every frame, so it slides
 	instead of jumping, and keeps creeping a little while a stage waits.
@@ -42,7 +45,17 @@ LoadingGate.TIPS = table.freeze({
 	"Merge two slimes in the vat",
 	"Run the obby for a cash boost",
 })
+-- The Strings key of each tip (same order as TIPS).
+LoadingGate.TIP_KEYS = table.freeze({
+	"hud.loading.tip_lock",
+	"hud.loading.tip_steal",
+	"hud.loading.tip_rarer",
+	"hud.loading.tip_merge",
+	"hud.loading.tip_obby",
+})
 LoadingGate.DONE = "Ready!"
+LoadingGate.DONE_KEY = "hud.loading.ready"
+LoadingGate.SKIP_KEY = "hud.loading.skip"
 
 export type Status = {
 	gameLoaded: boolean,
@@ -52,13 +65,14 @@ export type Status = {
 	preloadDone: boolean,
 }
 
-export type View = { progress: number, label: string, lift: boolean, canSkip: boolean }
+-- `label` in English, `key` its Strings key.
+export type View = { progress: number, label: string, key: string, lift: boolean, canSkip: boolean }
 
--- The tip on screen `elapsed` seconds in, starting from tip number `first` (1-based, wraps).
-function LoadingGate.tip(elapsed: number, first: number?): string
+-- The tip on screen `elapsed` seconds in, starting from tip number `first` (1-based, wraps), and its key.
+function LoadingGate.tip(elapsed: number, first: number?): (string, string)
 	local tips = LoadingGate.TIPS
 	local index = ((first or 1) - 1 + math.floor(math.max(elapsed, 0) / LoadingGate.TIP_EVERY)) % #tips
-	return tips[index + 1]
+	return tips[index + 1], LoadingGate.TIP_KEYS[index + 1]
 end
 
 function LoadingGate.step(status: Status, elapsed: number, firstTip: number?): View
@@ -77,9 +91,14 @@ function LoadingGate.step(status: Status, elapsed: number, firstTip: number?): V
 	progress += w.preload * share
 
 	local ready = status.gameLoaded and status.worldReady and status.preloadDone
+	local label, key = LoadingGate.DONE, LoadingGate.DONE_KEY
+	if not ready then
+		label, key = LoadingGate.tip(elapsed, firstTip)
+	end
 	return {
 		progress = if ready then 1 else math.min(progress, 0.99),
-		label = if ready then LoadingGate.DONE else LoadingGate.tip(elapsed, firstTip),
+		label = label,
+		key = key,
 		lift = elapsed >= LoadingGate.MIN_SHOW and (ready or elapsed >= LoadingGate.MAX_WAIT),
 		canSkip = elapsed >= LoadingGate.SKIP_AFTER,
 	}

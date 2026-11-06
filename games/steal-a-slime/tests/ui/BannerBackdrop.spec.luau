@@ -72,7 +72,7 @@ describe("tutorial UI never covers an open menu card", function()
 		expect(card.frame.Visible).toBe(false)
 		card.setMenuOpen(false)
 		expect(card.frame.Visible).toBe(true)
-		expect(UiHarness.find(step(card), "Title").Text).toBe((Tutorial.find("Deposit") :: any).title)
+		expect(UiHarness.find(step(card), "Title").Text).toBe(Tutorial.title(Tutorial.find("Deposit") :: any))
 		card.update({}) -- tutorial finished: the step card is gone, menu or not
 		card.setMenuOpen(true)
 		expect(card.frame.Visible).toBe(false)

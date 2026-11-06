@@ -16,8 +16,10 @@
 ]]
 
 local AssetService = game:GetService("AssetService")
+local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
+local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -61,6 +63,8 @@ local ItemIconView = require(script.ItemIconView)
 local ItemIcons = require(script.ItemIcons)
 local KitCache = require(script.KitCache)
 local Layout = require(script.Layout)
+local LocalizedTree =
+	require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("locale"):WaitForChild("LocalizedTree") :: any)
 local LockBreakPrompt = require(script.LockBreakPrompt)
 local LockTimerTag = require(script.LockTimerTag)
 local MenuClose = require(script.MenuClose)
@@ -83,6 +87,7 @@ local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
 local StealReach = require(script.StealReach)
+local Text = require(script.Text)
 local TickGuard = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core"):WaitForChild("TickGuard"))
 local TouchControls = require(script.TouchControls)
 local TutorialCard = require(script.TutorialCard)
@@ -108,6 +113,15 @@ local WelcomePanel = require(Panels.Welcome)
 local WorldShopPanel = require(Panels.WorldShop)
 
 local Theme = Widgets.Theme
+
+-- The player's language, fetched while the loading screen is still up so the first screen is already
+-- translated; server-made world text (prompts, signs) follows it through the Localized tag.
+LocalizedTree.watch(Text.translator(), {
+	collection = CollectionService,
+	decode = function(json: string): any
+		return HttpService:JSONDecode(json)
+	end,
+})
 
 local player = Players.LocalPlayer
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
@@ -227,7 +241,7 @@ local function playerName(userId: number): string
 		return p.DisplayName
 	end
 	if names[userId] == nil then
-		names[userId] = "someone"
+		names[userId] = Text.t("hud.steal.someone")
 		task.spawn(function()
 			local ok, name = pcall(Players.GetNameFromUserIdAsync, Players, userId)
 			if ok and type(name) == "string" then
@@ -848,9 +862,9 @@ for _, entry in panels do
 		Parent = tile,
 	}, itemIcons)
 	icon.setActive(true)
-	local label = Widgets.label({
+	local label = Widgets.fitText(Widgets.label({
 		Name = "Label",
-		Text = navEntry.label,
+		Text = Text.t(navEntry.text),
 		Font = Theme.Font,
 		TextSize = Layout.NAV.labelSize,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -859,7 +873,7 @@ for _, entry in panels do
 		Size = UDim2.fromOffset(Layout.NAV.cell, Layout.NAV.label),
 		Position = UDim2.fromOffset(0, Layout.NAV.tile + Layout.NAV.labelGap),
 		Parent = button,
-	})
+	}))
 	local badge = Widgets.label({
 		Name = "Badge",
 		Visible = false,

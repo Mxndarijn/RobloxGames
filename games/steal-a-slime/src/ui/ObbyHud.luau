@@ -32,6 +32,7 @@ local Constants = if Shared then require(Shared.Constants) else require("../shar
 local ObbyRules = if Shared then require(Shared.ObbyRules) else require("../shared/ObbyRules")
 local Format = if script then require(script.Parent.Format) else require("./Format")
 local Layout = if script then require(script.Parent.Layout) else require("./Layout")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 local WorldLeaderboard = if script then require(script.Parent.WorldLeaderboard) else require("./WorldLeaderboard")
 -- Drawing only runs in Roblox (the specs use the pure functions).
 local Widgets: any = if script then require(script.Parent.Widgets) else nil
@@ -85,29 +86,31 @@ end
 -- The sign's status line for this player.
 function ObbyHud.statusText(view: View?, now: number): string
 	if not valid(view) then
-		return "Step in to start!"
+		return Text.t("hud.obby.step_in")
 	end
 	local v = view :: View
 	local mult = Format.formatMultiplier(1 + v.bonus)
 	if v.endsAt and v.endsAt > now then
-		return `{mult} income · {clock(v.endsAt - now)} left`
+		return Text.t("hud.obby.boost_left", { income = mult, time = clock(v.endsAt - now) })
 	elseif v.readyAt and v.readyAt > now then
-		return `Boost ready in {clock(v.readyAt - now)}`
+		return Text.t("hud.obby.boost_ready_in", { time = clock(v.readyAt - now) })
 	end
-	return `Step in: up to {mult} income!`
+	return Text.t("hud.obby.step_in_up_to", { income = mult })
 end
 
 -- The sign's course line: the course and its time left.
 function ObbyHud.courseText(view: View?, now: number): string
 	if not valid(view) then
-		return `A new course every {math.floor(Config.OBBY.ROTATION_SECONDS / 60 + 0.5)} min`
+		return Text.t("hud.obby.course_every", { minutes = math.floor(Config.OBBY.ROTATION_SECONDS / 60 + 0.5) })
 	end
 	local v = view :: View
 	local left = clock(v.rotatesAt - now)
 	if type(v.course) ~= "number" then
-		return `New course in {left}`
+		return Text.t("hud.obby.new_course_in", { time = left })
 	end
-	return `{ObbyRules.courseLabel(v.course)} · {left} left`
+	-- ObbyRules.courseLabel writes "Course #1,204"; the number part goes into the sentence.
+	local number = string.match(ObbyRules.courseLabel(v.course), "#(.+)$") or tostring(v.course)
+	return Text.t("hud.obby.course_left", { course = number, time = left })
 end
 
 -- The run card's best row: "Best 0:51.4" and the rank chip ("#23", nil before the board has a rank); nil without a
@@ -120,7 +123,7 @@ function ObbyHud.bestText(view: View?): (string?, string?)
 	if type(v.best) ~= "number" then
 		return nil, nil
 	end
-	return `Best {ObbyRules.timeText(ObbyRules.tenths(v.best))}`, ObbyRules.rankText(v.rank)
+	return Text.t("hud.obby.best", { time = ObbyRules.timeText(ObbyRules.tenths(v.best)) }), ObbyRules.rankText(v.rank)
 end
 
 --[[
@@ -140,7 +143,7 @@ function ObbyHud.boardYou(view: View?, size: number): { row: number?, name: stri
 	end
 	local rank = ObbyRules.rankText(v.rank)
 	return {
-		name = if rank then `You {rank}` else "You",
+		name = if rank then Text.t("hud.obby.you_rank", { rank = rank }) else Text.t("hud.obby.you"),
 		value = ObbyRules.timeText(ObbyRules.tenths(v.best)),
 	}
 end
@@ -160,7 +163,10 @@ function ObbyHud.runText(view: View?, now: number): (string?, string?)
 	end
 	local elapsed = if type(run.startedAt) == "number" then math.max(0, now - run.startedAt) else 0
 	local at = hereOf(run)
-	local title = if at <= 0 then "Start" elseif at > run.of then "Finish" else `Section {at}/{run.of}`
+	local title = if at <= 0
+		then Text.t("hud.obby.start")
+		elseif at > run.of then Text.t("hud.obby.finish")
+		else Text.t("hud.obby.section", { at = at, of = run.of })
 	local m = math.floor(elapsed / 60)
 	return title, string.format("%d:%04.1f", m, elapsed - m * 60)
 end
@@ -175,9 +181,11 @@ function ObbyHud.boostText(view: View?, now: number): string?
 	local v = view :: View
 	local paid = if type(run.paid) == "number" then run.paid else 0
 	if paid > 0 then
-		return `{Format.formatMultiplier(1 + v.bonus)} income` -- while boosted, bonus = what this run earned
+		-- while boosted, bonus = what this run earned
+		return Text.t("hud.obby.income", { income = Format.formatMultiplier(1 + v.bonus) })
 	elseif v.endsAt == nil and (v.readyAt == nil or v.readyAt <= now) then
-		return `+{math.floor(v.bonus / run.of * 100 + 0.5)}% a section` -- while ready, bonus = a full clear's
+		-- while ready, bonus = a full clear's
+		return Text.t("hud.obby.per_section", { percent = `+{math.floor(v.bonus / run.of * 100 + 0.5)}%` })
 	end
 	return nil
 end
@@ -190,7 +198,7 @@ function ObbyHud.totalText(view: View?, now: number): string?
 		return nil
 	end
 	local s = math.max(0, math.floor(now - run.firstAt))
-	return string.format("Total %d:%02d", s // 60, s % 60)
+	return Text.t("hud.obby.total", { time = string.format("%d:%02d", s // 60, s % 60) })
 end
 
 -- One pip per section of the run, from where the runner is now: behind them, the one they are on, the furthest they
@@ -238,10 +246,10 @@ end
 -- The card's lock row: the time chip and the note chip (nil = no note: no lock, or the lock runs at full speed).
 function ObbyHud.lockText(left: number, rate: number): (string, string?)
 	if left <= 0 then
-		return "🔓 Base open", nil
+		return "🔓 " .. Text.t("hud.obby.base_open"), nil
 	end
 	local slower = math.floor((1 - rate) * 100 + 0.5)
-	return `🔒 {clock(left)}`, if slower > 0 then `{slower}% slower locks` else nil
+	return `🔒 {clock(left)}`, if slower > 0 then Text.t("hud.obby.slower_locks", { percent = `{slower}%` }) else nil
 end
 
 -- Whether the lock row needs two lines on a card `width` design px wide: true when the longest lock time and the

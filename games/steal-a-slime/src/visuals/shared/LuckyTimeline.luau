@@ -95,11 +95,33 @@ local function hex(c: { number }): string
 	return string.format("#%02X%02X%02X", c[1], c[2], c[3])
 end
 
+-- shared/TaggedText (the English of a message), loaded on first use.
+local function english(message: any): string
+	local TaggedText = if script
+		then require((script.Parent.Parent :: any).Shared.TaggedText) :: any
+		else require("../../shared/TaggedText") :: any
+	return TaggedText.english(message)
+end
+
 -- The title's two lines: "🍀 LUCKY!" and the rarity step as RichText ("Legendary → Mythic", each in its colour).
 function LuckyTimeline.title(fromTier: number, tier: number): (string, string)
+	local top, step = LuckyTimeline.titleMessages(fromTier, tier)
+	return english(top), english(step)
+end
+
+-- LuckyTimeline.title as Localize messages ({ key, args }): world.fx.lucky, and the step with each rarity's
+-- data name ("data.rarity.<name>.name") in its colour.
+function LuckyTimeline.titleMessages(fromTier: number, tier: number): (any, any)
 	local from, to = rarity(fromTier), rarity(tier)
-	return "🍀 LUCKY!",
-		`<font color="{hex(from.color)}">{from.name}</font> → <font color="{hex(to.color)}">{to.name}</font>`
+	return { key = "world.fx.lucky" }, {
+		key = "world.fx.rarity_step",
+		args = {
+			fromColor = hex(from.color),
+			toColor = hex(to.color),
+			from = { key = `data.rarity.{from.name}.name` },
+			to = { key = `data.rarity.{to.name}.name` },
+		},
+	}
 end
 
 return table.freeze(LuckyTimeline)

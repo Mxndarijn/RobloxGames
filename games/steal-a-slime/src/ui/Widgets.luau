@@ -9,6 +9,7 @@
 
 local Goo = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("GooPalette"))
 local Layout = require(script.Parent.Layout)
+local Text = require(script.Parent.Text)
 
 local Widgets = {}
 
@@ -51,8 +52,24 @@ Widgets.Theme = table.freeze({
 
 local Theme = Widgets.Theme
 
+-- Text classes the UI fills through ui/Text: Roblox's AutoLocalize stays off on them, so it neither
+-- translates a string a second time nor captures already-translated text into the cloud table. In a
+-- language Fredoka One can't draw, text set in it takes Text.displayFont() instead.
+local TEXT_CLASSES = table.freeze({ TextLabel = true, TextButton = true, TextBox = true })
+local DISPLAY_FONT = "FredokaOne"
+
+local function localizeFont(inst: any)
+	local swap = Text.displayFont()
+	if swap and string.find(inst.FontFace.Family, DISPLAY_FONT, 1, true) then
+		inst.FontFace = Font.new(swap.Family, swap.Weight, inst.FontFace.Style)
+	end
+end
+
 function Widgets.create(className: string, props: { [string]: any }?, children: { Instance }?): any
 	local inst = Instance.new(className)
+	if TEXT_CLASSES[className] then
+		(inst :: any).AutoLocalize = false
+	end
 	local parent = nil
 	if props then
 		for key, value in props do
@@ -62,6 +79,9 @@ function Widgets.create(className: string, props: { [string]: any }?, children: 
 				(inst :: any)[key] = value
 			end
 		end
+	end
+	if TEXT_CLASSES[className] then
+		localizeFont(inst)
 	end
 	if children then
 		for _, child in children do
@@ -161,11 +181,31 @@ function Widgets.fontKey(font: any): string
 	return if typeof(font) == "Font" then "FontFace" else "Font"
 end
 
+-- Text that may run long in another language: it keeps its design TextSize while it fits, shrinks to fit its
+-- box otherwise, and never goes under Layout.MIN_TEXT (tests/ui/Translations.spec measures it there). English is
+-- laid out to fit, so in English nothing changes (and no instance is added).
+function Widgets.fitText<T>(inst: T): T
+	if string.sub(string.lower(Text.locale()), 1, 2) == "en" then
+		return inst
+	end
+	local label = inst :: any
+	local design = label.TextSize
+	label.TextScaled = true
+	create("UITextSizeConstraint", {
+		Name = "FitText",
+		MaxTextSize = design,
+		MinTextSize = math.min(design, Layout.MIN_TEXT),
+		Parent = label,
+	})
+	return inst
+end
+
 -- Body text (Nunito) unless the caller picks a font. Setting both Font and FontFace would let table
 -- order decide which wins, so the default FontFace is only added when neither is given.
 function Widgets.label(props: { [string]: any }): TextLabel
 	local base: { [string]: any } = {
 		BackgroundTransparency = 1,
+		Text = "", -- not Roblox's "Label": a label shows nothing until the caller writes it
 		TextColor3 = Theme.Text,
 		TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Left,

@@ -33,13 +33,16 @@ export type Target = {
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local NumberFormat = if script then require(script.Parent.NumberFormat) else require("./NumberFormat")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
 
 local GrabBlock = {}
 
+-- The Strings key of each fixed reason text.
 GrabBlock.TEXT = table.freeze({
-	carrying = "Already carrying a slime",
-	plotFull = "Plot is full, buy more pads",
-	money = "Not enough money",
+	carrying = "world.grab.carrying", -- "Already carrying a slime"
+	plotFull = "world.grab.plot_full", -- "Plot is full, buy more pads"
+	money = "world.grab.money", -- "Not enough money"
 } :: { [string]: string })
 
 function GrabBlock.reason(me: Me, target: Target): Reason?
@@ -88,24 +91,24 @@ function GrabBlock.waitLeft(me: Me): number?
 	return ends - now
 end
 
--- The text a GrabPrompt shows for `reason` ("Rebirth 5 to grab this" for a rarity the player can't grab yet,
--- "Need $1.2K more" for a slime that costs more than `me`'s cash).
-function GrabBlock.text(reason: Reason, target: Target, me: Me?): string
+-- The text a GrabPrompt shows for `reason`, as a Localize message ("Rebirth 5 to grab this" for a rarity the player
+-- can't grab yet, "Need $1.2K more" for a slime that costs more than `me`'s cash); draw it with ui/Text.text.
+function GrabBlock.text(reason: Reason, target: Target, me: Me?): Localize.Message
 	if reason == "rank" then
-		return `Rebirth {target.rebirths or 0} to grab this`
+		return Localize.msg("world.reason.grab_rebirth", { count = target.rebirths or 0 })
 	end
 	if reason == "dropped" then
 		-- tenths, rounded up: it never reads 0.0s while the server still refuses
 		local left = if me then GrabBlock.waitLeft(me) else nil
-		return string.format("Grab in %.1fs", math.ceil((left or 0) * 10) / 10)
+		return Localize.msg("world.grab.wait", { seconds = string.format("%.1f", math.ceil((left or 0) * 10) / 10) })
 	end
 	if reason == "money" and me and target.price then
 		local missing = target.price - me.cash
 		if missing > 0 then
-			return `Need {NumberFormat.cash(missing)} more`
+			return Localize.msg("world.grab.need_more", { price = NumberFormat.cash(missing) })
 		end
 	end
-	return GrabBlock.TEXT[reason]
+	return Localize.msg(GrabBlock.TEXT[reason])
 end
 
 -- True when one of the first `padsUnlocked` pads has no slime on it (PlayerData.freePad over State's slimes,

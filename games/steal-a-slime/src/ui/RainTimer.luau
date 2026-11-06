@@ -12,6 +12,7 @@
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Rain = { active: boolean, endsAt: number?, nextAt: number? }
 export type Banner = { text: string, kind: "active" | "soon" }
@@ -51,15 +52,18 @@ function RainTimer.banner(rain: Rain?, now: number, luck: number): Banner?
 		return nil
 	end
 	if rain.active then
-		local left = if rain.endsAt
-			then ` - {Format.formatDuration(Format.remainingSeconds(rain.endsAt, now))} left`
-			else ""
-		return { text = `SLIME RAIN! Luck x{luck}{left}`, kind = "active" }
+		local text = if rain.endsAt
+			then Text.t("hud.rain.active_left", {
+				luck = `x{luck}`,
+				time = Format.formatDuration(Format.remainingSeconds(rain.endsAt, now)),
+			})
+			else Text.t("hud.rain.active", { luck = `x{luck}` })
+		return { text = text, kind = "active" }
 	end
 	if rain.nextAt then
 		local wait = Format.remainingSeconds(rain.nextAt, now)
 		if wait > 0 and wait <= RainTimer.SOON_SECONDS then
-			return { text = `Slime Rain in {Format.formatDuration(wait)}`, kind = "soon" }
+			return { text = Text.t("hud.rain.soon", { time = Format.formatDuration(wait) }), kind = "soon" }
 		end
 	end
 	return nil

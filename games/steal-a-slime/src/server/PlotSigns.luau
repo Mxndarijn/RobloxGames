@@ -22,8 +22,11 @@ local MascotSign = if Shared then require(Shared.MascotSign) else require("../sh
 local NumberFormat = if Shared then require(Shared.NumberFormat) else require("../shared/NumberFormat")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
+local WorldText = if script then require(script.Parent.WorldText) else require("./WorldText")
 
-export type Lines = MascotSign.Look
+-- MascotSign.Look plus the title and stats as Localize messages (`titleText`, `statsText`; `title` / `stats` are
+-- their English).
+export type Lines = MascotSign.Look & { titleText: any, statsText: any }
 export type Owner = { name: string, data: PlayerData.Data } -- reads slimes, rebirths, totalStolen, the plot skin
 type Deps = MascotSign.Deps
 
@@ -34,8 +37,20 @@ PlotSigns.FACES = table.freeze({ "Front", "Back" }) -- the same sign both ways: 
 PlotSigns.PIXELS_PER_STUD = MascotSign.PIXELS_PER_STUD
 PlotSigns.MAX_DISTANCE = 250 -- studs: find a friend's plot from the plaza
 
-local function plural(n: number, word: string): string
-	return `{NumberFormat.short(n)} {word}{if n == 1 then "" else "s"}`
+-- "1 rebirth" / "2 rebirths": the count key `key`.one / .other with the short number.
+local function plural(n: number, key: string): any
+	return WorldText.msg(`{key}.{if n == 1 then "one" else "other"}`, { count = NumberFormat.short(n) })
+end
+
+local function makeLines(title: any, stats: any, owned: boolean, skin: string?): Lines
+	return {
+		title = WorldText.english(title),
+		stats = WorldText.english(stats),
+		titleText = title,
+		statsText = stats,
+		owned = owned,
+		skin = skin,
+	}
 end
 
 -- `income` is the owner's income per second as the HUD shows it (World.incomeOf); without it, the plot's
@@ -43,18 +58,24 @@ end
 -- FEATURES.PlotSkins is off).
 function PlotSigns.lines(plotIndex: number, owner: Owner?, income: number?): Lines
 	if not owner then
-		return { title = `Plot {plotIndex}`, stats = "Empty plot", owned = false, skin = nil }
+		return makeLines(
+			WorldText.msg("world.sign.plot_number", { number = plotIndex }),
+			WorldText.msg("world.sign.empty_plot"),
+			false,
+			nil
+		)
 	end
 	local data = owner.data
-	return {
-		title = `{owner.name}'s plot`,
-		stats = `+{NumberFormat.rate(income or PlayerData.incomePerSecond(data))}, {plural(data.rebirths, "rebirth")}, {plural(
-			data.totalStolen,
-			"steal"
-		)}`,
-		owned = true,
-		skin = if Config.FEATURES.PlotSkins then PlotSkins.current(data) else Config.PLOT_SKIN_DEFAULT,
-	}
+	return makeLines(
+		WorldText.msg("world.sign.owner_plot", { name = owner.name }),
+		WorldText.msg("world.sign.plot_stats", {
+			income = `+{NumberFormat.rate(income or PlayerData.incomePerSecond(data))}`,
+			rebirths = plural(data.rebirths, "world.sign.rebirths"),
+			steals = plural(data.totalStolen, "world.sign.steals"),
+		}),
+		true,
+		if Config.FEATURES.PlotSkins then PlotSkins.current(data) else Config.PLOT_SKIN_DEFAULT
+	)
 end
 
 local function defaults(): Deps
@@ -101,6 +122,10 @@ function PlotSigns.apply(sign: Instance, lines: Lines, deps: Deps?)
 		local gui = sign:FindFirstChild(PlotSigns.GUI_PREFIX .. PlotSigns.FACES[i]) :: Instance
 		if gui:GetAttribute(PlotSigns.PAINTED_ATTRIBUTE) ~= key then
 			MascotSign.paint(face, d, lines)
+			if lines.titleText then
+				WorldText.setMessage(face.title, "Text", lines.titleText)
+				WorldText.setMessage(face.stats, "Text", lines.statsText)
+			end
 			gui:SetAttribute(PlotSigns.PAINTED_ATTRIBUTE, key)
 		end
 	end

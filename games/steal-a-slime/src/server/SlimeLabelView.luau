@@ -10,6 +10,7 @@
 	growth, so the pc-watcher shot can show a known 50% (never active live).
 ]]
 
+local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -18,6 +19,7 @@ local EggKind = require(ReplicatedStorage.Shared.EggKind)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local Growth = require(ReplicatedStorage.Shared.Growth)
 local SlimeLabel = require(ReplicatedStorage.Shared.SlimeLabel)
+local TaggedText = require(ReplicatedStorage.Shared.TaggedText)
 
 local SlimeLabelView = {}
 
@@ -54,8 +56,13 @@ function SlimeLabelView.applyGrowth(model: Model, slime: Genome.Slime, now: numb
 	model:ScaleTo(Growth.scaleAt(percent / 100))
 end
 
--- Name, tier, income, the status row (`status`, else a Mystery Egg's at server time `now`) and the pad it rests on
--- (nil off a pad); LabelHeight is re-measured after any scale change (growth, boss scale).
+local function json(message: any): string?
+	return if message then HttpService:JSONEncode(message) else nil
+end
+
+-- Name, tier, income, the status row (`status`, a Localize message, else a Mystery Egg's at server time `now`) and
+-- the pad it rests on (nil off a pad); LabelHeight is re-measured after any scale change (growth, boss scale).
+-- LabelName / LabelStatus hold the English, LabelNameMessage / LabelStatusMessage the messages for each client.
 function SlimeLabelView.apply(
 	model: Model,
 	body: BasePart,
@@ -63,11 +70,18 @@ function SlimeLabelView.apply(
 	incomePerSec: number,
 	pad: number?,
 	now: number,
-	status: string?
+	status: any?
 )
 	local name, tier = SlimeLabel.attributes(slime)
-	setIfChanged(model, Constants.LABEL_STATUS_ATTRIBUTE, status or SlimeLabel.eggStatus(slime, now))
+	local statusMessage = status or SlimeLabel.eggStatusMessage(slime, now)
+	setIfChanged(
+		model,
+		Constants.LABEL_STATUS_ATTRIBUTE,
+		if statusMessage then TaggedText.english(statusMessage) else nil
+	)
+	setIfChanged(model, Constants.LABEL_STATUS_MESSAGE_ATTRIBUTE, json(statusMessage))
 	setIfChanged(model, Constants.LABEL_NAME_ATTRIBUTE, name)
+	setIfChanged(model, Constants.LABEL_NAME_MESSAGE_ATTRIBUTE, json(SlimeLabel.nameMessage(slime)))
 	setIfChanged(model, Constants.LABEL_TIER_ATTRIBUTE, tier)
 	setIfChanged(model, Constants.LABEL_PAD_ATTRIBUTE, pad)
 	if SlimeLabel.incomeChanged(model:GetAttribute(Constants.LABEL_INCOME_ATTRIBUTE), incomePerSec) then

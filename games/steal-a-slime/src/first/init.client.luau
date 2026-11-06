@@ -34,7 +34,25 @@ ReplicatedFirst:RemoveDefaultLoadingScreen()
 local player = Players.LocalPlayer
 local screen = LoadingScreen.build()
 local firstTip = math.random(#LoadingGate.TIPS)
-screen.setStatus(LoadingGate.tip(0, firstTip))
+screen.setStatus((LoadingGate.tip(0, firstTip)))
+
+-- The player's language: the UI's Text module (PlayerScripts.UI.Text) once it has arrived and its translator
+-- is ready, looked up in its own thread so the screen never waits for it. Until then (or if it never comes) the
+-- screen shows LoadingGate's English.
+local translate: ((key: string) -> string)? = nil
+task.spawn(function()
+	local scripts = player:WaitForChild("PlayerScripts", 5)
+	local ui = if scripts then scripts:WaitForChild("UI", 5) else nil
+	local module = if ui then ui:WaitForChild("Text", 5) else nil
+	if module == nil or not module:IsA("ModuleScript") then
+		return
+	end
+	local ok, Text = pcall(require, module :: ModuleScript)
+	if ok and type(Text) == "table" and pcall(Text.translator) then
+		translate = Text.t
+		screen.skip.Text = Text.t(LoadingGate.SKIP_KEY)
+	end
+end)
 local camera = workspace.CurrentCamera
 screen.layout(if camera then camera.ViewportSize.Y else 720)
 screen.gui.Parent = player:WaitForChild("PlayerGui")
@@ -117,7 +135,7 @@ end)
 while true do
 	local view = LoadingGate.step(state, os.clock() - started, firstTip)
 	target = view.progress
-	screen.setStatus(view.label)
+	screen.setStatus(if translate then translate(view.key) else view.label)
 	screen.setSkip(view.canSkip)
 	screen.layout(screen.gui.AbsoluteSize.Y)
 	if view.lift or skipped then

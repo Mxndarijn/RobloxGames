@@ -12,6 +12,7 @@
 
 local Daily = if script then require(script.Parent.Daily) else require("./Daily")
 local Format = if script then require(script.Parent.Format) else require("./Format")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Mode = "join" | "daily"
 export type Row = { name: string, desc: string }
@@ -40,13 +41,15 @@ export type View = {
 
 local WelcomeBack = {}
 
+-- Per mode the title's string key and the icon.
 WelcomeBack.TITLES = table.freeze({
-	join = table.freeze({ title = "Welcome back", icon = "👋" }),
-	daily = table.freeze({ title = "Daily reward", icon = "📅" }),
+	join = table.freeze({ title = "onboarding.welcome.title_join", icon = "👋" }),
+	daily = table.freeze({ title = "onboarding.welcome.title_daily", icon = "📅" }),
 })
 
-local function plural(n: number, word: string): string
-	return `{n} {word}{if n == 1 then "" else "s"}`
+-- State text (a plain string or a Localize message) in the player's language; "" for nil.
+local function stateText(value: any): string
+	return if value == nil then "" else Text.text(value)
 end
 
 -- 19200 -> "5h 20m", 90000 -> "1d 1h", under an hour -> "12m".
@@ -63,10 +66,15 @@ end
 function WelcomeBack.cashRow(report: any): Row
 	local away = WelcomeBack.awayText(report.away)
 	if report.cash <= 0 then
-		return { name = `Away {away}`, desc = "No cash earned while you were away" }
+		return {
+			name = Text.t("onboarding.welcome.away", { time = away }),
+			desc = Text.t("onboarding.welcome.no_cash"),
+		}
 	end
-	local where = if report.onPads == true then "waiting on your cash pads" else "added to your cash"
-	return { name = `+{Format.formatCash(report.cash)}`, desc = `Earned in {away}, {where}` }
+	local desc = if report.onPads == true
+		then Text.t("onboarding.welcome.earned_pads", { time = away })
+		else Text.t("onboarding.welcome.earned_cash", { time = away })
+	return { name = `+{Format.formatCash(report.cash)}`, desc = desc }
 end
 
 local function streakBroke(state: any): boolean
@@ -89,28 +97,32 @@ function WelcomeBack.dailyRow(state: any, config: any, alone: boolean?): DailyRo
 			day = cell.day,
 			state = cell.state,
 			label = Daily.dayLabel(cell),
-			amount = cell.reward.short,
+			amount = stateText(cell.reward.short),
 			icon = cell.reward.icon,
 			skin = cell.reward.skin == true,
 		})
 	end
 	local nextSkin = if type(daily.nextSkin) == "table" then daily.nextSkin else nil
-	local status = if nextSkin then `Next skin: {nextSkin.label} on day {nextSkin.day}` else "Come back tomorrow"
+	local status = if nextSkin
+		then Text.t("onboarding.welcome.next_skin", { skin = stateText(nextSkin.label), day = nextSkin.day })
+		else Text.t("onboarding.welcome.come_back")
 	local reward = if type(daily.reward) == "table" then daily.reward else nil
 	if available and reward then
 		local streak = if streakBroke(state)
-			then (if daily.streak > 1 then `Your {daily.streak}-day streak broke` else "Your streak broke")
-			else `Day {daily.day} of {cap}`
+			then (if daily.streak > 1
+				then Text.t("onboarding.welcome.streak_broke_days", { days = daily.streak })
+				else Text.t("onboarding.welcome.streak_broke"))
+			else Text.t("onboarding.welcome.streak_day", { day = daily.day, cap = cap })
 		return {
-			name = if alone then streak else "Daily reward",
-			amount = reward.label,
+			name = if alone then streak else Text.t("onboarding.welcome.title_daily"),
+			amount = stateText(reward.label),
 			amountShown = not alone,
 			status = if alone then status else streak,
 			tiles = tiles,
 		}
 	end
 	return {
-		name = if alone then "Claimed today" else "Daily reward claimed",
+		name = if alone then Text.t("onboarding.welcome.claimed_today") else Text.t("onboarding.welcome.daily_claimed"),
 		amountShown = false,
 		status = status,
 		tiles = tiles,
@@ -132,16 +144,19 @@ function WelcomeBack.view(state: any, mode: Mode, config: any): View?
 	if m == "join" then
 		cash = WelcomeBack.cashRow(report)
 		if type(report.grown) == "number" and report.grown > 0 then
-			growth = { name = `{plural(report.grown, "slime")} grew`, desc = "on your pads while you were gone" }
+			growth = {
+				name = Text.count("onboarding.welcome.grown", report.grown),
+				desc = Text.t("onboarding.welcome.grown_desc"),
+			}
 		end
 	end
 	local action: Action = if daily and daily.amount
-		then { kind = "claim", text = `Claim {daily.amount}` }
-		else { kind = "close", text = "Got it" }
+		then { kind = "claim", text = Text.t("onboarding.welcome.claim", { amount = daily.amount }) }
+		else { kind = "close", text = Text.t("onboarding.welcome.got_it") }
 	local titles = WelcomeBack.TITLES[m]
 	return {
 		mode = m,
-		title = titles.title,
+		title = Text.t(titles.title),
 		icon = titles.icon,
 		cash = cash,
 		daily = daily,

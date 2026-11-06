@@ -13,6 +13,7 @@
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Goal = {
 	id: string,
@@ -49,25 +50,43 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 	local slimes = if type(state.slimes) == "table" then state.slimes else {}
 
 	local padsUnlocked, padsMax = num(state.padsUnlocked), num(state.padsMax)
-	table.insert(out, goal("FillPads", "Fill your pads", `{#slimes}/{padsUnlocked} pads used`, #slimes, padsUnlocked))
+	table.insert(
+		out,
+		goal(
+			"FillPads",
+			Text.t("onboarding.goals.fill_pads"),
+			Text.t("onboarding.goals.fill_pads_detail", { used = #slimes, pads = padsUnlocked }),
+			#slimes,
+			padsUnlocked
+		)
+	)
 
 	local padDetail = if type(state.nextPadRebirths) == "number"
-		then `{padsUnlocked}/{padsMax} · next at Rebirth {state.nextPadRebirths}`
-		elseif type(state.nextPadCost) == "number" then `{padsUnlocked}/{padsMax} · next {Format.formatCash(
-			state.nextPadCost
-		)}`
+		then Text.t(
+			"onboarding.goals.pads_next_rebirth",
+			{ pads = padsUnlocked, max = padsMax, rebirth = state.nextPadRebirths }
+		)
+		elseif type(state.nextPadCost) == "number" then Text.t(
+			"onboarding.goals.pads_next_cost",
+			{ pads = padsUnlocked, max = padsMax, cost = Format.formatCash(state.nextPadCost) }
+		)
 		else `{padsUnlocked}/{padsMax}`
-	table.insert(out, goal("AllPads", "Unlock every pad", padDetail, padsUnlocked, padsMax))
+	table.insert(out, goal("AllPads", Text.t("onboarding.goals.all_pads"), padDetail, padsUnlocked, padsMax))
 
 	local daily = state.daily
 	if type(daily) == "table" then
 		local available = daily.available == true
 		table.insert(out, {
 			id = "Daily",
-			title = "Claim today's daily reward",
+			title = Text.t("onboarding.goals.daily"),
 			detail = if available
-				then `Day {num(daily.day)}: {if type(daily.reward) == "table" then daily.reward.label else ""}`
-				else `Claimed · streak {num(daily.streak)}`,
+				then Text.t("onboarding.goals.daily_ready", {
+					day = num(daily.day),
+					reward = if type(daily.reward) == "table" and daily.reward.label ~= nil
+						then Text.text(daily.reward.label)
+						else "",
+				})
+				else Text.t("onboarding.goals.daily_claimed", { streak = num(daily.streak) }),
 			fraction = if available then 0 else 1,
 			done = not available,
 		})
@@ -82,15 +101,29 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 	local topTier = #rarityNames
 	if topTier > 0 then
 		local target = math.min(topTier, best + 1)
-		local name = rarityNames[target] or `Tier {target}`
-		table.insert(out, goal("BestTier", `Own a {name} slime`, `Best now: tier {best}/{topTier}`, best, target))
+		local english = rarityNames[target]
+		local name = if english
+			then Text.data("rarity", english, "name", english)
+			else Text.t("onboarding.goals.tier", { tier = target })
+		table.insert(
+			out,
+			goal(
+				"BestTier",
+				Text.t("onboarding.goals.best_tier", { rarity = name }),
+				Text.t("onboarding.goals.best_tier_detail", { best = best, top = topTier }),
+				best,
+				target
+			)
+		)
 	end
 
 	local rebirths = num(state.rebirths)
 	local cost = num(state.rebirthCost)
 	table.insert(out, {
 		id = "Rebirth",
-		title = if rebirths == 0 then "Reach your first rebirth" else `Reach rebirth {rebirths + 1}`,
+		title = if rebirths == 0
+			then Text.t("onboarding.goals.first_rebirth")
+			else Text.t("onboarding.goals.next_rebirth", { rebirth = rebirths + 1 }),
 		detail = `{Format.formatCash(num(state.cash))} / {Format.formatCash(cost)}`,
 		fraction = if state.canRebirth == true
 			then 1
@@ -116,8 +149,8 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 			out,
 			goal(
 				"Dex",
-				`Discover {target}% of the SlimeDex`,
-				`{found}/{need} species ({math.floor(pct)}%)`,
+				Text.t("onboarding.goals.dex", { percent = target }),
+				Text.t("onboarding.goals.dex_detail", { found = found, need = need, percent = math.floor(pct) }),
 				found,
 				need
 			)
@@ -131,8 +164,13 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 			local owned = coil.owned == true
 			table.insert(out, {
 				id = "SpeedCoil",
-				title = "Get the Speed Coil",
-				detail = if owned then "Owned" else `Shop · {Format.formatCash(num(coil.price))}`,
+				title = Text.t("onboarding.goals.speed_coil"),
+				detail = if owned
+					then Text.t("onboarding.goals.owned")
+					else Text.t(
+						"onboarding.goals.speed_coil_price",
+						{ price = Format.formatCash(num(coil.price)) }
+					),
 				fraction = if owned then 1 else 0,
 				done = owned,
 			})
@@ -142,8 +180,22 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 	return out
 end
 
+-- A goal's title for stage target `n` from its Config row (`def`): the count key
+-- (Text.dataKey("goal", id, "title") .one / .other) with {count} the number as drawn ("$" in front for a cash
+-- goal). `fallback` (the server's text) when there is no row or the catalog has no such key.
+local function goalTitle(def: any, n: number?, fallback: any): string?
+	if def and type(n) == "number" then
+		local key = Text.dataKey("goal", def.id, "title")
+		if Text.catalog.byKey[key .. ".other"] then
+			local shown = Format.shortNumber(n)
+			return Text.count(key, n, { count = if def.cash then "$" .. shown else shown })
+		end
+	end
+	return if fallback ~= nil then Text.text(fallback) else nil
+end
+
 -- v13 `State.goals` -> Goal rows; nil when the field is missing (v12 server). With `config` (Config) a row
--- also gets the next stage's target (`nextShort`).
+-- also gets the next stage's target (`nextShort`) and its titles come from the goal's count keys.
 function Goals.fromServer(goals: any, config: any?): { Goal }?
 	if type(goals) ~= "table" then
 		return nil
@@ -164,29 +216,45 @@ function Goals.fromServer(goals: any, config: any?): { Goal }?
 			local detail, meta
 			local reward: string? = nil
 			local nextShort: string? = nil
+			local def = defs[g.id]
+			local targets = if def and type(def.targets) == "table" then def.targets else nil
+			local nextTarget = if targets and not done then targets[stage + 2] else nil
 			if done or target == nil then
-				detail = `All {stages} stages done`
+				detail = Text.t("onboarding.goals.all_stages_done", { stages = stages })
 				meta = detail
 			else
 				local cash = if type(g.reward) == "number" then Format.formatCash(g.reward) else nil
 				local count = `{Format.shortNumber(progress)}/{Format.shortNumber(target)}`
-				detail = `{count}{if cash then ` · reward {cash}` else ""} · stage {stage + 1}/{stages}`
-				meta = `{count} · {if stage + 1 >= stages then "Last stage" else `Stage {stage + 1} of {stages}`}`
+				detail = if cash
+					then Text.t(
+						"onboarding.goals.stage_detail_reward",
+						{ progress = count, reward = cash, stage = stage + 1, stages = stages }
+					)
+					else Text.t(
+						"onboarding.goals.stage_detail",
+						{ progress = count, stage = stage + 1, stages = stages }
+					)
+				meta = if stage + 1 >= stages
+					then Text.t("onboarding.goals.meta_last", { progress = count })
+					else Text.t(
+						"onboarding.goals.meta_stage",
+						{ progress = count, stage = stage + 1, stages = stages }
+					)
 				reward = if cash then `+{cash}` else nil
-				local def = defs[g.id]
-				local nextTarget = if def and type(def.targets) == "table" then def.targets[stage + 2] else nil
 				if type(nextTarget) == "number" then
 					local n = Format.shortNumber(nextTarget)
-					nextShort = `Next: {if def.cash then "$" .. n else n}`
+					nextShort = Text.t("onboarding.goals.next_short", { target = if def.cash then "$" .. n else n })
 				end
 			end
+			local shownTarget = target or (if targets then targets[#targets] else nil)
+			local nextTitle = if not done and g.nextTitle ~= nil then goalTitle(def, nextTarget, g.nextTitle) else nil
 			table.insert(out, {
 				id = g.id,
-				title = if type(g.title) == "string" then g.title else g.id,
+				title = goalTitle(def, shownTarget, g.title) or g.id,
 				detail = detail,
 				fraction = if done then 1 elseif target and target > 0 then math.clamp(progress / target, 0, 1) else 0,
 				done = done,
-				next = if not done and type(g.nextTitle) == "string" then `Next: {g.nextTitle}` else nil,
+				next = if nextTitle then Text.t("onboarding.goals.next", { title = nextTitle }) else nil,
 				reward = reward,
 				meta = meta,
 				nextShort = nextShort,
@@ -222,18 +290,18 @@ function Goals.quests(daily: any): ({ Quest }, string)
 			table.insert(out, {
 				id = q.id,
 				index = i,
-				title = if type(q.title) == "string" then q.title else q.id,
+				title = if q.title ~= nil then Text.text(q.title) else q.id,
 				icon = if type(q.icon) == "string" then q.icon else q.id,
 				detail = `{Format.shortNumber(progress)}/{Format.shortNumber(target)}`,
 				fraction = math.clamp(progress / target, 0, 1),
 				done = q.done == true,
 				claimed = q.claimed == true,
-				reward = if type(q.reward) == "string" then q.reward else "",
+				reward = if q.reward ~= nil then Text.text(q.reward) else "",
 				boost = q.rewardKind == "boost",
 			})
 		end
 	end
-	return out, `Resets in {Format.formatDuration(math.max(0, num(daily.resetsIn)))}`
+	return out, Text.t("onboarding.goals.resets_in", { time = Format.formatDuration(math.max(0, num(daily.resetsIn))) })
 end
 
 -- Quests in slot order, claimed ones last.
@@ -274,7 +342,7 @@ function Goals.summary(goals: { Goal }): string
 			done += 1
 		end
 	end
-	return `{done}/{#goals} done`
+	return Text.t("onboarding.goals.summary", { done = done, total = #goals })
 end
 
 return table.freeze(Goals)

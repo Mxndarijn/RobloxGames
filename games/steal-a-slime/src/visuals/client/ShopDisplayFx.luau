@@ -27,6 +27,7 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local ExclusiveRotation = require(Shared:WaitForChild("ExclusiveRotation"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local TaggedText = require(Shared:WaitForChild("TaggedText"))
 local Visuals = ReplicatedStorage:WaitForChild("Visuals")
 local ClawShow = require(Visuals:WaitForChild("ClawShow"))
 local PetCloud = require(Visuals:WaitForChild("PetCloud"))
@@ -225,7 +226,7 @@ local function makePrize(rig: Rig, display: number): Prize
 	return { part = part, size = part.Size }
 end
 
-local function makeBanner(rig: Rig, text: string): (BasePart, BillboardGui)
+local function makeBanner(rig: Rig, text: any): (BasePart, BillboardGui)
 	local anchor = Instance.new("Part")
 	anchor.Name = "ClawBanner"
 	anchor.Size = Vector3.new(0.2, 0.2, 0.2)
@@ -250,7 +251,7 @@ local function makeBanner(rig: Rig, text: string): (BasePart, BillboardGui)
 	label.Size = UDim2.fromScale(1, 1)
 	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
-	label.Text = text
+	TaggedText.setMessage(label, "Text", text) -- in the player's language
 	label.TextColor3 = color(GooPalette.GoldHi)
 	label.Parent = gui
 	local stroke = Instance.new("UIStroke")
@@ -312,7 +313,7 @@ local function apply(rig: Rig, t: number, show: ClawShow.Event?)
 		rig.prize.part.CFrame = rig.pivot * CFrame.new(0, -10, 0)
 	end
 	if frame.banner and not rig.bannerAnchor then
-		rig.bannerAnchor, rig.banner = makeBanner(rig, ClawShow.bannerText(show))
+		rig.bannerAnchor, rig.banner = makeBanner(rig, ClawShow.bannerMessage(show))
 	end
 end
 

@@ -49,6 +49,7 @@ local LabelFit =
 	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local NumberFormat =
 	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("core"):WaitForChild("NumberFormat"))
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -82,6 +83,23 @@ SlimeKeyCard.CHIP = table.freeze({
 -- The card's title and the line under it for the part `parent` (a slime Body or the LockButton). A slime: its
 -- GrabPrompt's name, and a favourite's perk (the Favorite prompt's ObjectText). The LockButton: the lock status
 -- ("LOCKED 1:42" / "OPEN", from the LockPrompt's ObjectText) and the friends switch's state. Either is "" when that prompt is missing.
+-- The status part ("OPEN", "LOCKED 1:42") of a lock prompt's ObjectText, read from the message the server keeps
+-- in its L10n_ObjectText attribute ({ key, args = { name, status } }); nil without one.
+function SlimeKeyCard.lockStatus(prompt: Instance?): string?
+	local raw = if prompt then prompt:GetAttribute("L10n_ObjectText") else nil
+	if type(raw) ~= "string" then
+		return nil
+	end
+	local ok, message = pcall(function()
+		return game:GetService("HttpService"):JSONDecode(raw)
+	end)
+	local args = if ok and type(message) == "table" then message.args else nil
+	if type(args) == "table" and args.status ~= nil then
+		return Text.text(args.status)
+	end
+	return nil
+end
+
 function SlimeKeyCard.heading(parent: Instance): (string, string)
 	local function objectText(name: string): string
 		local p = parent:FindFirstChild(name)
@@ -91,8 +109,11 @@ function SlimeKeyCard.heading(parent: Instance): (string, string)
 	local sub = objectText("FavoritePrompt")
 	if title == "" then
 		-- "<name>'s base: LOCKED 1:42" -> "LOCKED 1:42": it is the owner's own button, and the full text does not fit.
+		-- The status comes from the server's message (server/WorldText), so it is right in any language.
 		local lock = objectText(Constants.LOCK_PROMPT_NAME)
-		title = string.match(lock, ":%s*(.+)$") or lock
+		title = SlimeKeyCard.lockStatus(parent:FindFirstChild(Constants.LOCK_PROMPT_NAME))
+			or string.match(lock, ":%s*(.+)$")
+			or lock
 		sub = objectText(Constants.FRIENDS_PROMPT_NAME)
 	end
 	return title, if sub ~= title then sub else ""
@@ -100,7 +121,7 @@ end
 
 -- The lock status for `remaining` seconds of lock: "LOCKED 1:42" (the lock card's title and LockTimerTag's pill).
 function SlimeKeyCard.lockText(remaining: number): string
-	return `LOCKED {NumberFormat.clock(remaining)}`
+	return Text.t("menus.key_card.lock_timer", { time = NumberFormat.clock(remaining) })
 end
 
 -- The lock card's title at `now` for a plot whose LockUntil is `lockUntil`, or nil when it isn't locked (the card
@@ -114,11 +135,11 @@ end
 
 -- The small line under the rows: on the lock card, while its Lock row shows, that standing on the lock pad's ring
 -- locks too (LockPad); "" otherwise. `names` are the shown rows' prompt names.
-SlimeKeyCard.LOCK_PAD_HINT = "or stand on the green ring"
+SlimeKeyCard.LOCK_PAD_HINT = "menus.key_card.lock_pad_hint" -- a catalog key
 function SlimeKeyCard.footer(names: { string }): string
 	for _, name in names do
 		if name == Constants.LOCK_PROMPT_NAME then
-			return SlimeKeyCard.LOCK_PAD_HINT
+			return Text.t(SlimeKeyCard.LOCK_PAD_HINT)
 		end
 	end
 	return ""
@@ -126,7 +147,7 @@ end
 
 -- The greyed row that keeps the Lock row's place on a locked base's card.
 SlimeKeyCard.LOCKED_ROW = "LockedRow"
-SlimeKeyCard.LOCKED_TEXT = "Locked"
+SlimeKeyCard.LOCKED_TEXT = "menus.key_card.locked" -- a catalog key
 
 -- True when the card over `parent` should draw the greyed Locked row: it is a LockButton (has a LockPrompt) whose
 -- Lock row is not shown while another of its rows is (the base is locked, so the server turned LockPrompt off).
@@ -192,16 +213,20 @@ local GAMEPAD = table.freeze({
 	ButtonY = "Y",
 	ButtonL1 = "LB",
 	ButtonR1 = "RB",
-	DPadUp = "Up",
-	DPadDown = "Dn",
-	DPadLeft = "Lt",
-	DPadRight = "Rt",
+} :: { [string]: string })
+-- D-pad buttons: short words, as catalog keys.
+local DPAD = table.freeze({
+	DPadUp = "menus.key_card.pad_up",
+	DPadDown = "menus.key_card.pad_down",
+	DPadLeft = "menus.key_card.pad_left",
+	DPadRight = "menus.key_card.pad_right",
 } :: { [string]: string })
 
 -- The text on a key chip: the keyboard key's name, or the gamepad button's short name.
 function SlimeKeyCard.keyLabel(keyName: string, gamepad: boolean): string
 	if gamepad then
-		return GAMEPAD[keyName] or keyName
+		local dpad = DPAD[keyName]
+		return if dpad then Text.t(dpad) else GAMEPAD[keyName] or keyName
 	end
 	return keyName
 end
@@ -452,7 +477,7 @@ function SlimeKeyCard.start(opts: Options): Handle
 		if hold then
 			Widgets.label({
 				Name = "Hint",
-				Text = "Hold",
+				Text = Text.t("menus.key_card.hold"),
 				TextSize = C.hintSize,
 				TextColor3 = Theme.Muted,
 				TextXAlignment = Enum.TextXAlignment.Right,
@@ -501,7 +526,7 @@ function SlimeKeyCard.start(opts: Options): Handle
 		local textX = inset + C.keySize + 10
 		Widgets.label({
 			Name = "Action",
-			Text = SlimeKeyCard.LOCKED_TEXT,
+			Text = Text.t(SlimeKeyCard.LOCKED_TEXT),
 			Font = Theme.Font,
 			TextSize = C.textSize,
 			TextColor3 = Theme.Muted,

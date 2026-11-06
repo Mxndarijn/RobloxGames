@@ -16,6 +16,7 @@
 local UI = script.Parent.Parent
 local Layout = require(UI.Layout)
 local Leaderboards = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Leaderboards"))
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 local WorldLeaderboard = require(UI.WorldLeaderboard)
 
@@ -26,16 +27,17 @@ local LeaderboardPanel = {}
 
 LeaderboardPanel.DEFAULT = "TotalEarned"
 LeaderboardPanel.MAX_ROWS = WorldLeaderboard.MAX_ROWS
-LeaderboardPanel.EMPTY = "No entries yet"
-LeaderboardPanel.LOADING = "Loading the board"
+-- Catalog keys (Text.t when drawn).
+LeaderboardPanel.EMPTY = "menus.leaderboard.empty"
+LeaderboardPanel.LOADING = "menus.leaderboard.loading"
 
--- Short tab labels by stat (the board titles are too long for five tabs across a phone card).
+-- Short tab labels by stat, as catalog keys (the board titles are too long for five tabs across a phone card).
 LeaderboardPanel.TABS = table.freeze({
-	Dex = "SlimeDex",
-	WeeklyEarned = "Weekly",
-	TotalEarned = "Earners",
-	Steals = "Steals",
-	Merges = "Merges",
+	Dex = "menus.leaderboard.tab_dex",
+	WeeklyEarned = "menus.leaderboard.tab_weekly",
+	TotalEarned = "menus.leaderboard.tab_earners",
+	Steals = "menus.leaderboard.tab_steals",
+	Merges = "menus.leaderboard.tab_merges",
 })
 
 -- Body parts top to bottom (design px; the body is Layout.panelBody of the card).
@@ -70,15 +72,17 @@ end
 function LeaderboardPanel.youText(rows: { Row }, stat: any, myValue: any, myRank: any): string
 	for _, row in rows do
 		if row.isMe then
-			return `You: {row.rankText}  {row.value}`
+			return Text.t("menus.leaderboard.you_ranked", { rank = row.rankText, value = row.value })
 		end
 	end
 	if type(myValue) ~= "number" or myValue ~= myValue then
-		return "You: no score yet"
+		return Text.t("menus.leaderboard.you_none")
 	end
 	local rank = Leaderboards.rankText(myRank)
 	local value = Leaderboards.format(stat, myValue)
-	return if rank then `You: {rank}  {value}` else `You: {value}`
+	return if rank
+		then Text.t("menus.leaderboard.you_ranked", { rank = rank, value = value })
+		else Text.t("menus.leaderboard.you_value", { value = value })
 end
 
 -- Rank text colour: gold, silver and bronze tints for the top three, Muted below.
@@ -96,7 +100,7 @@ local function localUserId(ctx: any): number?
 end
 
 function LeaderboardPanel.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "LeaderboardPanel", "Leaderboards", "🏆")
+	local panel = Widgets.panel(parent, "LeaderboardPanel", Text.t("menus.leaderboard.title"), "🏆")
 	local R = LeaderboardPanel.ROWS
 	local myUserId = localUserId(ctx)
 	local selected: string = LeaderboardPanel.DEFAULT
@@ -115,7 +119,9 @@ function LeaderboardPanel.new(parent: Instance, ctx: any)
 		local tab = Widgets.button(
 			{
 				Name = `Tab_{stat}`,
-				Text = LeaderboardPanel.TABS[stat] or def.title,
+				Text = if LeaderboardPanel.TABS[stat]
+					then Text.t(LeaderboardPanel.TABS[stat])
+					else Text.data("leaderboards", stat, "title", def.title),
 				TextSize = R.tabs.size,
 				Position = UDim2.new((i - 1) / count, left, 0, R.tabs.y),
 				Size = UDim2.new(1 / count, right - left, 0, R.tabs.h),
@@ -150,7 +156,7 @@ function LeaderboardPanel.new(parent: Instance, ctx: any)
 
 	local empty = Widgets.label({
 		Name = "Empty",
-		Text = LeaderboardPanel.EMPTY,
+		Text = Text.t(LeaderboardPanel.EMPTY),
 		TextSize = R.empty.size,
 		TextColor3 = Theme.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -230,11 +236,11 @@ function LeaderboardPanel.new(parent: Instance, ctx: any)
 			tab.setColor(if on and board then Widgets.color3(board.accent) else Theme.Info)
 			tab.instance:SetAttribute("Selected", on)
 		end
-		title.Text = if def then def.title else ""
+		title.Text = if def then Text.data("leaderboards", def.stat, "title", def.title) else ""
 		local payload = payloads[selected]
 		local shown = LeaderboardPanel.rows(payload, myUserId)
 		empty.Visible = #shown == 0
-		empty.Text = if payload == nil then LeaderboardPanel.LOADING else LeaderboardPanel.EMPTY
+		empty.Text = Text.t(if payload == nil then LeaderboardPanel.LOADING else LeaderboardPanel.EMPTY)
 		rows.sync(shown)
 		you.Text = LeaderboardPanel.youText(shown, selected, mine[selected], ranks[selected])
 	end

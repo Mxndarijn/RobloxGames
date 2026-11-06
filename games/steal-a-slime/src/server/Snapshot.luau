@@ -203,7 +203,7 @@ function Snapshot.rebirthTiers(rebirths: number): { Types.RebirthTierView }
 		table.insert(out, {
 			rebirths = tier.rebirths,
 			title = tier.title,
-			text = Perks.tierText(tier),
+			text = Perks.tierMessage(tier),
 			unlocked = rebirths >= tier.rebirths,
 		})
 	end
@@ -215,7 +215,7 @@ function Snapshot.nextRebirthTier(rebirths: number): Types.NextRebirthTier?
 	if not tier then
 		return nil
 	end
-	return { rebirths = tier.rebirths, title = tier.title, text = Perks.tierText(tier) }
+	return { rebirths = tier.rebirths, title = tier.title, text = Perks.tierMessage(tier) }
 end
 
 -- True when a push is due; the caller then sends `build` and calls `pushed`.

@@ -17,6 +17,7 @@ local CashPadService = require(script.Parent.CashPadService)
 local CashPads = require(ReplicatedStorage.Shared.CashPads)
 local Config = require(ReplicatedStorage.Shared.Config)
 local World = require(script.Parent.World)
+local WorldText = require(script.Parent.WorldText)
 local WorldView = require(script.Parent.WorldView)
 
 type Look = { face: Color3, base: Color3, amount: Color3 }
@@ -134,7 +135,7 @@ local function build(pad: BasePart, plotIndex: number, j: number): Disc
 	local collect = text("Collect", gui)
 	collect.Size = LOOK.collectSize
 	collect.Position = LOOK.collectAt
-	collect.Text = "COLLECT"
+	WorldText.set(collect, "Text", "world.cash_pad.collect")
 	collect.TextColor3 = LOOK.collect
 	part.Parent = pad
 	return {

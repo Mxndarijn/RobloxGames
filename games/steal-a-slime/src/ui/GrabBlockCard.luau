@@ -27,6 +27,7 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local GrabBlock = require(Shared:WaitForChild("GrabBlock"))
 local LabelFit =
 	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -73,14 +74,14 @@ function GrabBlockCard.waitText(me: GrabBlock.Me?): string?
 	if not me or not GrabBlock.waitLeft(me) then
 		return nil
 	end
-	return GrabBlock.text("dropped", { state = nil, price = nil, boss = false }, me)
+	return Text.text(GrabBlock.text("dropped", { state = nil, price = nil, boss = false }, me))
 end
 
--- The reason text a GrabPrompt shows for `me` (nil = grabbable, or no State yet).
+-- The reason text a GrabPrompt shows for `me` in the player's language (nil = grabbable, or no State yet).
 function GrabBlockCard.reasonText(prompt: any, me: GrabBlock.Me?): string?
 	local target = GrabBlockCard.target(prompt)
 	local reason = if me then GrabBlock.reason(me, target) else nil
-	return if reason then GrabBlock.text(reason, target, me) else nil
+	return if reason then Text.text(GrabBlock.text(reason, target, me)) else nil
 end
 
 -- Gives a prompt its blocked or normal style. A switch on an enabled prompt turns it off and on again so Roblox

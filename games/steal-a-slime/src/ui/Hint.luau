@@ -11,6 +11,7 @@
 
 local Layout = if script then require(script.Parent.Layout) else require("./Layout")
 local Nav = if script then require(script.Parent.Nav) else require("./Nav")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 local Tutorial = if script then require(script.Parent.Tutorial) else require("./Tutorial")
 
 type Rect = Layout.Rect
@@ -30,15 +31,17 @@ local function navEntry(key: string): Nav.Entry
 	error(`no nav entry {key}`)
 end
 
-local function navText(key: string): string
-	local entry = navEntry(key)
-	return `Tap {entry.icon} {entry.label} in the left menu`
-end
-
--- Tutorial step id -> what to point at. "Finished": while the "Tutorial done" card shows, Goals has what's next.
+-- Tutorial step id -> what to point at and the bubble's string key ({icon} = the nav button's icon).
+-- "Finished": while the "Tutorial done" card shows, Goals has what's next.
 Hint.STEPS = table.freeze({
-	Finished = table.freeze({ text = navText("Goals"), target = table.freeze({ kind = "nav", name = "Goals" }) }),
-} :: { [string]: { text: string, target: Target } })
+	Finished = table.freeze({ key = "onboarding.hint.goals", target = table.freeze({ kind = "nav", name = "Goals" }) }),
+} :: { [string]: { key: string, target: Target } })
+
+-- The bubble text for Hint.STEPS[id] in the player's language.
+function Hint.text(id: string): string
+	local hint = Hint.STEPS[id]
+	return Text.t(hint.key, { icon = navEntry(hint.target.name).icon })
+end
 
 Hint.TEXT_SIZE = 16
 Hint.PAD_X = 12
@@ -58,7 +61,7 @@ function Hint.fromState(state: any, openPanel: string?, finished: boolean?): Vie
 	if hint == nil or hint.target.name == openPanel then
 		return nil
 	end
-	return { id = id, text = hint.text, target = hint.target }
+	return { id = id, text = Hint.text(id), target = hint.target }
 end
 
 -- The target's box on `screen`; nil when it isn't shown.

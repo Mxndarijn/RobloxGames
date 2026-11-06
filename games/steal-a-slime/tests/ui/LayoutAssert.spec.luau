@@ -82,8 +82,24 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 		expect(#check.problems).toBe(1)
 	end)
 	it("measures the titles the panels really show", function()
+		-- A panel's title is a Strings key (Text.t) whose English is the title the layout measures.
+		local Text = UiHarness.ui("Text")
 		for key, title in LayoutAssert.PANEL_TITLES do
-			expect(has(read(`src/ui/Panels/{key}.luau`), `Widgets.panel(parent, "{key}Panel", "{title}", `)).toBe(true)
+			local src = read(`src/ui/Panels/{key}.luau`)
+			local titleKey = string.match(src, `Widgets%.panel%(%s*parent,%s*"{key}Panel",%s*Text%.t%("([%w_%.]+)"%)`)
+			local shown = if titleKey then Text.t(titleKey) else nil
+			-- Titles kept in a module table: the Welcome join title and the Exclusive shop's.
+			local fromTable = ({
+				Welcome = UiHarness.ui("WelcomeBack").TITLES.join.title,
+				ExclusiveShop = UiHarness.ui("ExclusiveShopView").TITLE,
+			})[key]
+			if fromTable then
+				shown = Text.t(fromTable)
+			end
+			if shown == nil and has(src, `Widgets.panel(parent, "{key}Panel", "{title}", `) then
+				shown = title
+			end
+			expect(shown).toBe(title)
 		end
 	end)
 	it("mirrors the welcome / daily reward card's row and tile geometry", function()
@@ -126,7 +142,7 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 		end
 		local guide = read("src/ui/Panels/Guide.luau")
 		expect(has(guide, "Guide.TIP_H = 44")).toBe(true)
-		expect(UiHarness.ui("Panels/Guide").SHOW_TEXT).toBe("📖  Show the tutorial again")
+		expect(UiHarness.ui("Panels/Guide").showText()).toBe("📖  Show the tutorial again")
 	end)
 	it("the Rebirth sizes and copy it measures are the panel's own", function()
 		local real = UiHarness.ui("Panels/Rebirth")
@@ -143,10 +159,15 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 	end)
 	it("the Settings sizes and copy it measures are the panel's own", function()
 		local real = UiHarness.ui("Panels/Settings")
+		local Text = UiHarness.ui("Text")
 		for _, part in { "STYLE", "COPY" } do
 			for k, v in LayoutAssert.SETTINGS[part] do
-				if real[part][k] ~= v then
-					error(`LayoutAssert's Settings.{part}.{k} is {v}, Panels/Settings has {real[part][k]}`)
+				-- COPY holds Strings keys; their English is what LayoutAssert measures.
+				local own = if part == "COPY" and type(real[part][k]) == "string"
+					then Text.t(real[part][k])
+					else real[part][k]
+				if own ~= v then
+					error(`LayoutAssert's Settings.{part}.{k} is {v}, Panels/Settings has {own}`)
 				end
 			end
 		end
@@ -220,7 +241,7 @@ describe("v18 viewports", function()
 		for _, entry in LayoutAssert.screens() do
 			local s = entry.screen
 			for id, hint in Hint.STEPS do
-				local place = Hint.place(s, { id = id, text = hint.text, target = hint.target }) :: Hint.Placement
+				local place = Hint.place(s, { id = id, text = Hint.text(id), target = hint.target }) :: Hint.Placement
 				expect(place.side).toBe("right")
 				expect(place.bubble.x >= s.nav.x + s.nav.w).toBe(true)
 			end

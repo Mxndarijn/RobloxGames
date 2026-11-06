@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local PlotPadGuard = require(script.Parent.PlotPadGuard)
 local PvpFunView = require(script.Parent.PvpFunView)
 local PvpLaunch = require(script.Parent.PvpLaunch)
+local RequestText = require(script.Parent.RequestText)
 local Rng = require(ReplicatedStorage.Shared.Rng)
 local ShopGuard = require(script.Parent.ShopGuard)
 local World = require(script.Parent.World)
@@ -74,6 +75,11 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 			local player = Players:GetPlayerByUserId(userId)
 			if player then
 				payload.serverTime = now()
+				if type(payload.message) == "string" then
+					-- a Denied reason, in each client's own language (RequestText); `reason` keeps the English
+					payload.reason = payload.message
+					payload.message = RequestText.message(payload.message)
+				end
 				shopEvent:FireClient(player, payload)
 			end
 		end,

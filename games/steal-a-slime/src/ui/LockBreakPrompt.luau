@@ -19,6 +19,7 @@
 ]]
 
 local ExclusiveShopView = if script then require(script.Parent.ExclusiveShopView) else require("./ExclusiveShopView")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Options = {
 	plots: Instance, -- workspace.Plots
@@ -62,13 +63,14 @@ function LockBreakPrompt.creditArg(argType: string?, plotIndex: number): any
 	return plotIndex
 end
 
--- The prompt texts for quick-buy `q`: { action, object }.
-function LockBreakPrompt.texts(q: ExclusiveShopView.QuickBuy, refusal: string?): (string, string)
+-- The prompt texts for quick-buy `q`: { action, object }. `refusal`: the server's reason (a string or a
+-- Localize message).
+function LockBreakPrompt.texts(q: ExclusiveShopView.QuickBuy, refusal: any): (string, string)
 	if refusal then
-		return ExclusiveShopView.OPEN_LOCKED_DOOR, refusal
+		return Text.t(ExclusiveShopView.OPEN_LOCKED_DOOR), Text.text(refusal)
 	end
 	if q.mode == "offsale" then
-		return ExclusiveShopView.OFF_SALE, ExclusiveShopView.OPEN_LOCKED_DOOR
+		return Text.t(ExclusiveShopView.OFF_SALE), Text.t(ExclusiveShopView.OPEN_LOCKED_DOOR)
 	end
 	return q.text, ""
 end
@@ -79,7 +81,7 @@ function LockBreakPrompt.start(opts: Options): Handle
 	-- `pending`: os.clock of a request in flight (a call that never answers stops blocking after pendingSeconds).
 	type Entry = { prompt: ProximityPrompt?, conns: { RBXScriptConnection }, pending: number? }
 	local entries: { [Instance]: Entry } = {}
-	local refusals: { [Instance]: { text: string, at: number } } = {}
+	local refusals: { [Instance]: { text: string, at: number } } = {} -- text: in the player's language
 	local prompts: { [Instance]: ProximityPrompt } = {}
 
 	local function door(plot: Instance): ExclusiveShopView.Door
@@ -132,9 +134,10 @@ function LockBreakPrompt.start(opts: Options): Handle
 			opts.ask(action, function(result: any)
 				entry.pending = nil
 				if type(result) == "table" and result.ok == false then
-					local text = if type(result.message) == "string" and result.message ~= ""
-						then result.message
-						else ExclusiveShopView.LOCK_BREAK_REFUSED
+					local message = result.message
+					local text = if (type(message) == "string" and message ~= "") or type(message) == "table"
+						then Text.text(message)
+						else Text.t(ExclusiveShopView.LOCK_BREAK_REFUSED)
 					refusals[plot] = { text = text, at = opts.clock() }
 					apply(plot)
 				elseif then_ then

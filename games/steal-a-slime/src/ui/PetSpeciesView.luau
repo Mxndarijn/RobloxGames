@@ -11,6 +11,7 @@
 ]]
 
 local PlotSkinsView = if script then require(script.Parent.PlotSkinsView) else require("./PlotSkinsView")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 local PetSpeciesView = {}
 
@@ -40,15 +41,16 @@ export type Detail = {
 	exclusive: boolean, -- always false (Skins' shared button code reads it)
 }
 
-PetSpeciesView.AUTO = "Auto"
 PetSpeciesView.AUTO_KEY = "pet:auto"
-PetSpeciesView.AUTO_STATE = "Your favourite"
-PetSpeciesView.AUTO_LINE = "Your favourite slime rides the cloud."
-PetSpeciesView.FOUND = "Found"
-PetSpeciesView.NOT_FOUND = "Not found yet"
-PetSpeciesView.FOUND_LINE = "Rides your cloud. Looks only."
-PetSpeciesView.LOCKED_LINE = "Find this slime to use it as your pet."
-PetSpeciesView.LOCKED_ACTION = "Find it in the SlimeDex first"
+-- Strings keys (Strings/Collection), drawn with Text.t.
+PetSpeciesView.AUTO = "collection.pet.auto"
+PetSpeciesView.AUTO_STATE = "collection.pet.auto_state"
+PetSpeciesView.AUTO_LINE = "collection.pet.auto_line"
+PetSpeciesView.FOUND = PlotSkinsView.FOUND
+PetSpeciesView.NOT_FOUND = "collection.not_found_yet"
+PetSpeciesView.FOUND_LINE = "collection.pet.found_line"
+PetSpeciesView.LOCKED_LINE = "collection.pet.locked_line"
+PetSpeciesView.LOCKED_ACTION = "collection.pet.locked_action"
 
 local AUTO_COLOR = { 255, 210, 63 }
 
@@ -66,7 +68,7 @@ function PetSpeciesView.rows(cards: { any }, petSpecies: any, hasKit: ((id: stri
 			key = PetSpeciesView.AUTO_KEY,
 			id = "",
 			auto = true,
-			title = PetSpeciesView.AUTO,
+			title = Text.t(PetSpeciesView.AUTO),
 			state = if current == nil then "equipped" else "unlocked",
 			found = true,
 			tier = 1,
@@ -105,14 +107,18 @@ function PetSpeciesView.detail(rows: { Row }, id: string): Detail?
 				found = row.found,
 				tier = row.tier,
 				speciesColor = row.speciesColor,
-				line = if row.auto
-					then PetSpeciesView.AUTO_LINE
-					elseif row.found then PetSpeciesView.FOUND_LINE
-					else PetSpeciesView.LOCKED_LINE,
-				action = if row.state == "equipped"
-					then PlotSkinsView.EQUIPPED
-					elseif row.state == "unlocked" then PlotSkinsView.EQUIP
-					else PetSpeciesView.LOCKED_ACTION,
+				line = Text.t(
+					if row.auto
+						then PetSpeciesView.AUTO_LINE
+						elseif row.found then PetSpeciesView.FOUND_LINE
+						else PetSpeciesView.LOCKED_LINE
+				),
+				action = Text.t(
+					if row.state == "equipped"
+						then PlotSkinsView.EQUIPPED
+						elseif row.state == "unlocked" then PlotSkinsView.EQUIP
+						else PetSpeciesView.LOCKED_ACTION
+				),
 				exclusive = false,
 			}
 		end
@@ -123,11 +129,11 @@ end
 -- The row's small state line: Equipped / Your favourite / Found / Not found yet.
 function PetSpeciesView.stateText(row: Row): string
 	if row.state == "equipped" then
-		return PlotSkinsView.EQUIPPED
+		return Text.t(PlotSkinsView.EQUIPPED)
 	elseif row.auto then
-		return PetSpeciesView.AUTO_STATE
+		return Text.t(PetSpeciesView.AUTO_STATE)
 	end
-	return if row.found then PetSpeciesView.FOUND else PetSpeciesView.NOT_FOUND
+	return Text.t(if row.found then PetSpeciesView.FOUND else PetSpeciesView.NOT_FOUND)
 end
 
 -- The row to show first: the equipped one, else Auto.
@@ -151,7 +157,7 @@ function PetSpeciesView.summary(rows: { Row }): string
 			end
 		end
 	end
-	return `{found}/{total} found`
+	return Text.t("collection.found_summary", { found = found, total = total })
 end
 
 return table.freeze(PetSpeciesView)

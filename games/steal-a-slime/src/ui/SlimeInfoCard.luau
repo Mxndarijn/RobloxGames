@@ -33,7 +33,9 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local SlimeLabel = require(Shared:WaitForChild("SlimeLabel"))
+local SlimeLabelText = require(script.Parent.SlimeLabelText)
 local SlimePadSign = require(script.Parent.SlimePadSign)
+local Text = require(script.Parent.Text)
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
@@ -332,7 +334,8 @@ local function placeRarityRow(tag: Frame, view: SlimeLabel.View, r: Row)
 	local shine = row:FindFirstChild("Shine") :: TextLabel
 	row.Position = UDim2.fromScale(0.5, r.y + r.h / 2)
 	row.Size = UDim2.fromScale(1, r.h * SlimeInfoCard.SIZE.pill);
-	(rarity:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(view.rarity)
+	(rarity:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio =
+		SlimeInfoCard.pillAspect(Text.data("rarity", view.rarity, "name", view.rarity))
 	shine.Visible = view.shine ~= nil
 	if not view.shine then
 		rarity.Size = UDim2.fromScale(1, 1)
@@ -341,8 +344,9 @@ local function placeRarityRow(tag: Frame, view: SlimeLabel.View, r: Row)
 	local half = 0.5 - SlimeInfoCard.SIZE.pillGap / 2
 	rarity.Size = UDim2.fromScale(half, 1)
 	shine.Size = UDim2.fromScale(half, 1)
-	shine.Text = view.shine.id;
-	(shine:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(view.shine.id)
+	local shineName = Text.data("shine", view.shine.id, "name", view.shine.id)
+	shine.Text = shineName;
+	(shine:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(shineName)
 	paint(shine, SlimeInfoCard.shineLook(view.shine))
 end
 
@@ -355,6 +359,7 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 	if not view then
 		return
 	end
+	view = SlimeLabelText.view(view)
 	local tag = gui:FindFirstChild("Card") :: Frame
 	local count = SlimeLabel.rows(view)
 	local f = fit or DEFAULT_FIT
@@ -363,9 +368,9 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 	gui.StudsOffsetWorldSpace = Vector3.new(0, if type(height) == "number" then height else 0, 0)
 	local texts: { [string]: string? } = {
 		Title = view.name,
-		Rarity = view.rarity,
+		Rarity = Text.data("rarity", view.rarity, "name", view.rarity),
 		Income = view.income,
-		Price = if view.price then `Buy {view.price}` else nil,
+		Price = if view.price then Text.t("menus.slime_tag.buy", { price = view.price }) else nil,
 	}
 	local shown: { [string]: Row } = {}
 	for _, r in SlimeInfoCard.rows(count) do
