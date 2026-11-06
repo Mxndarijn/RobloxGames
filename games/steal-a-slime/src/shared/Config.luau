@@ -1302,6 +1302,11 @@ local Config = {
 
 	-- Economy
 	STARTING_CASH = 25,
+	-- Broke top-up (server/BrokeTopUp): a player who owns no slime or egg, carries none and has less than this
+	-- much cash (cash pad piles included) gets their cash raised to it, so nobody is stuck with no way to earn.
+	BROKE_TOPUP_CASH = 50,
+	BROKE_TOPUP_GRACE_SECONDS = 10, -- they must stay broke this long first (not mid-purchase or mid-steal)
+	BROKE_TOPUP_COOLDOWN_SECONDS = 120, -- at most one top-up per player this often
 	PADS_START = 4,
 	PADS_PER_FLOOR = PADS_PER_FLOOR,
 	BASE_FLOORS = BASE_FLOORS,

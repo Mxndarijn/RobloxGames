@@ -127,6 +127,9 @@ export type Session = {
 	bossSlow: { factor: number, untilTime: number }?, -- in a boss goo puddle: walk speed x factor until then, runtime only
 	notices: { NoticeCards.Notice }?, -- recent notice cards (World.notice, State.notices), runtime only
 	plotFull: boolean?, -- carrying a slime in their own full plot (ServerLoop, State.plotFull), runtime only
+	brokeSince: number?, -- server time this player became broke (BrokeTopUp); nil = not broke, runtime only
+	brokeToppedAt: number?, -- server time of their last broke top-up (BrokeTopUp), runtime only
+	brokeTopUps: number?, -- broke top-ups this session (BrokeTopUp analytics), runtime only
 }
 
 export type Wild = {

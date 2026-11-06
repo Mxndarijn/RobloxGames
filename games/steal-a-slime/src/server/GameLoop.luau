@@ -7,11 +7,12 @@
 	ended (LockBreak.step), and once a
 	second income (Income.step), the tutorial's Leaderboard step (TutorialService.tick), goal / SlimeDex
 	rewards (Milestones.step), Mystery Egg incubation (MysteryEgg.step), the Slime Club's daily credits
-	(Purchases.stepDaily) and the Thief Radar (ThiefRadar.step).
+	(Purchases.stepDaily), the Thief Radar (ThiefRadar.step) and the broke top-up (BrokeTopUp.step).
 ]]
 
 local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
+local BrokeTopUp = if script then require(script.Parent.BrokeTopUp) else require("./BrokeTopUp")
 local Income = if script then require(script.Parent.Income) else require("./Income")
 local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local LuckyShow = if script then require(script.Parent.LuckyShow) else require("./LuckyShow")
@@ -53,6 +54,7 @@ function GameLoop.step(world: World.World, now: number, ctx: (BossEvent.Context 
 			Purchases.stepDaily(world, session, now)
 		end
 		ThiefRadar.step(world, if ctx then (ctx :: any).features else nil)
+		BrokeTopUp.step(world, now)
 	end
 end
 

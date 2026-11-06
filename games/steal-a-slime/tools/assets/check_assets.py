@@ -6,7 +6,10 @@ that don't. Read-only unless --grant.
     python tools/assets/check_assets.py --grant         # then grant the universe Use of every failing id, and probe again
 
 Kinds: audio (Sound IsLoaded + TimeLength), model (InsertService:LoadAsset, the slime kit packages), mesh
-(AssetService:CreateMeshPartAsync), image (ContentProvider:PreloadAsync status). The probe is tools/assets/probe.luau,
+(AssetService:CreateMeshPartAsync), image (ContentProvider:PreloadAsync status), material (every id in
+default.project.json and world/*.rbxmx, such as the MaterialService variant maps; same PreloadAsync probe).
+The server can load a user-owned material map that a player's client then refuses ("Failed to load
+MaterialService.SlimeSand"), so --grant always grants the material ids, whatever the probe says. The probe is tools/assets/probe.luau,
 run with Open Cloud Luau Execution; it never touches DataStores. A group-owned game can't load user-owned audio or
 packages until the owner grants the universe use of them (/guides/roblox-assets.md); a grant keeps the asset id.
 The key (tools/monetization/apikey.py) is never printed.
@@ -30,8 +33,31 @@ def asset_ids(s):
     return re.findall(r"rbxassetid://(\d+)", s)
 
 
+def place_ids():
+    """{id: label} for every asset id the Rojo project and the world files put into the place itself
+    (MaterialService variant maps, Terrain, Lighting, anything in world/*.rbxmx)."""
+    found = {}
+
+    def walk(node, path):
+        for prop, value in node.get("$properties", {}).items():
+            for i in asset_ids(json.dumps(value)):
+                found[i] = f"{path}.{prop}"
+        for name, child in node.items():
+            if not name.startswith("$") and isinstance(child, dict):
+                walk(child, f"{path}.{name}" if path else name)
+
+    walk(json.load(open(os.path.join(GAME, "default.project.json"), encoding="utf-8"))["tree"], "")
+    world = os.path.join(GAME, "world")
+    for f in sorted(os.listdir(world)):
+        if f.endswith(".rbxmx"):
+            text = open(os.path.join(world, f), encoding="utf-8").read()
+            for i in asset_ids(text) + re.findall(r"roblox\.com/asset/\?id=(\d+)", text):
+                found.setdefault(i, "world/" + f)
+    return found
+
+
 def collect():
-    """{kind: {id: label}} for every asset id under src/."""
+    """{kind: {id: label}} for every asset id under src/, plus the place ids (place_ids) as kind "material"."""
     ma = src("src/shared/MeshAssets.luau")
     mesh = {}
     for m in re.finditer(r'entries\["([^"]+)"\]\s*=\s*\{([^}]*)\}', ma):
@@ -74,7 +100,7 @@ def collect():
         image[i] = "EventBoardView"
     image[re.search(r'ICON_ID = "rbxassetid://(\d+)"', bat).group(1)] = "BatModel.ICON_ID"
 
-    lists = {"audio": audio, "model": model, "mesh": mesh, "image": image}
+    lists = {"audio": audio, "model": model, "mesh": mesh, "image": image, "material": place_ids()}
     seen = set().union(*lists.values())
     rest = set()
     for root, _, files in os.walk(os.path.join(GAME, "src")):
@@ -142,8 +168,9 @@ def main():
     lists = collect()
     print(f"universe {UNIVERSE}: " + ", ".join(f"{k} {len(v)}" for k, v in lists.items()))
     failed = probe_all(H, lists, a.version)
-    if failed and a.grant:
-        grant(H, sorted({f["id"] for f in failed}))
+    if a.grant:
+        ids = {f["id"] for f in failed} | set(lists["material"])
+        grant(H, sorted(ids))
         failed = probe_all(H, lists, a.version)
     sys.exit(1 if failed else 0)
 

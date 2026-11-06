@@ -81,9 +81,9 @@ if MODE == nil or MODE == "mesh" then
 	end, 16)
 end
 
-if MODE == nil or MODE == "image" then
+local function preloadAll(kind)
 	local list = {}
-	for id in LISTS.image do
+	for id in LISTS[kind] do
 		table.insert(list, "rbxassetid://" .. id)
 	end
 	local status = {}
@@ -93,19 +93,21 @@ if MODE == nil or MODE == "image" then
 		end)
 	end)
 	local ok = 0
-	for id, label in LISTS.image do
+	for id, label in LISTS[kind] do
 		local st = status["rbxassetid://" .. id]
 		if st == Enum.AssetFetchStatus.Success then
 			ok += 1
 		else
-			bad("image", id, label, tostring(st))
+			bad(kind, id, label, tostring(st))
 		end
 	end
-	local n = 0
-	for _ in LISTS.image do
-		n += 1
+	result.counts[kind] = { total = #list, ok = ok, note = "server-side PreloadAsync status" }
+end
+
+for _, kind in { "image", "material" } do
+	if (MODE == nil or MODE == kind) and LISTS[kind] then
+		preloadAll(kind)
 	end
-	result.counts.image = { total = n, ok = ok, note = "server-side PreloadAsync status" }
 end
 
 result.ok = #result.failed == 0

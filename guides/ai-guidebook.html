@@ -229,6 +229,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
       <li><div><strong>One place for every value.</strong> Colours in the palette file, sizes in Layout, tunables in Config, world sizes in WorldLayout. Never copy a number into a second file.</div></li>
       <li><div><strong>Common systems live in shared, not in a game.</strong> Inventory and hotbar, session-locked saves, save migrations, rate limiting, number formatting, seeded random and analytics are in <code>shared/luau</code>. Before building one of these, use or extend the shared module. When something you built in a game has nothing game-specific in it, move it to shared.<p>Shared modules are a pure core plus a thin Roblox adapter, take their dependencies as arguments, ship overridable defaults (like the default hotbar UI) and have Lune specs. See <code>shared/luau/CLAUDE.md</code>.</p></div></li>
       <li><div><strong>No secrets in output.</strong> The Open Cloud key is never printed or committed.</div></li>
+      <li><div><strong>Every game ships translated.</strong> All player-facing text goes through the game's localization layer (shared <code>Localize</code>): stable keys, whole sentences with named parameters, never glued fragments. Roblox automatic translation is on, and the layout gate also runs a long-text pseudo-language.<p>Much of Roblox plays in other languages. A sentence glued from pieces ("You stole " .. name) can't be translated well.</p></div></li>
     </ol>
   </section>
 
@@ -330,6 +331,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
       <li>One main button per card. Anything you can't undo is hold-to-confirm.</li>
       <li>A disabled button says what is missing. Every list has an empty state.</li>
       <li>Nothing new goes on the HUD without a slot in the size table. Notices never cover a menu's X or the hotbar.</li>
+      <li>Every string has a key and is one whole sentence: "You stole {slime}!", not "You stole " .. name. Leave room: German and Portuguese run about 40% longer.</li>
     </ul>
   </section>
 
@@ -523,6 +525,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
   <h3>First playable: shared systems and kit</h3>
   <ol class="steps">
     <li><div><b>Mount <code>shared/luau</code></b> as <code>ReplicatedStorage.Lib</code> and use what is there before writing anything: saves with session lock and migrations, inventory and hotbar, rate limiter, number format, settings, receipt ledger, guide arrows, label fitting.</div></li>
+    <li><div><b>Translations from day one.</b> Every string through the shared localization layer, a generated LocalizationTable with a "stale" spec, fonts that cover each language, and the long-text pseudo-language in the layout gate. In Creator Hub: automatic text capture, the languages with automatic translation, and "Use Translated Content" once the code is live.</div></li>
     <li><div><b>Analytics from day one.</b> The shared tracker with an onboarding funnel and a shop funnel. Without it, the first release gives you no numbers to plan from.</div></li>
     <li><div><b>The kit</b> (Guides, chapter 03): palette file, two fonts, UI parts, size table, style guide, layout gate at six sizes, instance budget. Before the first real screen.</div></li>
     <li><div><b>World as data.</b> A WorldLayout tree, generated world files with a "stale" spec, one floor height constant, a collision choice per prop and a world label registry.</div></li>
@@ -755,6 +758,7 @@ lune run tools/livetest/pacing --seeds 1-4 --days 55 --mix average=5,grinder=5,c
       <tr data-area="World"><td>World</td><td>Top Earners podiums: name and total earned sit on a barn-red trophy plate on the podium front, with a brass rank medallion; no floating name board over the avatar (option A)</td><td>The floating boards overlapped the Top Earners board and grew on a phone screen</td><td class="pr">2026-10-31</td></tr>
       <tr data-area="UI"><td>UI</td><td>The Upcoming Events board doesn't list the weather</td><td>Merijn's call; the weather has its own button on screen</td><td class="pr">2026-10-30</td></tr>
       <tr data-area="World"><td>World</td><td>The land round the map must look right from high up too: grass texture repeats every 60 studs (not 20), no bare rock on the low hills (below 45 studs), the dark grass patches only a soft tone darker (option C); the hidden terrain under the floor parts sits 2 studs low</td><td>From above, the grass showed wavy bands, rock scabs and hard blotches, and the green border band flickered to the sand under it; players see it from tall bases and the obby</td><td class="pr">2026-11-06</td></tr>
+      <tr data-area="World"><td>World</td><td>The shiny sand is fixed by granting the experience the ground textures only ("Texture fix only"): no roughness maps on the ground materials, no lighting change. Every asset id in <code>default.project.json</code> and <code>world/</code> is checked and granted by <code>tools/assets/check_assets.py</code></td><td>The ground ColorMaps belonged to Merijn's account and failed to load in the Forgeborn experience, so the ground rendered smooth and mirrored the sun; with them loaded only a small shine is left</td><td class="pr">2026-11-06</td></tr>
       <tr data-area="World"><td>World</td><td>No <code>Glass</code> material anywhere</td><td>Roblox hides see-through things behind it</td><td class="pr">#541 #549</td></tr>
       <tr data-area="Gameplay"><td>Gameplay</td><td>Merge vat: slimes go in only by Move. No swapping, no Pick for me, no Auto-merge, no Keep.</td><td>The menu had too many options</td><td class="pr">#535</td></tr>
       <tr data-area="Gameplay"><td>Gameplay</td><td>PvP anywhere, no safe zones. A thief caught by any PvP item returns the slime to its owner.</td><td>Decided on the PvP proposals, 2026-10-19</td><td class="pr">PVP.md</td></tr>
@@ -789,6 +793,7 @@ lune run tools/livetest/pacing --seeds 1-4 --days 55 --mix average=5,grinder=5,c
       <tr data-area="Sound"><td>Sound</td><td>Birds at night, not crickets; a real owl as random one-shots, no synth wind or owls</td><td>Crickets were annoying</td><td class="pr">#380</td></tr>
       <tr data-area="Sound"><td>Sound</td><td>Rare and Secret drops stay silent</td><td>Not recorded</td><td class="pr">#381</td></tr>
       <tr data-area="Process"><td>Process</td><td>New features ship on, with no feature flag unless asked</td><td>Not recorded</td><td class="pr">#655</td></tr>
+      <tr data-area="Process"><td>Process</td><td>Every game ships translated: all player-facing text through the localization layer, Roblox automatic translation on</td><td>Merijn, 2026-11-06: much of Roblox plays in other languages</td><td class="pr">house rule 12</td></tr>
       <tr data-area="Process"><td>Process</td><td>StreamingEnabled not turned on</td><td>Small gain for the risk</td><td class="pr">#560</td></tr>
       <tr data-area="Process"><td>Process</td><td>Auto-publish off; Merijn approves releases at 12:00 and 19:00</td><td>Releases had gone live before the Studio check found UI bugs</td><td class="pr">guides</td></tr>
       <tr data-area="Process"><td>Process</td><td>Steal a Slime moved to a new experience 10774962286 (place 105898249206841) owned by Forgeborn</td><td>Roblox blocked the old experience 10770917350: its content rating, thumbnails and Studio access failed, also after moving it to Forgeborn</td><td class="pr">2026-11-06</td></tr>
