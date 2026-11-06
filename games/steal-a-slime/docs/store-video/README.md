@@ -29,10 +29,11 @@ anyone else rebuilds them with `render.py` from re-captured frames.
 | 2.9–6.5 | s1 steal | The player runs into a neighbour's jar base and grabs their Rainbow Celestial (a real steal through the server's `Carry.grab`), turns and runs out with it overhead. | STEAL / RARE SLIMES! |
 | 6.5–10.1 | s3 your base | Orbit inside the player's base: Divine, Celestial and Secret slimes with Gold, Diamond and Rainbow shines, each pad label showing its +$/s income. | BUILD / YOUR BASE! |
 | 10.1–13.7 | s4 merge | Three Mythics in the merge vat finish brewing; the camera pushes in on the vat and the pad beside it as the brewed Secret appears (real `VatCollect`). | MERGE 3 / = RARER! |
-| 13.7–18.1 | s6 end | Starts low over two jar bases, then pulls back and up over the fountain to the whole map with all eight jar bases (needs the `fix/terrain-overhead` terrain in the build). | STEAL / A SLIME! (title, centre) |
+| 13.7–16.3 | s5 obby | On the Goo Gauntlet sky course the player hops up a zig-zag of jelly steps over the goo pit. | BEAT / THE OBBY! |
+| 16.3–20.7 | s6 end | Starts low over two jar bases, then pulls back and up over the fountain to the whole map with all eight jar bases (needs the `fix/terrain-overhead` terrain in the build). | STEAL / A SLIME! (title, centre) |
 
 Order follows the game's story (Merijn, draft 4): catch, steal, build your base, merge, end title. The steal is no
-longer in the first 3 s (it starts at 2.9 s); no PvP slap shot exists yet. Total 18.1 s.
+longer in the first 3 s (it starts at 2.9 s); no PvP slap shot exists yet. Total 20.7 s (the obby shot was added after the end zoom was approved).
 
 ### Caption style
 
@@ -158,3 +159,10 @@ retake (release the carry, `prep_vat.py` for the merge).
 - **Thief is Merijn's own avatar** (the Studio test player). His VIP member tag and name are hidden, but the
   avatar look is his. If that should not be on the store page, re-shoot with a different test avatar.
 - Not seen on a phone or in the Creator Hub player; no sound (by design); not uploaded (needs Merijn's OK).
+
+## Obby shot (s5)
+
+Shot in the same capture build on the course of that session's rotation: the test player walks into the portal
+(the run starts), game time is frozen so the course can't rotate, and `s5` puppets four hops up the jelly steps
+with the R15 jump animation, the camera following the climb from the side (`s5_track` drops the hop arcs so the
+camera doesn't bob). The follow-pet cloud is hidden. Frame jump check: no pops.
