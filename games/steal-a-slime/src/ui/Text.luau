@@ -77,6 +77,7 @@ local pseudo = RobloxTranslator.pseudo(Strings.catalog)
 local current: Translator? = nil
 local currentFor: string? = nil
 local building: string? = nil -- the translator being fetched right now
+local waiting: { thread } = {} -- threads that asked while it was being fetched
 
 local function services(): (any, any)
 	if not script then
@@ -126,9 +127,10 @@ function Text.translator(): Translator
 	if current and currentFor == want then
 		return current
 	end
-	-- Another thread is fetching it (the loading screen and the UI start together): wait for that one.
-	while building == want do
-		task.wait(0.05)
+	-- Another thread is fetching it (the loading screen and the UI start together): sleep until that one is done.
+	if building == want then
+		table.insert(waiting, coroutine.running())
+		coroutine.yield()
 		if current and currentFor == want then
 			return current
 		end
@@ -149,6 +151,11 @@ function Text.translator(): Translator
 		tr = if ok then made else englishTranslator
 	end
 	current, currentFor = tr, want
+	local sleepers = waiting
+	waiting = {}
+	for _, thread in sleepers do
+		task.spawn(thread)
+	end
 	return tr
 end
 
