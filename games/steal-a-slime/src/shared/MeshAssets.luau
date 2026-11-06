@@ -1927,7 +1927,7 @@ entries["slime_froggo"] = { assetId = 71274428079528, size = { 3.698, 2.684, 3.1
 entries["slime_flan"] = { assetId = 89380442384228, size = { 3.156, 3.97, 3.142 }, offset = { 0.004, 1.985, 0.009 } }
 entries["slime_chomp"] = { assetId = 95926102417193, size = { 4.568, 3.62, 4.121 }, offset = { 0, 1.81, 0.368 } }
 entries["slime_whiskers"] =
-	{ assetId = 133896172858214, size = { 4.198, 3.003, 3.307 }, offset = { -0.347, 1.501, -0.024 } }
+	{ assetId = 133896172858214, size = { 4.173, 3.003, 3.307 }, offset = { -0.36, 1.501, -0.024 } }
 entries["slime_lop"] = { assetId = 107798862734190, size = { 3.541, 3.616, 3.447 }, offset = { 0.001, 1.808, 0.203 } }
 entries["slime_moo"] = { assetId = 120951185287411, size = { 3.935, 2.915, 3.653 }, offset = { 0, 1.457, -0.105 } }
 entries["slime_pengoo"] = { assetId = 96963913146270, size = { 4.596, 3.9, 3.2 }, offset = { 0, 1.947, -0.156 } }

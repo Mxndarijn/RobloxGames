@@ -161,7 +161,7 @@ class Body:
       the top flat, for profiles that end in a point or a narrow top (round_top). Default DOME for
       the main "Body", 0 (keep the shape) for other names.
     sub: Catmull-Rom samples per profile segment (smooth from few points).
-    sx, sy: cross-section scale (x wide, y deep). lean(z) -> y offset. bump(a, z) -> radius factor add.
+    sx, sy: cross-section scale (x wide, y deep). lean(z) -> y offset. bump(a, z) -> radius factor add (a in -pi..pi, 0 front).
     color: base rgba, or paint(a, z, p) -> rgba for a pattern painted per corner (soft edges).
     bands: [(z0, z1, rgba)] crisp horizontal stripes (rings are inserted at z0/z1, painted per face).
     sectors: fn(a, z) -> rgba or None, crisp per-face colour (vertical stripes, cow patches...).
@@ -220,7 +220,10 @@ class Body:
 
     def point(self, a, z, extra=0.0):
         """surface point at yaw a (radians, 0 front) and height z (+extra studs radially)."""
-        r = self.radius(z) * (1 + self.bump(a, z)) + extra
+        # bump() gets a in -pi..pi, the same as paint(). _build walks the rings from 0 to 2pi, so without this
+        # a bump that tests abs(a) or degrees(a) went wrong on the slime's right side (Mammoth and Yeti
+        # had fur on half the face, Sphinx's headdress edge and Kitsune's cheek ruff were one-sided).
+        r = self.radius(z) * (1 + self.bump(math.atan2(math.sin(a), math.cos(a)), z)) + extra
         return Vector((math.sin(a) * r * self.sx, -math.cos(a) * r * self.sy + self.lean(z), z))
 
     def _build(self, segs):
@@ -598,6 +601,9 @@ def blotch(seed, w, h, n=14, wobble=0.28):
 
 
 # ---------------------------------------------------------------- face kit
+FACES = []  # every Face built in this run: ship() marks their parts so a mutation keeps the face's colours
+
+
 class Face:
     """Signature faces. All coords on the FRONT frame (u = x, v = z, studs).
     Face(body, eye_u=0.5, eye_v=None, mouth_v=None, s=1.0): eye_v defaults to 0.55 * body height.
@@ -615,6 +621,7 @@ class Face:
         self.s = s
         self.ink, self.mc = ink, mouth_col
         self.parts = []
+        FACES.append(self)  # mutate() leaves every face part in its own colours
 
     def d(self, name, poly, color, off=0.02, th=0.025):
         self.parts.append(decal(name, poly, color, FRONT, off=off, th=th, on=self.on))
@@ -1056,12 +1063,45 @@ def goo(name, balls, color, tris=None, resolution=0.12, smooth=True):
 
 
 # ---------------------------------------------------------------- mutations
-# A mutation (the game's Config.SHINES: Gold, Diamond, Rainbow) recolours the whole species mesh. Ink-dark
-# corners of small loose pieces (eyes, mouth, spots: under INK_AREA of the mesh) keep a dark tone of the
-# mutation so the face stays readable; a big dark piece (a ninja's suit, a night body) is recoloured like
-# the rest. t runs 0 at the bottom to 1 at the top, so the top catches the light. Colours are the sRGB
+# A mutation (the game's Config.SHINES: Gold, Diamond, Rainbow) recolours the whole species mesh except the
+# face: every part a Face built or whose name is a face part (FACE_PARTS) keeps its own colours, so pink mouths,
+# coloured eyes and closed-eye arcs still read (Merijn's pick, option B, 2026-11-06). Ink-dark corners of other
+# small loose pieces (spots, buttons: under INK_AREA of the mesh) keep a dark tone of the mutation; a big
+# dark piece (a ninja's suit, a night body) is recoloured like the rest. t runs 0 at the bottom to 1 at the top, so the top catches the light. Colours are the sRGB
 # values picked in Studio.
 INK_AREA = 0.04
+# face part names a mutation leaves alone: the rig's face prefixes (_slimerig.FACE) plus blink lids, blush and screens
+from models._slimerig import FACE as _RIG_FACE  # noqa: E402 (plain names, no circular import)
+FACE_PARTS = _RIG_FACE + ("Lid", "Blush", "Smile", "Screen", "Barbel", "Beard", "Shade", "GhostEye", "GhostMouth")
+# Screen: Robo's face screen; Barbel: Catfish's whiskers; Shade: Disco's star shades; Ghost*: Gl1tch's colour split.
+# Beaks, snouts, trunks and noses modelled as 3D parts are body, not face: they take the shine.
+FACE_ATTR = "slime_face"  # face attribute: 1 on face parts, survives join()
+NOT_FACE = ["NoseRing", "BrowGem", "VisorRim"]  # named like a face part but jewellery or a rim: shine-coloured
+
+
+FACE_EXTRA = []  # a species' own face markings (face_part()), e.g. Kitsune's forehead Mark
+
+
+def not_face(*prefixes):
+    """a species' parts named like face parts that are not its face (floating Glint sparkles, a helmet Visor)."""
+    NOT_FACE.extend(prefixes)
+
+
+def face_part(*prefixes):
+    """a species' face markings with a name other slimes use for something else (Kitsune's Mark, Frostbite's Flake)."""
+    FACE_EXTRA.extend(prefixes)
+
+
+def mark_face(parts):
+    """flag the faces of every face part (FACES, FACE_PARTS names) so mutate() keeps their colours."""
+    face = {id(p) for f in FACES for p in f.parts}
+    names, skip = FACE_PARTS + tuple(FACE_EXTRA), tuple(NOT_FACE)
+    for o in parts:
+        on = int(id(o) in face or (o.name.startswith(names) and not o.name.startswith(skip)))
+        a = o.data.attributes.get(FACE_ATTR) or o.data.attributes.new(FACE_ATTR, "INT", "FACE")
+        a.data.foreach_set("value", [on] * len(o.data.polygons))
+
+
 def _lum(c):
     return 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]
 
@@ -1128,10 +1168,13 @@ def mutate(o, kind, z0, z1):
     bm = bmesh.new(); bm.from_mesh(o.data)
     bm.faces.index_update()  # _islands keys faces by index
     col = bm.loops.layers.color.get("Col")
+    face_layer = bm.faces.layers.int.get(FACE_ATTR)
     total = sum(f.calc_area() for f in bm.faces) or 1.0
     for piece in _islands(bm):
         small = sum(f.calc_area() for f in piece) / total < INK_AREA
         for f in piece:
+            if face_layer is not None and f[face_layer]:
+                continue  # the face keeps its own colours
             for lp in f.loops:
                 c = tuple(lp[col][:3])
                 t = ((mw @ lp.vert.co).z - z0) / h
@@ -1155,6 +1198,7 @@ def ship(name, parts):
     for o in parts:
         if "keep_smooth" not in o.data.attributes:
             keep(o, False)
+    mark_face(parts)
     if not preview:
         for o in parts:
             o.rotation_euler = (0, 0, math.pi)
@@ -1174,6 +1218,8 @@ def ship(name, parts):
     mutation = os.environ.get("SLIME_MUTATION", "")
     if mutation:
         mutate(o, mutation, lo.z, hi.z)
+    if FACE_ATTR in o.data.attributes:
+        o.data.attributes.remove(o.data.attributes[FACE_ATTR])
     if rig:
         _slimerig.build_rig(o)
     c = (lo + hi) / 2
