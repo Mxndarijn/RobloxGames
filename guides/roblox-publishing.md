@@ -27,10 +27,16 @@ Then the **Studio gate** (visual/client gate in the release process): screenshot
 
 Before publishing, write down what is live now:
 
+The Assets API tells you which place version is published: the live one has `"published": true`.
+
 ```sh
-python3 /workspace/roblox/live-testing/ci/run.py --out /tmp/live-before.json   # no --version = latest published
-jq .placeVersion /tmp/live-before.json
+printf 'x-api-key: %s\n' "$ROBLOX_OPEN_CLOUD_API_KEY" | curl -sS -H @- \
+  "https://apis.roblox.com/assets/v1/assets/$PLACE_ID/versions?maxPageSize=10" | jq '.assetVersions[] | {path, published}'
 ```
+
+A Luau Execution task without `--version` runs the **latest version of any kind**, Saved included (seen 2026-11-06),
+so its `placeVersion` is not proof of what is live. Uploading a file whose game is identical to the latest version
+returns that version's number (Saved and Published alike); a Published upload then marks that version published.
 
 Note it in the PR and `CHANGELOG.md` as "previous live: vP, file gate-out/steal-a-slime-<old sha>.rbxl".
 
