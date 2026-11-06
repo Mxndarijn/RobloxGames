@@ -112,7 +112,7 @@
         "$properties": {
           "BaseMaterial": "Grass",
           "ColorMap": "rbxassetid://107810237099859",
-          "StudsPerTile": 20
+          "StudsPerTile": 60
         }
       },
       "SlimeGround": {

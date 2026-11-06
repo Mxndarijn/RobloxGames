@@ -27,7 +27,9 @@
 <body>
 <main>
   <h1>Terrain from above: fix options</h1>
-  <p class="lead">Steal a Slime. The grass and hills around the map look broken from high up (Merijn, store video end shot). Pick one option; nothing is built yet.</p>
+  <p class="lead">Steal a Slime. The grass and hills around the map look broken from high up (Merijn, store video end shot). Merijn picked option C.</p>
+
+  <div class="card"><b>Decided:</b> option C, all three fixes (Merijn, 2026-11-06).</div>
 
   <h2>What's wrong</h2>
   <div class="card">
@@ -70,6 +72,12 @@
       <li><b>C:</b> also <code>BorderTerrain.COLORS.LeafyGrass</code> lifted towards Grass (the stills used 138, 188, 100).</li>
     </ul>
     <p>The stills were made by changing these live in a hidden Studio test. The real fix is checked again in Studio, from above and at eye level, before a PR.</p>
+  </div>
+
+  <h2>Built (real game build, hidden Studio)</h2>
+  <div class="card grid">
+    <figure><img src="top-built.jpg" alt="Whole map from above with option C built into the game"><figcaption>From above</figcaption></figure>
+    <figure><img src="eye-built.jpg" alt="Lane by the plaza at eye level with option C built"><figcaption>Eye level, unchanged</figcaption></figure>
   </div>
 
   <h2>Not checked</h2>
