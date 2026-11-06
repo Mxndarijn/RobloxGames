@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terrain From Above</title>
+<style>
+  :root { --bg: #f4faf8; --card: #fff; --ink: #14302a; --muted: #4d6b64; --line: #d4e6e0; --accent: #12a57f; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #0f1a18; --card: #16241f; --ink: #e3f2ed; --muted: #9bb8b0; --line: #26413a; --accent: #3fd1a6; }
+  }
+  :root[data-theme="dark"] { --bg: #0f1a18; --card: #16241f; --ink: #e3f2ed; --muted: #9bb8b0; --line: #26413a; --accent: #3fd1a6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 20px; margin: 32px 0 12px; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  figure { margin: 0; } figcaption { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  img { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+  .pick { display: inline-block; font-weight: 700; color: var(--accent); }
+  ul { padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Terrain from above: fix options</h1>
+  <p class="lead">Steal a Slime. The grass and hills around the map look broken from high up (Merijn, store video end shot). Pick one option; nothing is built yet.</p>
+
+  <h2>What's wrong</h2>
+  <div class="card">
+    <figure><img src="reported.jpg" alt="Overhead view of the map: wavy streaks in the grass, purple-grey rock patches and hard dark blotches"><figcaption>Reported: the end shot of the store video, draft 3.</figcaption></figure>
+    <ul>
+      <li><b>Wavy streaks.</b> The grass texture (<code>SlimeGrass</code> in MaterialService) repeats every 20 studs. Seen from above, the repeats line up into ripple bands.</li>
+      <li><b>Purple-grey patches.</b> Steep bits of the low hills turn into bare Rock and Slate, so small rock scabs dot the green.</li>
+      <li><b>Hard dark blotches.</b> The darker grass patches (LeafyGrass) are much darker than the grass, with dithered edges.</li>
+    </ul>
+    <p>Players see this too: from the top of a tall jar base, a slide or the obby. At eye level the grass looks fine, and none of the options below change it there.</p>
+  </div>
+
+  <h2>Options (same camera, about 200 studs up)</h2>
+  <div class="card grid">
+    <figure><img src="crop-base.jpg" alt="Now: wavy grass, rock patches, dark blotches"><figcaption><b>Now.</b></figcaption></figure>
+    <figure><img src="crop-A.jpg" alt="Option A: softer grass streaks, rock patches still there"><figcaption><span class="pick">A</span> Grass texture 3× larger (repeats every 60 studs). Streaks soften; rock patches and blotches stay.</figcaption></figure>
+    <figure><img src="crop-B.jpg" alt="Option B: softer grass and no rock patches on the low hills"><figcaption><span class="pick">B</span> A, plus no bare rock on the low hills (below 45 studs); mountains keep their rock.</figcaption></figure>
+    <figure><img src="crop-C.jpg" alt="Option C: softer grass, no low rock, dark patches blended in"><figcaption><span class="pick">C</span> B, plus the dark grass patches tinted closer to the grass, so they read as a soft tone change. <b>Recommended.</b></figcaption></figure>
+  </div>
+
+  <h2>Whole view</h2>
+  <div class="card grid">
+    <figure><img src="top-base.jpg" alt="Whole map from above, now"><figcaption>Now</figcaption></figure>
+    <figure><img src="top-C.jpg" alt="Whole map from above with option C"><figcaption>Option C</figcaption></figure>
+  </div>
+
+  <h2>Eye level stays the same</h2>
+  <div class="card grid">
+    <figure><img src="eye-base.jpg" alt="Lane by the plaza at eye level, now"><figcaption>Lane by the plaza, now</figcaption></figure>
+    <figure><img src="eye-A.jpg" alt="Lane by the plaza at eye level with the larger grass texture"><figcaption>Same spot, larger grass texture (slimes moved between shots)</figcaption></figure>
+    <figure><img src="edge-base.jpg" alt="Map edge at eye level, now"><figcaption>Map edge, now</figcaption></figure>
+    <figure><img src="edge-C.jpg" alt="Map edge at eye level with option C"><figcaption>Map edge, option C</figcaption></figure>
+  </div>
+
+  <h2>What each option changes in code</h2>
+  <div class="card">
+    <ul>
+      <li><b>A:</b> <code>default.project.json</code> MaterialService <code>SlimeGrass.StudsPerTile</code> 20 → 60 (one value; the inner ground grass uses the same variant).</li>
+      <li><b>B:</b> also <code>src/visuals/shared/BorderTerrain.luau</code> <code>material()</code>: Rock/Slate only above a height floor, plus a spec.</li>
+      <li><b>C:</b> also <code>BorderTerrain.COLORS.LeafyGrass</code> lifted towards Grass (the stills used 138, 188, 100).</li>
+    </ul>
+    <p>The stills were made by changing these live in a hidden Studio test. The real fix is checked again in Studio, from above and at eye level, before a PR.</p>
+  </div>
+
+  <h2>Not checked</h2>
+  <div class="card">
+    <ul><li>Not seen on a phone.</li><li>Option B's height floor (45 studs) is a first guess; the mountains' foot may need tuning.</li></ul>
+  </div>
+</main>
+</body>
+</html>
