@@ -25,11 +25,14 @@ anyone else rebuilds them with `render.py` from re-captured frames.
 
 | Time | Shot | What happens in game | Caption |
 |---|---|---|---|
-| 0.0–3.6 | s1 hook | The player runs into a neighbour's jar base and grabs their Rainbow Celestial (a real steal through the server's `Carry.grab`), turns and runs out with it overhead. | STEAL / RARE SLIMES! |
-| 3.6–6.5 | s2 catch | By the fountain slide the player grabs a wild Mythic off the lane (real `grabWild`) and runs at the camera. | CATCH / WILD SLIMES! |
-| 6.5–10.1 | s3 rares | Orbit inside the player's base: Rainbow Celestial, Gold Secret, Divine "Goo God" (+$215K/s), Diamond Celestial, Gold Divine, with their pad labels and income. | SHINY / DIVINE SLIMES! |
+| 0.0–2.9 | s2 catch | By the fountain slide the player grabs a wild Mythic off the lane (real `grabWild`) and runs at the camera. | CATCH / WILD SLIMES! |
+| 2.9–6.5 | s1 steal | The player runs into a neighbour's jar base and grabs their Rainbow Celestial (a real steal through the server's `Carry.grab`), turns and runs out with it overhead. | STEAL / RARE SLIMES! |
+| 6.5–10.1 | s3 your base | Orbit inside the player's base: Divine, Celestial and Secret slimes with Gold, Diamond and Rainbow shines, each pad label showing its +$/s income. | BUILD / YOUR BASE! |
 | 10.1–13.7 | s4 merge | Three Mythics in the merge vat finish brewing; the camera pushes in on the vat and the pad beside it as the brewed Secret appears (real `VatCollect`). | MERGE 3 / = RARER! |
 | 13.7–17.9 | s6 end | A slow rise over two jar bases near the fountain, mountains soft in the background. | STEAL / A SLIME! (title, centre) |
+
+Order follows the game's story (Merijn, draft 4): catch, steal, build your base, merge, end title. The steal is no
+longer in the first 3 s (it starts at 2.9 s); no PvP slap shot exists yet.
 
 ### Caption style
 

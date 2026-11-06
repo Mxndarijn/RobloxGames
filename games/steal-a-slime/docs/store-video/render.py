@@ -30,9 +30,9 @@ EXTRUDE = (8, 26, 23)
 
 # shot, first frame, last frame, caption parts [(text, gradient)], caption kind, sparkle spots (x, y, size) in 1080p
 SHOTS = [
-    ("s1", 0, 107, [("STEAL", YELLOW), ("RARE SLIMES!", MINT)], "caption", [(1180, 300, 34), (1360, 230, 24), (1240, 470, 20)]),
     ("s2", 8, 95, [("CATCH", YELLOW), ("WILD SLIMES!", MINT)], "caption", [(820, 250, 26), (1120, 320, 20)]),
-    ("s3", 0, 107, [("SHINY", YELLOW), ("DIVINE SLIMES!", MINT)], "caption", [(420, 260, 30), (1500, 200, 26), (980, 160, 20)]),
+    ("s1", 0, 107, [("STEAL", YELLOW), ("RARE SLIMES!", MINT)], "caption", [(1180, 300, 34), (1360, 230, 24), (1240, 470, 20)]),
+    ("s3", 0, 107, [("BUILD", YELLOW), ("YOUR BASE!", MINT)], "caption", [(420, 260, 30), (1500, 200, 26), (980, 160, 20)]),
     ("s4", 0, 107, [("MERGE 3", YELLOW), ("= RARER!", MINT)], "caption", [(880, 220, 28), (1080, 300, 22)]),
     ("s6", 0, 125, [("STEAL", YELLOW), ("A SLIME!", MINT)], "title", [(620, 330, 30), (1330, 300, 26), (1450, 520, 20)]),
 ]
