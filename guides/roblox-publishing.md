@@ -27,7 +27,7 @@ Then the **Studio gate** (visual/client gate in the release process): screenshot
 
 Before publishing, write down what is live now:
 
-The Assets API tells you which place version is published: the live one has `"published": true`.
+The Assets API tells you which place versions were published: they have `"published": true`, and the flag stays on older ones, so the live version is the **newest** one with it (seen 2026-11-07: v4 and v5 both true after v5 went live).
 
 ```sh
 printf 'x-api-key: %s\n' "$ROBLOX_OPEN_CLOUD_API_KEY" | curl -sS -H @- \

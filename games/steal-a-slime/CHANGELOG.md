@@ -2,6 +2,26 @@
 
 Newest first. Each entry: the live version, the commit it was built from, what was checked, and what to roll back to.
 
+## Place version 5: broke-player top-up and the snow colour fix (2026-11-07)
+
+- **Experience:** universe 10774962286, place 105898249206841 (Forgeborn, still private).
+- **Built from:** `main` 3b3259d88adbd4c2d307abfb2074f0f27b6f2f5a, clean `rojo build default.project.json` (no
+  `ServerStorage.CloudTests`, no `DataStoreMode` attribute). File sha256 starts `0e657fb407e43f6d`.
+- **In it:** a broke player's cash is topped up to 50, with the toast "Here's 50 cash to get you going!" (#738); every
+  snowed floor part gets its colour back after the melt (#740); the asset check also covers the place's own ids (#739).
+- **Published by:** a bot, on Merijn's OK ("Yes, publish tonight"), before the ad campaign of 7 November 05:30.
+- **Version number:** Saved upload returned 5; the Published upload of the same file returned 5 and the Assets API shows
+  v5 `published: true`.
+- **Checks before publishing (Saved v5, Memory store):** `lune run scripts/test-parallel` 5290 passed, `test-flags` on
+  5287 / off 5148 passed, selene, stylua, typecheck, `check-place` clean; `tools/assets/check_assets.py --grant`:
+  audio 88/88, packages 99/99, meshes 772/772, images 91/91, materials 3/3 (the 3 material ids granted as always);
+  cloud `smoke.luau` PASS (mesh slimes), `live.luau` ok, `terrain_burial.luau` ok (terrain ready, 1018 grounded parts).
+- **Checks after publishing (live v5):** `smoke.luau` PASS, `live.luau` ok, `terrain_burial.luau` ok.
+- **Not checked:** no Studio visual/client gate, no phone, no human play-test, audio not heard; the top-up toast and the
+  snow melt were not seen on a client. The cloud stand-in session was not re-run (known harness drift, see v4).
+- **Previous live:** version 4 (`main` af74a626, file sha256 `c8ab6103919bbffe`). Roll back by restoring v4 in
+  Creator Hub (the place's Version History), or re-upload that build as Published.
+
 ## Place version 4: first live version in the new experience (2026-11-06)
 
 - **Experience:** universe 10774962286, place 105898249206841 (owned by Forgeborn, still private).
