@@ -107,12 +107,7 @@ def caption_image(parts, font_path, size, tilt):
     return out.rotate(tilt, resample=Image.BICUBIC, expand=True)
 
 
-def smooth01(u):
-    u = max(0.0, min(1.0, u))
-    return u * u * (3 - 2 * u)
-
-
-def pop_scale(t, dur):
+def pop_scale(t, dur, stay=False):
     """Scale of a caption t seconds into its shot: 0 -> overshoot -> 1, and a quick shrink before the cut."""
     u = t - CAPTION_DELAY
     if u < 0:
@@ -124,7 +119,7 @@ def pop_scale(t, dur):
         c3 = c1 + 1
         return 1 + c3 * (p - 1) ** 3 + c1 * (p - 1) ** 2
     left = dur - t
-    if left < OUT:
+    if left < OUT and not stay:  # the end title stays up to the last frame
         return max(0.0, left / OUT) ** 0.7
     return 1.0
 
@@ -189,22 +184,6 @@ def sparkle(size):
     return out
 
 
-_EDGE_MASK = None
-
-
-def edge_soften(frame, amount):
-    """Tilt-shift style: blurs the frame edges (the far terrain on the wide end shot), keeps the centre sharp."""
-    global _EDGE_MASK
-    if amount <= 0.01:
-        return frame
-    if _EDGE_MASK is None:
-        m = Image.new("L", (W, H), 0)
-        ImageDraw.Draw(m).ellipse((-W * 0.12, H * 0.12, W * 1.12, H * 1.35), fill=255)
-        _EDGE_MASK = m.filter(ImageFilter.GaussianBlur(H * 0.08))
-    blurred = frame.filter(ImageFilter.GaussianBlur(6 * amount))
-    return Image.composite(frame, blurred, _EDGE_MASK)
-
-
 def load_frame(path, sharpen=True):
     im = Image.open(path).convert("RGB")
     scale = max(W / im.width, H / im.height)
@@ -255,10 +234,7 @@ def main():
                     n += 1
                     continue
                 t = (k - first) / FPS
-                wide = name == "s6"  # the wide end shot: no sharpening, soft edges as it rises over the map
-                frame = load_frame(os.path.join(a.clips, name, "f%04d.jpg" % k), sharpen=not wide)
-                if wide:
-                    frame = edge_soften(frame, smooth01((t - 1.0) / 2.0))
+                frame = load_frame(os.path.join(a.clips, name, "f%04d.jpg" % k))
                 if variant == "deco":
                     for i, (sx, sy, ss) in enumerate(stars):
                         tw = 0.55 + 0.45 * math.sin(t * 5.5 + i * 2.1)
@@ -269,7 +245,7 @@ def main():
                         frame.alpha_composite(st, (sx - st.width // 2, sy - st.height // 2))
                     frame.alpha_composite(border)
                 if variant != "clean":
-                    sc = pop_scale(t, dur)
+                    sc = pop_scale(t, dur, stay=kind == "title")
                     if sc > 0.01:
                         cw, ch = max(1, round(cap.width * sc)), max(1, round(cap.height * sc))
                         im = cap.resize((cw, ch), Image.BICUBIC)
