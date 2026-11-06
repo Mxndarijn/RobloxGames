@@ -15,6 +15,7 @@ Every AI agent (Claude Code, Codex, any other) reads this file at the start of e
 9. **One place for every value.** Colours in the palette file, sizes in Layout, tunables in Config, world sizes in WorldLayout.
 10. **Common systems live in `shared/luau`, not in a game.** Inventory and hotbar, saves, migrations, rate limiting, formatting, seeded random, analytics, settings. Use or extend the shared module first; move anything game-agnostic you build in a game to shared ([its rules](shared/luau/CLAUDE.md)).
 11. **No secrets in output.** The Open Cloud key is never printed or committed.
+12. **Every game ships translated.** All player-facing text goes through the game's localization layer (shared `Localize`): stable keys, whole sentences with named parameters, never glued fragments. Roblox automatic translation is on, and the layout gate also runs a long-text pseudo-language.
 
 ## What keeps going wrong (check before you hand in)
 
