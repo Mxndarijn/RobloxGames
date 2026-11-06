@@ -8,6 +8,11 @@
 	floor part (the sand yard, the lawns, the boardwalk); Sand voxels grow none. Terrain heights and the rest of the
 	ground are not touched, and the grass outside the border band keeps its tufts.
 
+	The top voxel layer under the floor (y -4..0) is then cleared, so that terrain renders ~2 studs below the floor parts.
+	The floor discs lie only a few hundredths of a stud above y = 0: from far away (the end of a camera pull-back, the top
+	of a tall base) the depth test could not tell them apart from terrain at y = 0, and the sand under the grass border
+	band showed through. Nobody can see that terrain, and the invisible Map.Ground part still holds everyone up.
+
 	Idempotent: the Terrain attribute FloorTerrain marks it done. A no-op when the ground was never written.
 ]]
 
@@ -30,6 +35,8 @@ local function place()
 	for _, row in FloorLayout.terrainRows() do
 		local region = Region3.new(Vector3.new(row.x0, -8, row.z0), Vector3.new(row.x1, 4, row.z0 + 4))
 		terrain:ReplaceMaterial(region, 4, Enum.Material.Grass, Enum.Material.Sand)
+		local top = Region3.new(Vector3.new(row.x0, -4, row.z0), Vector3.new(row.x1, 0, row.z0 + 4))
+		terrain:ReplaceMaterial(top, 4, Enum.Material.Sand, Enum.Material.Air)
 	end
 	terrain:SetAttribute(DONE_ATTRIBUTE, true)
 end
