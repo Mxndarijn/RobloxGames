@@ -1,11 +1,11 @@
 # Steal a Slime: play-test checklist (Merijn)
 
-**Build:** place version **10** (published 2026-10-15 00:28 CEST via Open Cloud, `versionType=Published`, commit `f7f7f38`), universe 10770917350, place 135787188192378. v9 was the void fix.
+**Build:** universe 10774962286, place 105898249206841 (owned by the group Forgeborn). It has no Published version yet: Saved version 2 (2026-11-06) waits for Merijn's OK. Before the 2026-11-06 move the game was place version 10 on the old experience (universe 10770917350, place 135787188192378).
 **Data:** real DataStores (`StealASlime_v3` + the leaderboard OrderedDataStores, all `_v3` since the 2026-10-30 wipe). The built place has no `DataStoreMode = "Memory"` attribute, so progress persists between sessions.
 
 ## How to join
 
-1. Open https://www.roblox.com/games/135787188192378 and press **Play**. (If the page says it's private, set the experience to Public or add testers under Creator Hub → the experience → Access.)
+1. Open https://www.roblox.com/games/105898249206841 and press **Play**. (If the page says it's private, set the experience to Public or add testers under Creator Hub → the experience → Access.)
 2. For steal tests you need **two accounts** (second device, or a friend). Both join the same server: the second player uses **Join** from the first player's profile, or simply join while the server is quiet (max 8 per server).
 3. You spawn on your own plot's base. HUD buttons: **Lock**, **+Pad**, **Daily**; nav tabs **Plot / Merge / Rebirth / Dex / Top**. While carrying: **Drop** and **SLAP!** buttons.
 

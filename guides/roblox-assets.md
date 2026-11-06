@@ -25,9 +25,8 @@ print(r.json()["authorizedUserId"], r.json()["scopes"])   # user-owned keys retu
 # confirm who owns the universe
 requests.get("https://apis.roblox.com/cloud/v2/universes/<UNIVERSE>", headers={"x-api-key": key}).json()["user"]  # or ["group"]
 ```
-- Current key: user-owned, `authorizedUserId` **1040646178** (Mxndarijn).
-- Test universe 10770917350 returns `user: users/1040646178`, so use `creator.userId`.
-- For a group-owned game, use a group key and `creator.groupId`.
+- Steal a Slime (universe 10774962286) is owned by the group **Forgeborn** (541809289) since 2026-11-06, and the key is a Forgeborn group key. New uploads for it use `creator.groupId` 541809289.
+- Older assets were uploaded by the user Mxndarijn (1040646178). A group-owned game can't load user-owned audio or `InsertService:LoadAsset` packages until the owner grants the universe use of them; meshes and images load anyway. Grant with `PATCH https://apis.roblox.com/asset-permissions-api/v1/assets/permissions`, body `{"subjectType":"Universe","subjectId":"10774962286","action":"Use","requests":[{"assetId":N,"grantToDependencies":true}]}` (this key returned 200 for all 123 grants on 2026-11-06). The asset id does not change. `games/steal-a-slime/tools/assets/` checks and grants every id the game uses.
 - The public games API showed "unknown creator" because the universe is private. The Open Cloud v2 universe endpoint shows the owner.
 
 ## 2. Upload and poll

@@ -1,5 +1,7 @@
 # Release pipeline (Steal a Slime)
 
+> **Moved on 2026-11-06.** The game now lives in universe **10774962286**, place **105898249206841**, owned by the group Forgeborn. Roblox had blocked the old experience (universe 10770917350, place 135787188192378) for unknown reasons: its content rating questionnaire returned 403, its Thumbnails page never loaded and Studio could not open it ("Failed to fetch place info"), even after moving it to Forgeborn. The old one was private with 68 visits, so no players, saves or purchases were lost. Products, passes and store icons were recreated in the new universe (`tools/monetization`, `docs/shop-icons`), and user-owned audio and slime packages were granted to it (`/guides/roblox-assets.md`). Old results under `tools/livetest/results/` still name the old ids.
+
 ```
 merge to main -> cloud tests (box) -> Studio check (Phoenix PC) -> gate -> clean build -> Saved -> smoke -> Published
 ```
@@ -89,7 +91,7 @@ Every `publish.sh` run that evaluates the gate refreshes the marker. `NEEDS_REVI
 With `AUTO_PUBLISH=1`, after the gate:
 
 1. `rojo build default.project.json` of the checkout at X (normal project, no specs). Asserts `ServerStorage.CloudTests` is absent (checked in the built `.rbxlx` and the project).
-2. Upload as `versionType=Saved` to universe 10770917350 / place 135787188192378 (409/429/5xx backoff 1, 2, 4, 8 min).
+2. Upload as `versionType=Saved` to universe 10774962286 / place 105898249206841 (409/429/5xx backoff 1, 2, 4, 8 min).
 3. `tools/livetest/cloud/run.sh smoke.luau <saved_version>` (Luau Execution on that exact version). If it fails: `publish.json` `status:"smoke-failed"`, exit 5, **not published**.
 3b. Terrain-burial probe (`tools/livetest/cloud/terrain_burial.luau`) on the same saved version. A conclusive FAIL (`terrain_ready` and `grounded_parts>0`) writes `publish.json` `status:"burial-failed"` (summary + worst 10), exit 6, **not published**, terminal like `smoke-failed`. Errors, terrain not ready or no grounded parts only log a `WARN`. `BURIAL_GATE=off` skips this and 4b.
 4. Upload the same clean file as `versionType=Published`, log the version.
