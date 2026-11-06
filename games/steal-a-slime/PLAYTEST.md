@@ -1,6 +1,6 @@
 # Steal a Slime: play-test checklist (Merijn)
 
-**Build:** universe 10774962286, place 105898249206841 (owned by the group Forgeborn). It has no Published version yet: Saved version 2 (2026-11-06) waits for Merijn's OK. Before the 2026-11-06 move the game was place version 10 on the old experience (universe 10770917350, place 135787188192378).
+**Build:** universe 10774962286, place 105898249206841 (owned by the group Forgeborn). It has no Published version yet: Saved version 3 (2026-11-06) waits for Merijn's OK. Before the 2026-11-06 move the game was place version 10 on the old experience (universe 10770917350, place 135787188192378).
 **Data:** real DataStores (`StealASlime_v3` + the leaderboard OrderedDataStores, all `_v3` since the 2026-10-30 wipe). The built place has no `DataStoreMode = "Memory"` attribute, so progress persists between sessions.
 
 ## How to join

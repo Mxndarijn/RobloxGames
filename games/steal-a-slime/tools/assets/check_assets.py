@@ -91,7 +91,11 @@ def run_probe(H, lists, kind, version):
     body = open(os.path.join(HERE, "probe.luau"), encoding="utf-8").read()
     script = f"--!nocheck\nMODE_FILTER = {json.dumps(kind)}\nLISTS = game:GetService('HttpService'):JSONDecode([==[{json.dumps(lists)}]==])\n" + body
     base = f"{API}/cloud/v2/universes/{UNIVERSE}/places/{PLACE}" + (f"/versions/{version}" if version else "")
-    r = requests.post(base + "/luau-execution-session-tasks", headers=H, json={"script": script, "timeout": "300s"}, timeout=60)
+    for wait in (0, 15, 30, 60, 120):
+        time.sleep(wait)
+        r = requests.post(base + "/luau-execution-session-tasks", headers=H, json={"script": script, "timeout": "300s"}, timeout=60)
+        if r.status_code != 429:
+            break
     r.raise_for_status()
     path = r.json()["path"]
     for _ in range(140):
