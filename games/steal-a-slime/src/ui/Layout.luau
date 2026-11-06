@@ -202,8 +202,12 @@ local NARROW = "ilIjtfr!.,:;'|/ ()[]"
 local WIDE = "mwMW%@"
 
 local function charWidth(codepoint: number): number
-	if codepoint >= 0x2000 then
+	if (codepoint >= 0x2E80 and codepoint <= 0x9FFF) or (codepoint >= 0xAC00 and codepoint <= 0xD7AF) then
+		return 1 -- CJK and Hangul: full width
+	elseif codepoint >= 0x2000 then
 		return 1.15 -- emoji / symbols
+	elseif codepoint >= 0x80 then
+		return 0.62 -- accented Latin, Cyrillic, Greek, Thai: about a capital-less average
 	end
 	local ch = string.char(codepoint)
 	if string.find(NARROW, ch, 1, true) then

@@ -22,7 +22,8 @@ local ShopDisplay = if Shared
 	else require("../visuals/shared/ShopDisplay")
 local Purchases = if script then require(script.Parent.Purchases) else require("./Purchases")
 
-export type Plan = { display: number, label: string?, gift: boolean? }
+-- `labelText`: the label as a Localize message (each client's banner draws it in its own language).
+export type Plan = { display: number, label: string?, labelText: any?, gift: boolean? }
 
 export type Options = {
 	clock: () -> number, -- the server clock the clients play from (workspace:GetServerTimeNow())
@@ -85,6 +86,7 @@ function ClawShowService.plan(key: string, isPass: boolean, featured: { string }
 	return {
 		display = displayOf(seat, featured),
 		label = if NAMED[grant.kind] then Purchases.itemName(itemKey) else nil,
+		labelText = if NAMED[grant.kind] then Purchases.itemMessage(itemKey) else nil,
 		gift = if gift then true else nil,
 	}
 end
@@ -102,7 +104,14 @@ function ClawShowService.new(options: Options): Service
 		if not startAt then
 			return
 		end
-		options.fire({ startAt = startAt, display = plan.display, buyer = buyer, label = plan.label, gift = plan.gift })
+		options.fire({
+			startAt = startAt,
+			display = plan.display,
+			buyer = buyer,
+			label = plan.label,
+			labelText = plan.labelText,
+			gift = plan.gift,
+		})
 	end
 	return self
 end

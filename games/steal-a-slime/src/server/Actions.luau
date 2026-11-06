@@ -325,7 +325,8 @@ local function daily(world: World, session: Session, now: number, ctx: Context):
 		return fail(value :: string)
 	end
 	local reward = value :: DailyRewards.Reward
-	local text = if reward.kind == "cash" then `+{reward.label}` else `{reward.label}!`
+	local label = DailyRewards.english(reward.label)
+	local text = if reward.kind == "cash" then `+{label}` else `{label}!`
 	World.notify(world, session.userId, `Day {reward.day}: {text}`, "good", "DailyReward", "Daily")
 	return OK
 end
@@ -622,7 +623,7 @@ local function strictGate(session: Session, action: string, ctx: Context): Resul
 	end
 	if code == "NotOpen" then
 		local name = (Shops.shop(shopId) :: Shops.Shop).name
-		return denied(ctx, session.userId, shopId, nil, code, `open the {string.gsub(name, " Shop$", "")} Shop first`)
+		return denied(ctx, session.userId, shopId, nil, code, `open the {name} first`)
 	end
 	if code then
 		return denied(ctx, session.userId, shopId, nil, code)

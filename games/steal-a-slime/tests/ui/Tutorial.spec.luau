@@ -24,10 +24,10 @@ describe("Tutorial.STEPS", function()
 	it("every step has an icon, a title, a done line and a hint", function()
 		for _, step in Tutorial.STEPS do
 			expect(#step.icon > 0).toBe(true)
-			expect(#step.title > 0).toBe(true)
-			expect(#step.done > 0).toBe(true)
-			expect(#step.body > 0).toBe(true)
-			expect(step.done ~= step.title).toBe(true)
+			expect(#Tutorial.title(step) > 0).toBe(true)
+			expect(#Tutorial.done(step) > 0).toBe(true)
+			expect(#Tutorial.body(step) > 0).toBe(true)
+			expect(Tutorial.done(step) ~= Tutorial.title(step)).toBe(true)
 		end
 	end)
 	it("find knows every step and nothing else", function()
@@ -51,7 +51,7 @@ describe("Tutorial.view / viewById", function()
 		local total = #Tutorial.STEPS
 		local view = Tutorial.view(1) :: Tutorial.StepView
 		expect(view.id).toBe(Tutorial.STEPS[1].id)
-		expect(view.title).toBe(Tutorial.STEPS[1].title)
+		expect(view.title).toBe(Tutorial.title(Tutorial.STEPS[1]))
 		expect(view.icon).toBe(Tutorial.STEPS[1].icon)
 		expect(view.counter).toBe(`1/{total}`)
 		local last = Tutorial.view(total) :: Tutorial.StepView
@@ -75,7 +75,7 @@ describe("Tutorial.fromState", function()
 	it("reads the step id the server sends", function()
 		local view = Tutorial.fromState({ tutorialStepId = "Merge" }) :: Tutorial.StepView
 		expect(view.id).toBe("Merge")
-		expect(view.title).toBe((Tutorial.find("Merge") :: Tutorial.Step).title)
+		expect(view.title).toBe(Tutorial.title(Tutorial.find("Merge") :: Tutorial.Step))
 	end)
 	it("shows nothing once finished, for an unknown id or a numeric step alone", function()
 		expect(Tutorial.fromState({})).toBeNil()
@@ -91,7 +91,7 @@ end)
 
 describe("Tutorial device wording", function()
 	it("keyboard is the default and names E", function()
-		expect(body("Grab")).toBe((Tutorial.find("Grab") :: Tutorial.Step).body)
+		expect(body("Grab")).toBe(Tutorial.body(Tutorial.find("Grab") :: Tutorial.Step))
 		expect(body("Grab", "keyboard")).toBe(body("Grab"))
 		expect(has(body("Grab", "keyboard"), "press E")).toBe(true)
 		expect(has(body("Guide", "keyboard"), "Press E")).toBe(true)
@@ -106,10 +106,10 @@ describe("Tutorial device wording", function()
 	it("no key name leaks into another device and no placeholder is left", function()
 		for _, step in Tutorial.STEPS do
 			-- "E" as a word (the key), not the E of "Earners"
-			expect(string.find(step.bodies.touch, "%f[%w]E%f[%W]")).toBeNil()
-			expect(string.find(step.bodies.gamepad, "%f[%w]E%f[%W]")).toBeNil()
+			expect(string.find(Tutorial.body(step, "touch"), "%f[%w]E%f[%W]")).toBeNil()
+			expect(string.find(Tutorial.body(step, "gamepad"), "%f[%w]E%f[%W]")).toBeNil()
 			for _, kind in Tutorial.KINDS do
-				expect(string.find(step.bodies[kind], "{", 1, true)).toBeNil()
+				expect(string.find(Tutorial.body(step, kind), "{", 1, true)).toBeNil()
 			end
 		end
 	end)

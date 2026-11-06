@@ -6,5 +6,5 @@ return {
 		source = "{shine} {rarity} {name}",
 		example = { shine = "Gold", rarity = "Rare", name = "Bubbles" },
 	},
-	["common.egg_name"] = { source = "{kind} Mystery Egg", example = { kind = "Lava" } },
+	["common.egg_name"] = { source = "{kind} Mystery Egg", example = { kind = "Speckled" } },
 }

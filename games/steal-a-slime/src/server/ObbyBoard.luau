@@ -31,6 +31,7 @@ local PeriodBoard = if Lib
 	then require(Lib.ranking.PeriodBoard)
 	else require("../../../../shared/luau/src/ranking/PeriodBoard")
 local World = if script then require(script.Parent.World) else require("./World")
+local WorldText = if script then require(script.Parent.WorldText) else require("./WorldText")
 
 local OBBY = Config.OBBY
 local BOARD = OBBY.BOARD
@@ -60,13 +61,14 @@ export type State = {
 }
 
 export type BoardRow = { rank: string, name: string, value: string }
-export type BoardView = { sub: string, rows: { BoardRow }, footer: string? }
+-- `subText` / `footerText`: the course line and the footer as Localize messages; `sub` / `footer` their English.
+export type BoardView = { sub: string, rows: { BoardRow }, footer: string?, subText: any, footerText: any? }
 
 local ObbyBoard = {}
 
 ObbyBoard.BASE = "Obby"
-ObbyBoard.EMPTY_TEXT = "No times yet"
-ObbyBoard.OFFLINE_TEXT = "Board offline"
+ObbyBoard.EMPTY_TEXT = "No times yet" -- the English of world.obby.no_times (ObbyBoardView draws that key)
+ObbyBoard.OFFLINE_TEXT = "Board offline" -- the English of world.obby.board_offline
 
 function ObbyBoard.new(mode: Mode, nameOf: (userId: number) -> string): State
 	return {
@@ -301,6 +303,11 @@ function ObbyBoard.courseLabel(slot: number): string
 	return ObbyRules.courseLabel(ObbyRules.courseNumber(slot))
 end
 
+-- ObbyBoard.courseLabel as a Localize message.
+function ObbyBoard.courseMessage(slot: number): any
+	return ObbyRules.courseMessage(ObbyRules.courseNumber(slot))
+end
+
 --[[
 	The world board's text at `now`: the course line with the countdown, the top OBBY.BOARD.SIZE rows (this server's
 	players shown or hidden by their setting now), and the footer (the last course's #1, or "Board offline").
@@ -308,7 +315,10 @@ end
 function ObbyBoard.boardView(state: State, world: World, now: number): BoardView
 	local course = state.course
 	local slot = if course then course.slot else ObbyCourse.slot(now)
-	local sub = `{ObbyBoard.courseLabel(slot)} · new course in {clock(ObbyCourse.slotStart(slot + 1) - now)}`
+	local sub = WorldText.msg("world.obby.board_course", {
+		course = ObbyBoard.courseMessage(slot),
+		time = clock(ObbyCourse.slotStart(slot + 1) - now),
+	})
 	local rows: { BoardRow } = {}
 	for _, row in state.rows do
 		if #rows >= BOARD.SIZE then
@@ -322,13 +332,22 @@ function ObbyBoard.boardView(state: State, world: World, now: number): BoardView
 	if #rows == 0 then
 		table.insert(rows, { rank = "", name = ObbyBoard.EMPTY_TEXT, value = "" })
 	end
-	local footer: string? = nil
+	local footer: any = nil
 	if state.status == "Error" then
-		footer = ObbyBoard.OFFLINE_TEXT
+		footer = WorldText.msg("world.obby.board_offline")
 	elseif state.last then
-		footer = `Last course: {state.last.name} {ObbyRules.timeText(state.last.score)}`
+		footer = WorldText.msg("world.obby.last_course", {
+			name = WorldText.boardName(state.last.name),
+			time = ObbyRules.timeText(state.last.score),
+		})
 	end
-	return { sub = sub, rows = rows, footer = footer }
+	return {
+		sub = WorldText.english(sub),
+		rows = rows,
+		footer = if footer then WorldText.english(footer) else nil,
+		subText = sub,
+		footerText = footer,
+	}
 end
 
 return table.freeze(ObbyBoard)

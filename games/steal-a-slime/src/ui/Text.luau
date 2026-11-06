@@ -9,7 +9,8 @@
 	                                                            -- {count} is filled with n
 	  Text.data("upgrade", def.id, "name", def.name)            -- a Config name ("data.<kind>.<id>.<field>")
 	  Text.slime(slime)                                         -- "Gold Rare Bubbles" in the player's order
-	  Text.font(Theme.Font)                                     -- a display font that has the language's letters
+	  Text.displayFont()                                        -- the FontFace that replaces Fredoka One for
+	                                                            -- this language (Widgets.create applies it)
 
 	Translate when the text is drawn, never at require time: the translator is fetched once the client runs
 	(init.client warms it while the loading screen is up), so a module constant would stay English.
@@ -20,30 +21,54 @@
 	UiHarness. Servers and plain Lune get English.
 ]]
 
-local Lib = if script then (game:GetService("ReplicatedStorage") :: any):WaitForChild("Lib") else nil
-local Shared = if script then (game:GetService("ReplicatedStorage") :: any):WaitForChild("Shared") else nil
-local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
-local LocaleFonts = if Lib
-	then require(Lib.locale.LocaleFonts)
+local Localize = if script
+	then require(
+		game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("locale"):WaitForChild("Localize")
+	)
+	else require("../../../../shared/luau/src/locale/Localize")
+local LocaleFonts = if script
+	then require(
+		game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("locale"):WaitForChild("LocaleFonts")
+	)
 	else require("../../../../shared/luau/src/locale/LocaleFonts")
-local RobloxTranslator = if Lib
-	then require(Lib.locale.RobloxTranslator)
+local RobloxTranslator = if script
+	then require(
+		game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("locale"):WaitForChild("RobloxTranslator")
+	)
 	else require("../../../../shared/luau/src/locale/RobloxTranslator")
-local Strings = if Shared then require(Shared.Strings) else require("../shared/Strings")
-local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
-local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local Strings = if script
+	then require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Strings"))
+	else require("../shared/Strings")
+local EggKind = if script
+	then require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("EggKind"))
+	else require("../shared/EggKind")
+local Genome = if script
+	then require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Genome"))
+	else require("../shared/Genome")
 
 local Text = {}
 
 Text.catalog = Strings.catalog
 
--- Display fonts per writing system, for a locale whose letters Fredoka One does not draw. Nil = keep the
--- game's font (Roblox draws CJK, Thai and Korean in its own fallback font either way).
+-- The display font (Fredoka One) draws only Western European letters; Roblox draws any other letter in a thin
+-- fallback font mid-word. For those languages titles and buttons use Nunito Heavy (checked in Studio: it draws
+-- Cyrillic and extended Latin itself, and Roblox's CJK, Hangul and Thai fallback matches its weight).
+local NUNITO_HEAVY: any = if typeof(Font) == "table" or typeof(Font) == "userdata"
+	then Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Heavy)
+	else nil -- plain Lune: no fonts
 Text.FONTS = table.freeze({
-	cyrillic = Enum.Font.Nunito,
-	greek = Enum.Font.Nunito,
-	vietnamese = Enum.Font.Nunito,
-} :: { [string]: any })
+	latinExt = NUNITO_HEAVY,
+	vietnamese = NUNITO_HEAVY,
+	cyrillic = NUNITO_HEAVY,
+	greek = NUNITO_HEAVY,
+	japanese = NUNITO_HEAVY,
+	korean = NUNITO_HEAVY,
+	chinese = NUNITO_HEAVY,
+	thai = NUNITO_HEAVY,
+	arabic = NUNITO_HEAVY,
+	hebrew = NUNITO_HEAVY,
+	devanagari = NUNITO_HEAVY,
+} :: { [string]: Font })
 
 type Translator = RobloxTranslator.Translator
 
@@ -51,6 +76,7 @@ local englishTranslator = RobloxTranslator.english(Strings.catalog)
 local pseudo = RobloxTranslator.pseudo(Strings.catalog)
 local current: Translator? = nil
 local currentFor: string? = nil
+local building: string? = nil -- the translator being fetched right now
 
 local function services(): (any, any)
 	if not script then
@@ -65,13 +91,21 @@ local function services(): (any, any)
 	return if ok then loc else nil, if okRun then run else nil
 end
 
+-- LocalizationService.RobloxLocaleId, or nil where it can't be read (a bare DataModel under Lune).
+local function robloxLocaleId(loc: any): string?
+	local ok, id = pcall(function()
+		return loc.RobloxLocaleId
+	end)
+	return if ok and type(id) == "string" and id ~= "" then id else nil
+end
+
 -- The forced locale: Studio's TestLocale attribute, or "pseudo" from the UiHarness. Nil = the player's own.
 local function forced(): string?
 	local loc, run = services()
 	if loc == nil then
 		return nil
 	end
-	local robloxLocale = (loc :: any).RobloxLocaleId
+	local robloxLocale = robloxLocaleId(loc)
 	if robloxLocale == "pseudo" then
 		return "pseudo"
 	end
@@ -92,17 +126,27 @@ function Text.translator(): Translator
 	if current and currentFor == want then
 		return current
 	end
+	-- Another thread is fetching it (the loading screen and the UI start together): wait for that one.
+	while building == want do
+		task.wait(0.05)
+		if current and currentFor == want then
+			return current
+		end
+	end
 	local loc, run = services()
 	local tr: Translator = englishTranslator
 	if force == "pseudo" then
 		tr = pseudo
 	elseif loc and run and run.IsClient and run:IsClient() then
 		local Players = game:GetService("Players")
-		tr = RobloxTranslator.new(Strings.catalog, {
+		building = want
+		local ok, made = pcall(RobloxTranslator.new, Strings.catalog, {
 			localization = loc,
 			player = if force then nil else Players.LocalPlayer,
 			locale = force,
 		})
+		building = nil
+		tr = if ok then made else englishTranslator
 	end
 	current, currentFor = tr, want
 	return tr
@@ -126,7 +170,7 @@ Text.msg = Localize.msg
 
 -- "<key>.one" when n == 1, else "<key>.other", with {count} = n (and any other args).
 function Text.count(key: string, n: number, args: Localize.Args?): string
-	local filled: Localize.Args = if args then table.clone(args) else {}
+	local filled: { [string]: any } = if args then table.clone(args) else {}
 	if filled.count == nil then
 		filled.count = n
 	end
@@ -174,13 +218,12 @@ function Text.fontLocale(): string
 		return force
 	end
 	local loc = services()
-	local id = if loc then (loc :: any).RobloxLocaleId else nil
-	return if type(id) == "string" and id ~= "" then id else "en-us"
+	return (if loc then robloxLocaleId(loc) else nil) or "en-us"
 end
 
--- `default` (the game's display font), or the font Text.FONTS gives for the language's writing system.
-function Text.font(default: any): any
-	return LocaleFonts.pick(Text.fontLocale(), Text.FONTS, default)
+-- The FontFace that replaces the display font (Fredoka One) for this language, or nil to keep it.
+function Text.displayFont(): Font?
+	return LocaleFonts.pick(Text.fontLocale(), Text.FONTS :: any, nil :: Font?)
 end
 
 return table.freeze(Text)

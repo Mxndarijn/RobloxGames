@@ -323,7 +323,7 @@ function LoadingScreen.build(): Screen
 		BackgroundTransparency = LOOK.skipGlass,
 		AutoButtonColor = true,
 		Font = LOOK.font,
-		Text = "Skip",
+		Text = "Skip", -- the Loading script swaps in the player's language (LoadingGate.SKIP_KEY)
 		TextSize = LOOK.labelSize,
 		TextColor3 = LOOK.band,
 		Visible = false,

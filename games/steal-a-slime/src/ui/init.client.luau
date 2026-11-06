@@ -241,7 +241,7 @@ local function playerName(userId: number): string
 		return p.DisplayName
 	end
 	if names[userId] == nil then
-		names[userId] = "someone"
+		names[userId] = Text.t("hud.steal.someone")
 		task.spawn(function()
 			local ok, name = pcall(Players.GetNameFromUserIdAsync, Players, userId)
 			if ok and type(name) == "string" then
@@ -862,9 +862,9 @@ for _, entry in panels do
 		Parent = tile,
 	}, itemIcons)
 	icon.setActive(true)
-	local label = Widgets.label({
+	local label = Widgets.fitText(Widgets.label({
 		Name = "Label",
-		Text = navEntry.label,
+		Text = Text.t(navEntry.text),
 		Font = Theme.Font,
 		TextSize = Layout.NAV.labelSize,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -873,7 +873,7 @@ for _, entry in panels do
 		Size = UDim2.fromOffset(Layout.NAV.cell, Layout.NAV.label),
 		Position = UDim2.fromOffset(0, Layout.NAV.tile + Layout.NAV.labelGap),
 		Parent = button,
-	})
+	}))
 	local badge = Widgets.label({
 		Name = "Badge",
 		Visible = false,

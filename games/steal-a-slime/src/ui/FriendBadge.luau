@@ -8,6 +8,8 @@
 	feature off. Pure (tests/ui/FriendBadge.spec.luau).
 ]]
 
+local Text = if script then require(script.Parent.Text) else require("./Text")
+
 export type View = { count: number, bonus: number }
 
 local FriendBadge = {}
@@ -36,7 +38,7 @@ function FriendBadge.line(view: View?, enabled: boolean): string?
 	if not active(view, enabled) then
 		return nil
 	end
-	return `Friends {percent((view :: View).bonus)} income`
+	return Text.t("hud.friends.income", { percent = percent((view :: View).bonus) })
 end
 
 return table.freeze(FriendBadge)

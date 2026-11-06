@@ -13,7 +13,9 @@
 	  3. nil: the English source.
 	English locales skip the lookup. `locale = "pseudo"` gives Localize.pseudo of every source (Studio and
 	layout checks). The Translator is fetched with GetTranslatorForPlayerAsync in its own thread; until it
-	arrives (at most `timeout` seconds of waiting in `new`), the non-yielding GetTranslatorForPlayer is used.
+	arrives (at most `timeout` seconds of waiting in `new`, default 8), the non-yielding GetTranslatorForPlayer
+	is used. A forced locale (Studio) starts with the place's own LocalizationTables, since the cloud fetch can
+	take 10 s or more there.
 ]]
 
 local Localize = if script then require(script.Parent.Localize) else require("./Localize")
@@ -25,7 +27,7 @@ export type Deps = {
 	player: any?, -- the local Player; nil with `locale`
 	locale: string?, -- force a locale id, or "pseudo"
 	context: any?, -- Instance passed to Translator:Translate (default: game)
-	timeout: number?, -- seconds `new` waits for the async Translator (default 4)
+	timeout: number?, -- seconds `new` waits for the async Translator (default 8)
 	spawn: ((fn: () -> ()) -> ())?,
 	wait: ((seconds: number) -> ())?,
 	warn: ((...any) -> ())?,
@@ -64,8 +66,49 @@ function RobloxTranslator.new(catalog: Localize.Catalog, deps: Deps): Translator
 		end
 	end
 
+	local settled = false -- the async fetch returned (with a translator or an error)
 	if deps.locale ~= "pseudo" and (deps.locale or deps.player) then
 		if deps.locale then
+			-- Until the cloud translator arrives (in Studio it can take 10 s or never come), the tables in the
+			-- place answer: one LocalizationTable translator each, asked in order.
+			local tables = {}
+			local children = if deps.localization.GetChildren then deps.localization:GetChildren() else {}
+			for _, child in children do
+				local okTable, tr = pcall(function()
+					return if child:IsA("LocalizationTable") then child:GetTranslator(deps.locale) else nil
+				end)
+				if okTable and tr then
+					table.insert(tables, tr)
+				end
+			end
+			if #tables > 0 then
+				local interim = {}
+				function interim.FormatByKey(_: any, key: string, args: any): string
+					for _, tr in tables do
+						local ok, text = pcall(tr.FormatByKey, tr, key, args)
+						-- A table without this language gives the English back: ask the next one.
+						local entry = catalog.byKey[key]
+						if
+							ok
+							and type(text) == "string"
+							and (entry == nil or text ~= Localize.format(entry.source, args))
+						then
+							return text
+						end
+					end
+					error("key not found")
+				end
+				function interim.Translate(_: any, ctx: any, text: string): string
+					for _, tr in tables do
+						local ok, out = pcall(tr.Translate, tr, ctx, text)
+						if ok and type(out) == "string" and out ~= text then
+							return out
+						end
+					end
+					return text
+				end
+				roblox = interim
+			end
 			spawn(function()
 				local ok, tr = pcall(deps.localization.GetTranslatorForLocaleAsync, deps.localization, deps.locale)
 				if ok then
@@ -73,6 +116,7 @@ function RobloxTranslator.new(catalog: Localize.Catalog, deps: Deps): Translator
 				else
 					warnFn("[RobloxTranslator] no translator for", deps.locale, tr)
 				end
+				settled = true
 			end)
 		elseif deps.player then
 			local ok, tr = pcall(deps.localization.GetTranslatorForPlayer, deps.localization, deps.player)
@@ -87,12 +131,22 @@ function RobloxTranslator.new(catalog: Localize.Catalog, deps: Deps): Translator
 				else
 					warnFn("[RobloxTranslator] cloud translations not loaded:", trAsync)
 				end
+				settled = true
 			end)
 		end
-		-- Wait a short while for the async translator so the first screen is already translated.
-		local waited, limit = 0, deps.timeout or 4
+		-- Wait a short while for the async translator so the first screen is already translated. Not when the
+		-- fetch failed, when the player plays in English (nothing is looked up), or when the place's own tables
+		-- already answer a forced locale.
+		local english = string.sub(string.lower(self.locale), 1, 2) == "en"
+		local waited, limit = 0, deps.timeout or 8
 		local start = roblox
-		while roblox == start and waited < limit do
+		while
+			roblox == start
+			and not settled
+			and waited < limit
+			and not (english and start ~= nil)
+			and not (deps.locale and start ~= nil)
+		do
 			wait(0.1)
 			waited += 0.1
 		end

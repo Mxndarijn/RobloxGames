@@ -16,9 +16,11 @@
 
 local Goals = if script then require(script.Parent.Goals) else require("./Goals")
 local Nav = if script then require(script.Parent.Nav) else require("./Nav")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 local Tutorial = if script then require(script.Parent.Tutorial) else require("./Tutorial")
 
 export type Tip = { id: string, icon: string, text: string }
+export type GeneralTip = { id: string, icon: string, key: string } -- key: the tip's string key
 export type View = { goalIcon: string, goal: string, goalDetail: string, tips: { Tip } }
 
 local GuideTips = {}
@@ -36,81 +38,86 @@ GuideTips.STEP_ICONS = table.freeze({
 	Rebirth = "♻️",
 })
 
--- Short tutorial goal lines (the overlay card has the long text).
+-- Short tutorial goal lines' string keys (the tutorial card has the long text); other steps show their title.
 GuideTips.STEP_GOALS = table.freeze({
-	Grab = "Grab a slime at the fountain",
-	Deposit = "Carry it home to your plot",
-	Lock = "Lock your base",
-	BuyPad = "Buy another pad",
-	Merge = "Merge two slimes",
-	Steal = "Steal a slime from an open plot",
-	Rebirth = "Rebirth for a cash multiplier",
+	Grab = "onboarding.guide.goal.grab",
+	Deposit = "onboarding.guide.goal.deposit",
+	Lock = "onboarding.guide.goal.lock",
+	BuyPad = "onboarding.guide.goal.buy_pad",
+	Merge = "onboarding.guide.goal.merge",
 })
 
 GuideTips.GENERAL = table.freeze({
-	table.freeze({ id = "Fountain", icon = "⛲", text = "Rare slimes spill from the fountain" }),
-	table.freeze({ id = "Slap", icon = "🏏", text = "Bat thieves to get your slimes back" }),
-	table.freeze({ id = "Dex", icon = "📖", text = "New slimes fill your SlimeDex" }),
-} :: { Tip })
+	table.freeze({ id = "Fountain", icon = "⛲", key = "onboarding.guide.tip.fountain" }),
+	table.freeze({ id = "Slap", icon = "🏏", key = "onboarding.guide.tip.slap" }),
+	table.freeze({ id = "Dex", icon = "📖", key = "onboarding.guide.tip.dex" }),
+} :: { GeneralTip })
+
+-- A tip with its text in the player's language.
+local function tip(id: string, icon: string, key: string): Tip
+	return { id = id, icon = icon, text = Text.t(key) }
+end
 
 local function num(value: any): number
 	return if type(value) == "number" and value == value then value else 0
 end
 
-local function nextGoal(state: any, rarityNames: { string }): (string, string, string)
+local function nextGoal(state: any, rarityNames: { string }, config: any?): (string, string, string)
 	local step = Tutorial.fromState(state)
 	if step then
-		local goal = (GuideTips.STEP_GOALS :: any)[step.id] or step.title
+		local key = (GuideTips.STEP_GOALS :: any)[step.id]
+		local goal = if key then Text.t(key) else step.title
 		return (GuideTips.STEP_ICONS :: any)[step.id] or "🎯", goal, step.counter
 	end
-	local goals = Goals.fromServer(state.goals) or Goals.derive(state, rarityNames)
+	local goals = Goals.fromServer(state.goals, config) or Goals.derive(state, rarityNames)
 	for _, g in Goals.sorted(goals) do
 		if not g.done then
 			return "🎯", g.title, g.detail
 		end
 	end
-	return "🌟", "Keep collecting slimes", "Every goal done. Nice!"
+	return "🌟", Text.t("onboarding.guide.keep_collecting"), Text.t("onboarding.guide.all_done")
 end
 
--- The Guide card for a State snapshot. `now` = server time (lock check).
-function GuideTips.view(state: any, rarityNames: { string }, now: number): View
+-- The Guide card for a State snapshot. `now` = server time (lock check); `config` (Config) names the goals in
+-- the player's language.
+function GuideTips.view(state: any, rarityNames: { string }, now: number, config: any?): View
 	if type(state) ~= "table" then
-		return { goalIcon = "🎯", goal = "Grab a slime at the fountain", goalDetail = "", tips = {} }
+		return { goalIcon = "🎯", goal = Text.t(GuideTips.STEP_GOALS.Grab), goalDetail = "", tips = {} }
 	end
-	local icon, goal, detail = nextGoal(state, rarityNames)
+	local icon, goal, detail = nextGoal(state, rarityNames, config)
 	local tips: { Tip } = {}
-	local function add(tip: Tip)
+	local function add(t: Tip)
 		if #tips < GuideTips.MAX_TIPS then
-			table.insert(tips, tip)
+			table.insert(tips, t)
 		end
 	end
 	local slimes = if type(state.slimes) == "table" then state.slimes else {}
 	for _, view in slimes do
 		if type(view) == "table" and view.stolenBy ~= nil then
-			add({ id = "Stolen", icon = "🚨", text = "Thief has your slime: use your bat!" })
+			add(tip("Stolen", "🚨", "onboarding.guide.tip.stolen"))
 			break
 		end
 	end
 	if #slimes > 0 and num(state.lockUntil) <= now then
-		add({ id = "Lock", icon = "🔒", text = "Your plot is open: lock it" })
+		add(tip("Lock", "🔒", "onboarding.guide.tip.lock"))
 	end
 	if state.canRebirth == true then
-		add({ id = "Rebirth", icon = "♻️", text = "Rebirth is ready" })
+		add(tip("Rebirth", "♻️", "onboarding.guide.tip.rebirth"))
 	end
 	local vat = if type(state.vat) == "table" then state.vat else nil
 	if vat and type(vat.endsAt) == "number" and vat.endsAt <= now then
-		add({ id = "Merge", icon = "🧪", text = "Your merge vat is done: collect it" })
+		add(tip("Merge", "🧪", "onboarding.guide.tip.vat_done"))
 	elseif not (vat and type(vat.endsAt) == "number") and Nav.canMerge(slimes) then
-		add({ id = "Merge", icon = "🧪", text = "Three slimes match: Move them into the vat" })
+		add(tip("Merge", "🧪", "onboarding.guide.tip.merge_match"))
 	end
 	if Nav.shopAffordable(state) then
-		add({ id = "Shop", icon = "🛒", text = "You can afford a shop upgrade" })
+		add(tip("Shop", "🛒", "onboarding.guide.tip.shop"))
 	end
 	if #slimes < num(state.padsUnlocked) then
-		add({ id = "Pads", icon = "🟢", text = "Free pad: bring home another slime" })
+		add(tip("Pads", "🟢", "onboarding.guide.tip.pads"))
 	end
-	for _, tip in GuideTips.GENERAL do
-		add(tip)
+	for _, general in GuideTips.GENERAL do
+		add(tip(general.id, general.icon, general.key))
 	end
 	return { goalIcon = icon, goal = goal, goalDetail = detail, tips = tips }
 end

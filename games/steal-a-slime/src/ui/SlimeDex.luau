@@ -47,6 +47,10 @@ export type Lookup = (id: string) -> (string?, { number }?, string?)
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
 local Layout = if script then require(script.Parent.Layout) else require("./Layout")
+local Text = if script then require(script.Parent.Text) else require("./Text")
+local FountainTiers = if script
+	then require((game:GetService("ReplicatedStorage") :: any):WaitForChild("Shared"):WaitForChild("FountainTiers"))
+	else require("../shared/FountainTiers")
 
 local SlimeDex = {}
 
@@ -54,13 +58,13 @@ SlimeDex.SILHOUETTE = table.freeze({ 24, 26, 36 })
 SlimeDex.UNKNOWN = "???"
 SlimeDex.BONUS_TIER = 0 -- section key of the event Secrets
 
--- The tabs, left to right: the State.dex entry kind each one shows.
+-- The tabs, left to right: the State.dex entry kind each one shows and its label (a Strings key).
 export type TabDef = { key: string, label: string }
 SlimeDex.TABS = table.freeze({
-	table.freeze({ key = "spawn", label = "Fountain" }),
-	table.freeze({ key = "hybrid", label = "Merges" }),
-	table.freeze({ key = "boss", label = "Bosses" }),
-	table.freeze({ key = "event", label = "Secrets" }),
+	table.freeze({ key = "spawn", label = "collection.dex.tab_fountain" }),
+	table.freeze({ key = "hybrid", label = "collection.dex.tab_merges" }),
+	table.freeze({ key = "boss", label = "collection.dex.tab_bosses" }),
+	table.freeze({ key = "event", label = "collection.dex.tab_secrets" }),
 } :: { TabDef })
 SlimeDex.MERGES = "hybrid"
 
@@ -95,6 +99,27 @@ local function str(value: any): string?
 	return if type(value) == "string" and value ~= "" then value else nil
 end
 
+-- A State field that holds words: a plain string, or a Localize message the server built (Text.text).
+local function words(value: any): string?
+	return str(if type(value) == "table" then Text.text(value) else value)
+end
+
+-- A set's name (SpeciesDex.setName: a FountainTiers family name, or CLASSIC_NAME) in the player's language.
+local function setText(value: any): string?
+	local name = words(value)
+	if name == nil then
+		return nil
+	elseif name == FountainTiers.CLASSIC_NAME then
+		return Text.data("fountainTier", "classic", "name", name)
+	end
+	for _, family in FountainTiers.FAMILIES do
+		if family.name == name then
+			return Text.data("fountainTier", family.id, "name", name)
+		end
+	end
+	return name
+end
+
 -- One card per State.dex entry, in State order. Junk entries are skipped.
 function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 	local out: { Card } = {}
@@ -123,7 +148,7 @@ function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 					list[i] = {
 						species = species,
 						label = if species then name or species else SlimeDex.UNKNOWN,
-						set = str(sets[i]),
+						set = setText(sets[i]),
 						color = if species then color or rarity.color else SlimeDex.SILHOUETTE,
 					}
 				end
@@ -134,10 +159,10 @@ function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 				kind = kind,
 				tier = tier,
 				found = e.found == true,
-				title = str(e.name) or SlimeDex.UNKNOWN,
-				hint = str(e.hint),
+				title = words(e.name) or SlimeDex.UNKNOWN,
+				hint = words(e.hint),
 				slots = slots,
-				set = if kind == "spawn" then ownSet else nil,
+				set = if kind == "spawn" then setText(ownSet) else nil,
 				color = rarity.color,
 				speciesColor = ownColor or rarity.color,
 			})
@@ -148,7 +173,7 @@ end
 
 export type Tab = { key: string, label: string, found: number, total: number, count: string }
 
--- The tabs that have cards, in TABS order, with their found counts ("3/15").
+-- The tabs that have cards, in TABS order, with their labels and found counts ("3/15").
 function SlimeDex.tabs(cards: { Card }): { Tab }
 	local found: { [string]: number } = {}
 	local total: { [string]: number } = {}
@@ -163,7 +188,7 @@ function SlimeDex.tabs(cards: { Card }): { Tab }
 		local n = total[def.key] or 0
 		if n > 0 then
 			local f = found[def.key] or 0
-			table.insert(out, { key = def.key, label = def.label, found = f, total = n, count = `{f}/{n}` })
+			table.insert(out, { key = def.key, label = Text.t(def.label), found = f, total = n, count = `{f}/{n}` })
 		end
 	end
 	return out
@@ -225,11 +250,11 @@ function SlimeDex.lines(cards: { Card }, columns: number, config: any): { Line }
 	for tier, rarity in config.RARITIES do
 		local list = byTier[tier]
 		if list and #list > 0 then
-			section(tier, rarity.name, list)
+			section(tier, Text.data("rarity", rarity.name, "name", rarity.name), list)
 		end
 	end
 	if #bonus > 0 then
-		section(SlimeDex.BONUS_TIER, "Event Secrets", bonus)
+		section(SlimeDex.BONUS_TIER, Text.t("collection.dex.event_secrets"), bonus)
 	end
 	return out
 end
@@ -264,12 +289,18 @@ export type Detail = {
 	usedIn: { UsedIn }, -- merges that take it (only known once it is found)
 }
 
+-- How to get a species of each kind (Strings keys).
 SlimeDex.HOW = table.freeze({
-	spawn = "Catch it at the fountain",
-	hybrid = "Merge it in the Merge vat",
-	boss = "Defeat the boss event",
-	event = "An event Secret",
+	spawn = "collection.dex.how_spawn",
+	hybrid = "collection.dex.how_hybrid",
+	boss = "collection.dex.how_boss",
+	event = "collection.dex.how_event",
 })
+
+local function howOf(kind: string): string
+	local key = (SlimeDex.HOW :: any)[kind]
+	return if key then Text.t(key) else ""
+end
 
 function SlimeDex.detail(card: Card, cards: { Card }, inBase: { [string]: number }, config: any): Detail
 	local rarity = config.RARITIES[card.tier]
@@ -287,13 +318,11 @@ function SlimeDex.detail(card: Card, cards: { Card }, inBase: { [string]: number
 		key = card.key,
 		title = card.title,
 		found = card.found,
-		rarity = if rarity then rarity.name else "",
+		rarity = if rarity then Text.data("rarity", rarity.name, "name", rarity.name) else "",
 		rarityColor = card.color,
-		how = if card.kind == "spawn" or card.kind == "hybrid"
-			then (SlimeDex.HOW :: any)[card.kind]
-			else card.hint or (SlimeDex.HOW :: any)[card.kind] or "",
-		set = if card.set then `{card.set} set` else nil,
-		have = if n > 0 then `{n} in your base` else "None in your base",
+		how = if card.kind == "spawn" or card.kind == "hybrid" then howOf(card.kind) else card.hint or howOf(card.kind),
+		set = if card.set then Text.t("collection.dex.set", { set = card.set }) else nil,
+		have = if n > 0 then Text.count("collection.dex.have", n) else Text.t("collection.dex.have_none"),
 		usedIn = usedIn,
 	}
 end
@@ -315,7 +344,8 @@ export type Recipe = {
 	missing: number, -- slots not in base
 }
 
-SlimeDex.SLOT_TAGS = table.freeze({ base = "In base", found = "Found" })
+-- Recipe slot tags (Strings keys).
+SlimeDex.SLOT_TAGS = table.freeze({ base = "collection.dex.in_base", found = "collection.found" })
 
 -- One row per hybrid card with a recipe: ready ones first, then the fewest missing, made ones last (State order
 -- within each). `only` keeps the recipes that take that species.
@@ -350,7 +380,7 @@ function SlimeDex.recipes(cards: { Card }, inBase: { [string]: number }, only: s
 					state = state,
 					tag = if state == "unknown"
 						then slot.set or SlimeDex.UNKNOWN
-						else (SlimeDex.SLOT_TAGS :: any)[state],
+						else Text.t((SlimeDex.SLOT_TAGS :: any)[state]),
 					color = slot.color,
 				}
 			end
@@ -365,9 +395,9 @@ function SlimeDex.recipes(cards: { Card }, inBase: { [string]: number }, only: s
 					slots = slots,
 					status = status,
 					statusText = if status == "made"
-						then "Made"
-						elseif status == "ready" then "Ready to merge"
-						else `Need {missing} more`,
+						then Text.t("collection.dex.made")
+						elseif status == "ready" then Text.t("collection.dex.ready")
+						else Text.count("collection.dex.need_more", missing),
 					missing = missing,
 				})
 				order[card.key] = #out
@@ -419,7 +449,7 @@ function SlimeDex.summary(dex: any): Summary
 	return {
 		percent = `{math.floor(fraction * 100)}%`,
 		fraction = fraction,
-		count = `{found}/{total} found`,
+		count = Text.t("collection.found_summary", { found = found, total = total }),
 	}
 end
 
@@ -451,7 +481,11 @@ function SlimeDex.rewardLine(state: any): RewardLine?
 			if r.claimed ~= true and n(r.count) > 0 then
 				local count = n(r.count)
 				return {
-					text = `Next reward at {count}: +{Format.formatCash(n(r.reward))} and +{pct(n(r.bonus))} income`,
+					text = Text.t("collection.dex.next_reward", {
+						count = count,
+						cash = Format.formatCash(n(r.reward)),
+						bonus = pct(n(r.bonus)),
+					}),
 					count = `{math.min(found, count)}/{count}`,
 					fraction = math.clamp(found / count, 0, 1),
 				}
@@ -461,7 +495,7 @@ function SlimeDex.rewardLine(state: any): RewardLine?
 	if not any then
 		return nil
 	end
-	return { text = "Every species reward collected", count = nil, fraction = 1 }
+	return { text = Text.t("collection.dex.rewards_done"), count = nil, fraction = 1 }
 end
 
 return table.freeze(SlimeDex)

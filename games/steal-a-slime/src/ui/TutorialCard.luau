@@ -21,6 +21,7 @@ local UserInputService = game:GetService("UserInputService")
 local InputKind =
 	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("InputKind"))
 local Layout = require(script.Parent.Layout)
+local Text = require(script.Parent.Text)
 local Tutorial = require(script.Parent.Tutorial)
 local Widgets = require(script.Parent.Widgets)
 
@@ -35,7 +36,7 @@ TutorialCard.DONE_SECONDS = 2.5
 TutorialCard.FINISHED_SECONDS = 6
 TutorialCard.SIDE_W = Layout.MIN_TOUCH_DESIGN -- the right column: "3/8" over Hide; the whole column is Hide's tap area
 TutorialCard.HIDE_H = 26 -- the Hide pill (design px)
-TutorialCard.HIDE_TEXT = "Hide"
+TutorialCard.HIDE_TEXT = "onboarding.tutorial.hide" -- string key
 TutorialCard.NARROW_W = 300 -- banner stacks narrower than this (design px) leave the "3/8" out and put Hide under the icon
 TutorialCard.GAP = 10 -- design px between the cards and the hotbar (or the carry card) under them
 
@@ -216,7 +217,7 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		})
 		local pill = Widgets.button({
 			Name = "HideButton",
-			Text = TutorialCard.HIDE_TEXT,
+			Text = Text.t(TutorialCard.HIDE_TEXT),
 			TextSize = 14,
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, -N.pad),
@@ -298,9 +299,9 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		if id ~= shownId then
 			local before = if shownId then Tutorial.find(shownId) else nil
 			if before and id ~= nil then
-				showDone(before.done, nil, TutorialCard.DONE_SECONDS)
+				showDone(Tutorial.done(before), nil, TutorialCard.DONE_SECONDS)
 			elseif before and not skipped then
-				showDone(Tutorial.FINISHED, Tutorial.FINISHED_SUB, TutorialCard.FINISHED_SECONDS)
+				showDone(Text.t(Tutorial.FINISHED), Text.t(Tutorial.FINISHED_SUB), TutorialCard.FINISHED_SECONDS)
 				finishedUntil = doneUntil
 			end
 			shownId = id

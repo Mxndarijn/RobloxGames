@@ -40,6 +40,9 @@ local BoardFace = if script then require(script.Parent.BoardFace) else require("
 local LabelFit = if script
 	then require((script.Parent.Parent :: any).Lib.ui.LabelFit)
 	else require("../../../../../shared/luau/src/ui/LabelFit")
+local TaggedText = if script
+	then require(script.Parent.Parent.Shared.TaggedText)
+	else require("../../shared/TaggedText")
 
 local Props = {}
 
@@ -49,7 +52,7 @@ Props.NAME_TAG_DISTANCE = 60 -- NPC name tags (pixel-sized)
 Props.NAME_TAG_PHONE_DISTANCE = 40 -- the same on a phone-sized screen
 Props.LANDMARK_SIGN_DISTANCE = 300 -- shop stand signs and the hall arch: landmarks, their colour reads far
 Props.BOARD_DISTANCE = 150 -- leaderboard boards: the rows read only up close, the header from about 100
-Props.LEADERBOARD_TITLE = "Top Earners"
+Props.LEADERBOARD_TITLE_KEY = "world.board.top_earners" -- "Top Earners"
 
 -- Hall of Fame board colours (RGB), the same look as the Upcoming Events board (server/EventBoardView): a light
 -- cream-white rounded face over the skin's panel, a gradient title bar in the board's colour and one rounded card per
@@ -121,6 +124,13 @@ local function label(parent: Instance, name: string, text: string, color: Color3
 	return l
 end
 
+-- A label whose text is the Strings entry `key`, in each player's own language (shared/TaggedText).
+local function keyLabel(parent: Instance, name: string, key: string, color: Color3): TextLabel
+	local l = label(parent, name, "", color)
+	TaggedText.set(l, "Text", key)
+	return l
+end
+
 local function finish(model: Model, primary: BasePart): Model
 	model.PrimaryPart = primary
 	-- Pivot at the bottom centre (y = 0 in build space).
@@ -137,7 +147,7 @@ end
 
 type StandStyle = {
 	stand: string, -- the WorldLayout.SHOP_STANDS entry: the kit mesh the stand skins, its sign face and counter
-	title: string, -- the name on the sign
+	title: string, -- the name on the sign: a Strings key
 	icon: string, -- the emoji on the sign's white badge (the minimap pins use the same ones), "" when drawn
 	drawn: string?, -- a GooIcons drawing on the badge instead of the emoji
 	jelly: { { number } }, -- the sign's jelly gradient, top, middle, bottom (GooPalette)
@@ -149,13 +159,13 @@ type StandStyle = {
 Props.STAND_STYLES = table.freeze({
 	ItemShop = table.freeze({
 		stand = "ItemShopStand",
-		title = "Item shop",
+		title = "world.sign.item_shop", -- "Item shop"
 		icon = "🛒",
 		jelly = table.freeze({ Goo.MintHi, Goo.Mint, Goo.MintLo }),
 	} :: StandStyle),
 	UpgradeShop = table.freeze({
 		stand = "UpgradeShopStand",
-		title = "Upgrade shop",
+		title = "world.sign.upgrade_shop", -- "Upgrade shop"
 		icon = "",
 		drawn = "upArrow",
 		jelly = table.freeze({ Goo.GoldHi, Goo.Gold, Goo.GoldDeep }),
@@ -285,7 +295,7 @@ function Props.standSign(sign: BasePart, look: StandStyle, aspect: number): Surf
 		icon.Position = UDim2.fromScale(0.14, 0.14)
 		icon.ZIndex = 3
 	end
-	local text = label(jelly, "Text", look.title, tone(Goo.Ink))
+	local text = keyLabel(jelly, "Text", look.title, tone(Goo.Ink))
 	local textX = (inset * 2.4 + S.badge) / wide
 	text.Position = UDim2.fromScale(textX, 0.17)
 	text.Size = UDim2.fromScale(0.97 - textX, 0.66)
@@ -400,7 +410,7 @@ Props.CLAW_GLASS_TRANSPARENCY = 0.8 -- the primitive panes (one surface each)
 -- The claw shop's sign: a lilac jelly with a crown badge on the kit's sign face (the minimap pin wears the same crown).
 Props.CLAW_SIGN = table.freeze({
 	stand = Constants.SHOP_STAND_EXCLUSIVE,
-	title = "EXCLUSIVE",
+	title = "world.sign.exclusive", -- "EXCLUSIVE"
 	icon = "👑",
 	jelly = table.freeze({ table.freeze({ 232, 220, 250 }), table.freeze({ 196, 166, 232 }), Goo.Plum }),
 } :: StandStyle)
@@ -891,7 +901,7 @@ function Props.tutorialNpc(): Model
 	LabelFit.mark(tag, { phoneDistance = Props.NAME_TAG_PHONE_DISTANCE })
 	tag.Parent = head
 	-- Outlined white Fredoka, like every world label (canvas GooWorldSigns "Guide").
-	local text = label(tag, "Text", "Guide", tone(Goo.White))
+	local text = keyLabel(tag, "Text", "world.sign.guide", tone(Goo.White))
 	text.Size = UDim2.fromScale(1, 1)
 	local outline = Instance.new("UIStroke")
 	outline.Color = tone(Goo.Ink)
@@ -922,7 +932,7 @@ Props.RANCH_COLORS = table.freeze({
 -- An arch's title and look: the Model name, the banner text, the roof's two tones and the banner's gradient.
 type ArchLook = {
 	name: string,
-	title: string,
+	title: string, -- a Strings key
 	roof: { number },
 	roofDark: { number },
 	bar: Color3, -- the banner gradient, top to bottom
@@ -1030,7 +1040,7 @@ local function arch(look: ArchLook): Model
 		gradient.Color = ColorSequence.new(look.bar, look.barDark)
 		gradient.Rotation = 90
 		gradient.Parent = bar
-		local text = label(bar, "Text", look.title, rgb(255, 255, 255))
+		local text = keyLabel(bar, "Text", look.title, rgb(255, 255, 255))
 		text.Position = UDim2.fromScale(0.05, 0.12)
 		text.Size = UDim2.fromScale(0.9, 0.76)
 		local outline = Instance.new("UIStroke")
@@ -1046,7 +1056,7 @@ function Props.hallArch(): Model
 	local C = Props.RANCH_COLORS
 	return arch({
 		name = "HallOfFameArch",
-		title = "HALL OF FAME",
+		title = "world.sign.hall_of_fame", -- "HALL OF FAME"
 		roof = C.Roof,
 		roofDark = C.RoofDark,
 		bar = tone(C.Roof):Lerp(Color3.new(1, 1, 1), 0.25),
@@ -1058,7 +1068,7 @@ function Props.obbyArch(): Model
 	local look = Props.OBBY_ARCH_LOOK
 	return arch({
 		name = "ObbyArch",
-		title = "OBBY",
+		title = "world.sign.obby", -- "OBBY"
 		roof = look.roof,
 		roofDark = look.roofDark,
 		bar = tone(look.bar),
@@ -1110,7 +1120,7 @@ function Props.professorGoo(): Model
 	tag.LightInfluence = 0
 	LabelFit.mark(tag, { phoneDistance = Props.NAME_TAG_PHONE_DISTANCE })
 	tag.Parent = head
-	local text = label(tag, "Text", "Professor Goo", tone(Goo.White))
+	local text = keyLabel(tag, "Text", "world.sign.professor_goo", tone(Goo.White))
 	text.Size = UDim2.fromScale(1, 1)
 	local outline = Instance.new("UIStroke")
 	outline.Color = tone(Goo.Ink)
@@ -1122,7 +1132,8 @@ end
 
 -- Leaderboard board --------------------------------------------------------
 
-export type BoardDef = { model: string, title: string, accent: { number } }
+-- `titleKey`: the Strings key of the title, drawn in each player's language; without it the title shows as written.
+export type BoardDef = { model: string, title: string, accent: { number }, titleKey: string? }
 
 -- One Hall of Fame board (Leaderboards.BOARDS entry `def`: Model name, title, header colour); nil = Top Earners.
 function Props.leaderboardBoard(def: BoardDef?): Model
@@ -1197,7 +1208,10 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	gradient.Color = ColorSequence.new(shade(1.6), shade(0.8))
 	gradient.Rotation = 90
 	gradient.Parent = header
-	local title = label(header, "Title", if def then def.title else Props.LEADERBOARD_TITLE, rgb(255, 255, 255))
+	local title = if def and def.titleKey
+		then keyLabel(header, "Title", def.titleKey, rgb(255, 255, 255))
+		elseif def then label(header, "Title", def.title, rgb(255, 255, 255))
+		else keyLabel(header, "Title", Props.LEADERBOARD_TITLE_KEY, rgb(255, 255, 255))
 	title.Position = UDim2.fromScale(0.04, 0.1)
 	title.Size = UDim2.fromScale(0.92, 0.8)
 	local titleEdge = Instance.new("UIStroke")

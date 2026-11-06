@@ -1,6 +1,7 @@
 --!strict
 -- The join loading screen: what the bar and label show and when the screen lifts.
 local LoadingGate = require("../src/first/LoadingGate")
+local Strings = require("../src/shared/Strings")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -60,6 +61,15 @@ describe("loading gate", function()
 		expect(LoadingGate.tip(every, 3)).toBe(tips[4])
 		expect(LoadingGate.tip(every * #tips, 3)).toBe(tips[3])
 		expect(LoadingGate.step(status(), every, 2).label).toBe(tips[3])
+	end)
+	it("keeps its English fallback the same as the Strings catalog", function()
+		expect(#LoadingGate.TIP_KEYS).toBe(#LoadingGate.TIPS)
+		for i, tip in LoadingGate.TIPS do
+			expect(Strings.catalog.byKey[LoadingGate.TIP_KEYS[i]].source).toBe(tip)
+		end
+		expect(Strings.catalog.byKey[LoadingGate.DONE_KEY].source).toBe(LoadingGate.DONE)
+		expect(Strings.catalog.byKey[LoadingGate.SKIP_KEY].source).toBe("Skip")
+		expect(LoadingGate.step(status(), 0).key).toBe(LoadingGate.TIP_KEYS[1])
 	end)
 	it("keeps every tip short enough for one line on a phone", function()
 		for _, tip in LoadingGate.TIPS do

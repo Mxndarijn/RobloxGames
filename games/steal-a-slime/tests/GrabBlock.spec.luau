@@ -3,9 +3,12 @@
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local GrabBlock = require("../src/shared/GrabBlock")
+local Localize = require("../../../shared/luau/src/locale/Localize")
+local TaggedText = require("../src/shared/TaggedText")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+local en = TaggedText.english -- GrabBlock.text gives Localize messages; the specs read their English
 
 local function me(carrying: boolean, freePad: boolean, cash: number): GrabBlock.Me
 	return { carrying = carrying, freePad = freePad, cash = cash }
@@ -34,14 +37,14 @@ describe("GrabBlock.reason", function()
 		expect(GrabBlock.reason(me(false, true, 99), wild(100))).toBe("money")
 	end)
 	it("every reason has its text", function()
-		expect(GrabBlock.TEXT.carrying).toBe("Already carrying a slime")
-		expect(GrabBlock.TEXT.plotFull).toBe("Plot is full, buy more pads")
-		expect(GrabBlock.TEXT.money).toBe("Not enough money")
+		expect(en(Localize.msg(GrabBlock.TEXT.carrying))).toBe("Already carrying a slime")
+		expect(en(Localize.msg(GrabBlock.TEXT.plotFull))).toBe("Plot is full, buy more pads")
+		expect(en(Localize.msg(GrabBlock.TEXT.money))).toBe("Not enough money")
 	end)
 	it("money says how much cash is missing", function()
-		expect(GrabBlock.text("money", wild(100), me(false, true, 99))).toBe("Need $1 more")
-		expect(GrabBlock.text("money", wild(15000), me(false, true, 2500))).toBe("Need $12.5K more")
-		expect(GrabBlock.text("money", wild(100))).toBe("Not enough money")
+		expect(en(GrabBlock.text("money", wild(100), me(false, true, 99)))).toBe("Need $1 more")
+		expect(en(GrabBlock.text("money", wild(15000), me(false, true, 2500)))).toBe("Need $12.5K more")
+		expect(en(GrabBlock.text("money", wild(100)))).toBe("Not enough money")
 	end)
 end)
 
@@ -64,9 +67,9 @@ describe("GrabBlock after a drop", function()
 		expect(GrabBlock.reason(broke, { state = "Wild", price = 50, boss = false, rebirths = 9 })).toBe("dropped")
 	end)
 	it("counts down in tenths, rounded up so it never says 0.0s too early", function()
-		expect(GrabBlock.text("dropped", wild(0), dropped(10, 11.5))).toBe("Grab in 1.5s")
-		expect(GrabBlock.text("dropped", wild(0), dropped(10.04, 11.5))).toBe("Grab in 1.5s")
-		expect(GrabBlock.text("dropped", wild(0), dropped(11.45, 11.5))).toBe("Grab in 0.1s")
+		expect(en(GrabBlock.text("dropped", wild(0), dropped(10, 11.5)))).toBe("Grab in 1.5s")
+		expect(en(GrabBlock.text("dropped", wild(0), dropped(10.04, 11.5)))).toBe("Grab in 1.5s")
+		expect(en(GrabBlock.text("dropped", wild(0), dropped(11.45, 11.5)))).toBe("Grab in 0.1s")
 		expect(GrabBlock.waitLeft(dropped(10, 11.5))).toBeCloseTo(1.5, 1e-9)
 		expect(GrabBlock.waitLeft(dropped(12, 11.5))).toBeNil()
 	end)
@@ -103,9 +106,13 @@ describe("GrabBlock rank gate", function()
 		expect(ranked(0, 25, 0, true)).toBeNil()
 	end)
 	it("text names the rebirth for 'rank' and falls back to TEXT for the rest", function()
-		expect(GrabBlock.text("rank", { state = "Wild", boss = false, rebirths = 12 })).toBe("Rebirth 12 to grab this")
+		expect(en(GrabBlock.text("rank", { state = "Wild", boss = false, rebirths = 12 }))).toBe(
+			"Rebirth 12 to grab this"
+		)
 		for _, reason in { "carrying", "plotFull", "money" } :: { GrabBlock.Reason } do
-			expect(GrabBlock.text(reason, { state = "Wild", boss = false })).toBe(GrabBlock.TEXT[reason])
+			expect(en(GrabBlock.text(reason, { state = "Wild", boss = false }))).toBe(
+				en(Localize.msg(GrabBlock.TEXT[reason]))
+			)
 		end
 	end)
 	it("rebirthsFor reads CATCH_REBIRTHS by rarity and the egg kind's rebirths for a Mystery Egg", function()

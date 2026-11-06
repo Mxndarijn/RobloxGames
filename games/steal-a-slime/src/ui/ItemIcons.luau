@@ -33,7 +33,13 @@ export type Spec = {
 	source: "model" | "image" | "drawn" | "placeholder",
 	brief: string, -- what Archer renders for the 512x512 icon (ITEM-ICONS-NEEDED.md)
 	colors: { { number } }?, -- a drawn scene's own colours (carry trails, Bat skins), 0..255 RGB
+	-- Where `name` is translated (ItemIcons.nameText): a Strings key, or the Config row it comes from
+	-- (Text.data kind and id).
+	nameKey: string?,
+	data: { kind: string, id: string }?,
 }
+
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 local ItemIcons = {}
 
@@ -192,8 +198,16 @@ local function freeze(spec: any): Spec
 	return table.freeze(spec)
 end
 
--- Items defined by hand: id, name, group, colour, glyph, brief.
-type Hand = { id: string, name: string, group: string, color: { number }, glyph: string, brief: string }
+-- Items defined by hand: id, name, group, colour, glyph, brief; `data` when the name is a Config row's.
+type Hand = {
+	id: string,
+	name: string,
+	group: string,
+	color: { number },
+	glyph: string,
+	brief: string,
+	data: { kind: string, id: string }?,
+}
 
 local HAND: { Hand } = {
 	{
@@ -207,6 +221,7 @@ local HAND: { Hand } = {
 	{
 		id = "SpeedCoil",
 		name = "Speed Coil",
+		data = { kind = "shopItem", id = "SpeedCoil" },
 		group = "shop",
 		color = { 255, 200, 50 },
 		glyph = "⚡",
@@ -231,6 +246,7 @@ local HAND: { Hand } = {
 	{
 		id = "Upgrade_Income",
 		name = "Slime Snacks",
+		data = { kind = "upgrade", id = "Income" },
 		group = "upgrade",
 		color = { 235, 160, 70 },
 		glyph = "🍪",
@@ -239,6 +255,7 @@ local HAND: { Hand } = {
 	{
 		id = "Upgrade_CarrySpeed",
 		name = "Strong Arms",
+		data = { kind = "upgrade", id = "CarrySpeed" },
 		group = "upgrade",
 		color = { 230, 110, 90 },
 		glyph = "💪",
@@ -247,6 +264,7 @@ local HAND: { Hand } = {
 	{
 		id = "Upgrade_OfflineCap",
 		name = "Night Shift",
+		data = { kind = "upgrade", id = "OfflineCap" },
 		group = "upgrade",
 		color = { 90, 90, 190 },
 		glyph = "🌙",
@@ -255,6 +273,7 @@ local HAND: { Hand } = {
 	{
 		id = "Upgrade_QuickBrew",
 		name = "Quick Brew",
+		data = { kind = "upgrade", id = "QuickBrew" },
 		group = "upgrade",
 		color = { 200, 120, 60 },
 		glyph = "⚡",
@@ -263,6 +282,7 @@ local HAND: { Hand } = {
 	{
 		id = "Upgrade_Luck",
 		name = "Lucky Charm",
+		data = { kind = "upgrade", id = "Luck" },
 		group = "upgrade",
 		color = { 90, 200, 100 },
 		glyph = "🍀",
@@ -481,6 +501,8 @@ function ItemIcons.build(config: any)
 			color = h.color,
 			glyph = h.glyph,
 			brief = h.brief,
+			data = h.data,
+			nameKey = if h.data then nil else ItemIcons.handKey(h.id),
 		})
 	end
 
@@ -493,6 +515,7 @@ function ItemIcons.build(config: any)
 		add({
 			id = `Consumable_{c.id}`,
 			name = c.name,
+			data = { kind = "consumable", id = c.id },
 			group = "gear",
 			color = CONSUMABLE_COLORS[c.id] or { 120, 180, 220 },
 			glyph = c.icon,
@@ -503,6 +526,7 @@ function ItemIcons.build(config: any)
 		add({
 			id = `Pvp_{t.id}`,
 			name = t.name,
+			data = { kind = "pvpTool", id = t.id },
 			group = "gear",
 			color = PVP_COLORS[t.line] or { 150, 150, 170 },
 			glyph = PVP_GLYPHS[t.line] or "🎯",
@@ -551,6 +575,7 @@ function ItemIcons.build(config: any)
 		add({
 			id = `Badge_{b.key}`,
 			name = b.name,
+			data = { kind = "badge", id = b.name },
 			group = "badge",
 			color = BADGE_COLOR,
 			glyph = "⭐",
@@ -563,6 +588,7 @@ function ItemIcons.build(config: any)
 		add({
 			id = `PlotSkin_{s.id}`,
 			name = s.name,
+			data = { kind = "plotSkin", id = s.id },
 			group = "skin",
 			color = s.color or { 200, 200, 200 },
 			glyph = "🏡",
@@ -576,6 +602,7 @@ function ItemIcons.build(config: any)
 		add({
 			id = `PetSeat_{seat.id}`,
 			name = seat.name,
+			data = { kind = "petSeat", id = seat.id },
 			group = "seat",
 			color = seat.color,
 			glyph = "🌥",
@@ -590,6 +617,7 @@ function ItemIcons.build(config: any)
 		add({
 			id = `Trail_{trail.id}`,
 			name = trail.name,
+			data = { kind = "carryTrail", id = trail.id },
 			group = "gear",
 			color = trail.colors[1],
 			colors = trail.colors,
@@ -602,6 +630,7 @@ function ItemIcons.build(config: any)
 		add({
 			id = `BatSkin_{skin.id}`,
 			name = skin.name,
+			data = { kind = "batSkin", id = skin.id },
 			group = "gear",
 			color = colors[1],
 			colors = colors,
@@ -617,6 +646,7 @@ function ItemIcons.build(config: any)
 		add({
 			id = `PlotBase_{base.id}`,
 			name = base.name,
+			data = { kind = "plotBase", id = base.id },
 			group = "gear",
 			color = colors[1],
 			colors = colors,
@@ -630,17 +660,26 @@ function ItemIcons.build(config: any)
 		{
 			list = "lockStyles",
 			prefix = "LockStyle_",
+			data = "lockStyle",
 			glyph = "🔒",
 			color = { 250, 150, 182 },
 			what = "lock stopper",
 		},
-		{ list = "hats", prefix = "Hat_", glyph = "🎩", color = { 196, 166, 232 }, what = "slime hat on a slime" },
+		{
+			list = "hats",
+			prefix = "Hat_",
+			data = "slimeHat",
+			glyph = "🎩",
+			color = { 196, 166, 232 },
+			what = "slime hat on a slime",
+		},
 	}
 	for _, kind in STYLE_ICONS do
 		for _, def in (if shop then shop[kind.list] else nil) or {} do
 			add({
 				id = `{kind.prefix}{def.id}`,
 				name = def.name,
+				data = { kind = kind.data, id = def.id },
 				group = "gear",
 				color = kind.color,
 				glyph = kind.glyph,
@@ -674,12 +713,40 @@ end
 ItemIcons.UNKNOWN = freeze({
 	id = "Unknown",
 	name = "Item",
+	nameKey = "shop.icon.unknown",
 	group = "misc",
 	color = { 120, 125, 150 },
 	glyph = "?",
 	source = "placeholder",
 	brief = "Unknown item",
 })
+
+-- The Strings key of a hand-made item's name ("Daily" -> "shop.icon.daily", "Boost_Code" -> "shop.icon.boost_code").
+function ItemIcons.handKey(id: string): string
+	local snake = string.gsub(id, "(%l)(%u)", "%1_%2")
+	return `shop.icon.{string.lower(snake)}`
+end
+
+-- A spec's name in the player's language (tooltips, inventory names). A code reward reads "Code <code>", a Dex
+-- milestone "Dex <n> species".
+function ItemIcons.nameText(spec: Spec): string
+	local data = spec.data
+	if data then
+		return Text.data(data.kind, data.id, "name", spec.name)
+	end
+	local code = string.match(spec.id, "^Code_(.+)$")
+	if code then
+		return Text.t("shop.icon.code", { code = code })
+	end
+	local dex = string.match(spec.id, "^Dex_(%d+)$")
+	if dex then
+		return Text.t("shop.icon.dex", { count = dex })
+	end
+	if spec.nameKey then
+		return Text.t(spec.nameKey)
+	end
+	return spec.name
+end
 
 -- Items still lacking art: no model and no uploaded image.
 function ItemIcons.needsArt(registry: any): { Spec }

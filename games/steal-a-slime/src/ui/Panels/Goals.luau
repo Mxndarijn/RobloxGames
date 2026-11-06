@@ -19,6 +19,7 @@ local Goals = require(UI.Goals)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -61,19 +62,19 @@ local TOP = table.freeze({
 -- Section order in the list: quests, then goals.
 local ORDER = table.freeze({ questHeader = -100, daily = -95, quest = -90, claimedQuest = -60, goalHeader = -10 })
 
--- What a row's right slot says (Layout.ROW_SLOT); Done and Claimed sit beside the game's check.
-GoalsPanel.DONE = "Done"
-GoalsPanel.CLAIMED = "Claimed"
-GoalsPanel.DAILY_TITLE = "Daily reward"
-GoalsPanel.DAILY_OPEN = "Open"
+-- What a row's right slot says (Layout.ROW_SLOT); Done and Claimed sit beside the game's check. String keys.
+GoalsPanel.DONE = "onboarding.goals.done"
+GoalsPanel.CLAIMED = "onboarding.goals.claimed"
+GoalsPanel.DAILY_TITLE = "onboarding.goals.daily_title"
+GoalsPanel.DAILY_OPEN = "onboarding.goals.daily_open"
 
 -- The Claim button's label: the cash it pays ("Claim $100"), or "Claim boost" for a timed boost.
 function GoalsPanel.claimText(reward: string, boost: boolean): string
 	local cash = string.gsub(reward, "^%+", "")
 	if boost or cash == "" then
-		return if boost then "Claim boost" else "Claim"
+		return Text.t(if boost then "onboarding.goals.claim_boost" else "onboarding.goals.claim")
 	end
-	return `Claim {cash}`
+	return Text.t("onboarding.goals.claim_cash", { cash = cash })
 end
 
 local function headingRow(name: string, text: string, order: number): (Frame, TextLabel)
@@ -183,7 +184,7 @@ local function setSlot(row: any, text: string?, color: Color3, check: boolean?)
 end
 
 function GoalsPanel.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "GoalsPanel", "Goals", "🎯")
+	local panel = Widgets.panel(parent, "GoalsPanel", Text.t("onboarding.goals.title"), "🎯")
 
 	local summary = Widgets.chip({
 		Name = "Summary",
@@ -195,7 +196,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	}, Theme.Good)
 	local note = Widgets.label({
 		Name = "Note",
-		Text = "Just for fun",
+		Text = Text.t("onboarding.goals.note_local"),
 		TextSize = TOP.note,
 		TextColor3 = Theme.Muted,
 		Size = UDim2.new(1, -TOP.summaryW, 0, TOP.h),
@@ -236,7 +237,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	end, function(row: any, g: Goals.Goal)
 		paintRow(row, g.title, g.done, g.fraction, g.meta or g.detail, g.nextShort)
 		if g.done then
-			setSlot(row, GoalsPanel.DONE, Theme.Good, true)
+			setSlot(row, Text.t(GoalsPanel.DONE), Theme.Good, true)
 		else
 			setSlot(row, g.reward, Theme.Gold)
 		end
@@ -258,7 +259,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		row.claim = Widgets.button(
 			{
 				Name = "Claim",
-				Text = "Claim",
+				Text = Text.t("onboarding.goals.claim"),
 				TextSize = ROW.reward,
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -ROW.pad, 0.5, 0),
@@ -280,14 +281,14 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		row.claim.instance.Visible = claimable
 		row.claim.setText(GoalsPanel.claimText(q.reward, q.boost))
 		if q.claimed then
-			setSlot(row, GoalsPanel.CLAIMED, Theme.Good, true)
+			setSlot(row, Text.t(GoalsPanel.CLAIMED), Theme.Good, true)
 		else
 			setSlot(row, if claimable then nil else q.reward, Theme.Gold)
 		end
 		row.instance.LayoutOrder = (if q.claimed then ORDER.claimedQuest else ORDER.quest) + index
 	end)
 
-	local questHeader = headingRow("QuestHeader", "Daily quests", ORDER.questHeader)
+	local questHeader = headingRow("QuestHeader", Text.t("onboarding.goals.quests_heading"), ORDER.questHeader)
 	local headerReset = Widgets.chip({
 		Name = "Reset",
 		FontFace = Theme.FontBody,
@@ -298,7 +299,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		Size = UDim2.fromOffset(0, TOP.resetChipH),
 		Parent = questHeader,
 	}, Theme.Muted)
-	local goalHeader = headingRow("GoalHeader", "Milestones", ORDER.goalHeader)
+	local goalHeader = headingRow("GoalHeader", Text.t("onboarding.goals.milestones_heading"), ORDER.goalHeader)
 
 	-- The daily reward while it waits: its popup can be closed or switched off in Settings, so it is always one tap
 	-- away here too ("Open" shows the popup with its Claim).
@@ -314,7 +315,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	local openDaily = Widgets.button(
 		{
 			Name = "OpenDaily",
-			Text = GoalsPanel.DAILY_OPEN,
+			Text = Text.t(GoalsPanel.DAILY_OPEN),
 			TextSize = ROW.reward,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -ROW.pad, 0.5, 0),
@@ -342,7 +343,9 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	function self.update(state: any)
 		local server = Goals.fromServer(state.goals, ctx.Config)
 		local goals = server or Goals.derive(state, rarityNames)
-		note.Text = if server then "🎁 Rewards pay out on their own" else "Just for fun"
+		note.Text = if server
+			then "🎁 " .. Text.t("onboarding.goals.note_server")
+			else Text.t("onboarding.goals.note_local")
 		summary.Text = Goals.summary(goals)
 		rows.sync(Goals.sorted(goals))
 		local quests, resets = Goals.quests(state.dailyQuests)
@@ -352,7 +355,14 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		daily.instance.Parent = if ready then list else nil
 		if ready then
 			local amount = if type(reward.amount) == "number" then Format.formatCash(reward.amount) else ""
-			paintRow(daily, GoalsPanel.DAILY_TITLE, false, 1, `Ready to claim {amount}`, nil)
+			paintRow(
+				daily,
+				Text.t(GoalsPanel.DAILY_TITLE),
+				false,
+				1,
+				Text.t("onboarding.goals.daily_ready_claim", { amount = amount }),
+				nil
+			)
 		end
 		goalHeader.Parent = if #goals > 0 then list else nil
 		headerReset.Text = resets

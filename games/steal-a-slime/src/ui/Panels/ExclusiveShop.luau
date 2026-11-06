@@ -34,6 +34,7 @@ local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
 local ShopPreview = require(UI.ShopPreview)
 local SlimePreview = require(UI.SlimePreview)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -95,6 +96,21 @@ ExclusiveShop.STYLE = table.freeze({
 	friendW = 70, -- the Friend chip on a row
 })
 
+-- The Strings key of each tab's name (Config.EXCLUSIVE_SHOP.tabs); a tab missing here shows its key.
+ExclusiveShop.TAB_KEYS = table.freeze({
+	Featured = "shop.exclusive.tab.featured",
+	Clouds = "shop.exclusive.tab.clouds",
+	Style = "shop.exclusive.tab.style",
+	Perks = "shop.exclusive.tab.perks",
+	Boosts = "shop.exclusive.tab.boosts",
+})
+
+-- Tab `key`'s name in the player's language.
+function ExclusiveShop.tabName(key: string): string
+	local textKey = (ExclusiveShop.TAB_KEYS :: any)[key]
+	return if textKey then Text.t(textKey) else key
+end
+
 -- The largest tab text size up to STYLE.tabText at which every tab name fits a `tabW` px tab (pure; tests).
 function ExclusiveShop.tabTextSize(tabs: { string }, tabW: number): number
 	local S = ExclusiveShop.STYLE
@@ -137,7 +153,7 @@ end
 
 function ExclusiveShop.new(parent: Instance, ctx: any)
 	local Config = ctx.Config
-	local panel = Widgets.panel(parent, "ExclusiveShopPanel", "Exclusive shop", "👑")
+	local panel = Widgets.panel(parent, "ExclusiveShopPanel", Text.t(ExclusiveShopView.TITLE), "👑")
 	local c = Layout.PANEL_CHROME
 	local icons = ItemIcons.of(ctx);
 	(panel.icon.Parent :: Frame).BackgroundColor3 = Theme.Gold
@@ -169,7 +185,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 
 	local empty = Widgets.label({
 		Name = "Empty",
-		Text = ExclusiveShopView.EMPTY,
+		Text = Text.t(ExclusiveShopView.EMPTY),
 		TextColor3 = Theme.Muted,
 		TextSize = Layout.MIN_TEXT,
 		TextWrapped = true,
@@ -242,7 +258,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local button = Widgets.button(
 			{
 				Name = `Tab_{key}`,
-				Text = key,
+				Text = ExclusiveShop.tabName(key),
 				TextSize = STYLE.tabText,
 				Size = UDim2.fromOffset(0, STYLE.tabH),
 				Visible = false,
@@ -294,7 +310,11 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local n = #tabs
 		-- equal tabs across the body; the last one takes the floored remainder so the row ends at the edge
 		local tabW = math.floor((bodyW - STYLE.tabGap * (n - 1)) / n)
-		local tabText = ExclusiveShop.tabTextSize(tabs, tabW)
+		local names = {}
+		for _, key in tabs do
+			table.insert(names, ExclusiveShop.tabName(key))
+		end
+		local tabText = ExclusiveShop.tabTextSize(names, tabW)
 		for i, key in tabs do
 			local b = tabButtons[key].instance
 			local x = (i - 1) * (tabW + STYLE.tabGap)
@@ -338,7 +358,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			Parent = frame,
 		}, { Widgets.corner(KIT.radius) :: Instance, Widgets.stroke(Theme.Ink, KIT.rowStroke) })
 		local icon = ItemIconView.new({ Name = "CardIcon", Id = card.icon, Size = STYLE.iconMax, Parent = well }, icons)
-		local name = Widgets.label({
+		local name = Widgets.fitText(Widgets.label({
 			Name = "CardName",
 			Font = Theme.Font,
 			TextSize = STYLE.name,
@@ -347,7 +367,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			Parent = frame,
-		})
+		}))
 		local tag = Widgets.chip({
 			Name = "Tag",
 			TextSize = STYLE.tag,
@@ -481,10 +501,10 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		})
 	end
 	local boughtTitle = paneLabel("BoughtTitle", STYLE.boughtText, Theme.Good, Theme.Font)
-	boughtTitle.Text = ExclusiveShopView.BOUGHT
+	boughtTitle.Text = Text.t(ExclusiveShopView.BOUGHT)
 	local exclusiveTag = Widgets.chip({
 		Name = "Exclusive",
-		Text = ExclusiveShopView.EXCLUSIVE,
+		Text = Text.t(ExclusiveShopView.EXCLUSIVE),
 		TextSize = STYLE.tag,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Size = UDim2.fromOffset(0, STYLE.tagH),
@@ -497,7 +517,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	local detailsButton = Widgets.button(
 		{
 			Name = "Details",
-			Text = ExclusiveShopView.DETAILS,
+			Text = Text.t(ExclusiveShopView.DETAILS),
 			TextSize = STYLE.buttonText,
 			Size = UDim2.fromOffset(0, STYLE.button),
 		},
@@ -535,16 +555,16 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		for i, line in effect do
 			cell(`Effect{i}`, line, Theme.Text, Enum.TextXAlignment.Left)
 		end
-		cell("HeadName", "Rarity", Theme.Muted, Enum.TextXAlignment.Left)
-		cell("HeadBase", "Now", Theme.Muted, Enum.TextXAlignment.Right)
-		cell("HeadBoost", "Potion", Theme.Good, Enum.TextXAlignment.Right)
+		cell("HeadName", Text.t("shop.exclusive.odds_rarity"), Theme.Muted, Enum.TextXAlignment.Left)
+		cell("HeadBase", Text.t("shop.exclusive.odds_now"), Theme.Muted, Enum.TextXAlignment.Right)
+		cell("HeadBoost", Text.t("shop.exclusive.odds_potion"), Theme.Good, Enum.TextXAlignment.Right)
 		for i, row in rows do
 			local rgb = Config.RARITIES[row.tier] and Config.RARITIES[row.tier].color
 			cell(`Name{i}`, row.name, Widgets.color3(rgb), Enum.TextXAlignment.Left)
 			cell(`Base{i}`, row.base, Theme.Text, Enum.TextXAlignment.Right)
 			cell(`Boost{i}`, row.boosted, Theme.Good, Enum.TextXAlignment.Right)
 		end
-		local note = cell("Note", ExclusiveShopView.ODDS_NOTE, Theme.Muted, Enum.TextXAlignment.Left)
+		local note = cell("Note", Text.t(ExclusiveShopView.ODDS_NOTE), Theme.Muted, Enum.TextXAlignment.Left)
 		note.FontFace = Theme.FontBody
 		note.TextWrapped = true
 		note.TextTruncate = Enum.TextTruncate.None
@@ -583,7 +603,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			y += STYLE.oddsRowH + 2
 		end
 		local note = box:FindFirstChild("Note") :: TextLabel
-		local noteH = math.ceil(Layout.wrappedHeight(ExclusiveShopView.ODDS_NOTE, STYLE.text, w))
+		local noteH = math.ceil(Layout.wrappedHeight(note.Text, STYLE.text, w))
 		note.Position = UDim2.fromOffset(STYLE.oddsPad, y + 4)
 		note.Size = UDim2.fromOffset(w, noteH)
 		return y + 4 + noteH + STYLE.oddsPad
@@ -615,7 +635,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	local equipButton = Widgets.button(
 		{
 			Name = "Equip",
-			Text = ExclusiveShopView.EQUIP,
+			Text = Text.t(ExclusiveShopView.EQUIP),
 			TextSize = STYLE.buttonText,
 			Size = UDim2.fromOffset(0, STYLE.button),
 		},
@@ -631,6 +651,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	local unequipButton = Widgets.button(
 		{
 			Name = "Unequip",
+			Text = "",
 			TextSize = STYLE.buttonText,
 			Size = UDim2.fromOffset(0, STYLE.button),
 		},
@@ -646,6 +667,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	local giftButton = Widgets.button(
 		{
 			Name = "Gift",
+			Text = "",
 			TextSize = STYLE.buttonText,
 			Size = UDim2.fromOffset(0, STYLE.button),
 		},
@@ -702,6 +724,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	local function pickerLabel(name: string, size: number, color: Color3, font: any): TextLabel
 		return Widgets.label({
 			Name = name,
+			Text = "",
 			[Widgets.fontKey(font)] = font,
 			TextSize = size,
 			TextColor3 = color,
@@ -715,12 +738,12 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	local pickerTitle = pickerLabel("GiftTitle", STYLE.title, Theme.Text, Theme.Font)
 	local pickerText = pickerLabel("GiftMessage", STYLE.text, Theme.Muted, Theme.FontBody)
 	local pickerEmpty = pickerLabel("GiftEmpty", STYLE.text, Theme.Muted, Theme.FontBody)
-	pickerEmpty.Text = ExclusiveShopView.GIFT_EMPTY
+	pickerEmpty.Text = Text.t(ExclusiveShopView.GIFT_EMPTY)
 	local playerList = create("Frame", { Name = "GiftList", BackgroundTransparency = 1, Parent = pickerFrame })
 	local backButton = Widgets.button(
 		{
 			Name = "GiftBack",
-			Text = ExclusiveShopView.BACK,
+			Text = Text.t(ExclusiveShopView.BACK),
 			TextSize = STYLE.buttonText,
 			Size = UDim2.fromOffset(0, STYLE.button),
 		},
@@ -739,11 +762,13 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			end
 		end
 
+	-- The server's reason for a refused gift (a string or a Localize message) in the player's language.
 	local function refusedText(result: any): string?
 		if type(result) == "table" and result.ok == false then
-			return if type(result.message) == "string" and result.message ~= ""
-				then result.message
-				else ExclusiveShopView.GIFT_REFUSED
+			local message = result.message
+			return if (type(message) == "string" and message ~= "") or type(message) == "table"
+				then Text.text(message)
+				else Text.t(ExclusiveShopView.GIFT_REFUSED)
 		end
 		return nil
 	end
@@ -804,7 +829,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		})
 		local friend = Widgets.chip({
 			Name = "FriendTag",
-			Text = ExclusiveShopView.FRIEND,
+			Text = Text.t(ExclusiveShopView.FRIEND),
 			TextSize = STYLE.tag,
 			AutomaticSize = Enum.AutomaticSize.None,
 			AnchorPoint = Vector2.new(1, 0.5),
@@ -839,13 +864,15 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		-- the sheet's X sits over the top-right corner
 		local titleW = if wide() then inner else math.max(inner - STYLE.sheetX - 4, 1)
 		local y = STYLE.pad
-		local verb = if p.gift.mode == "send" then ExclusiveShopView.SEND_GIFT else ExclusiveShopView.GIFT
-		pickerTitle.Text = `{verb}: {p.title}`
+		pickerTitle.Text = Text.t(
+			if p.gift.mode == "send" then "shop.exclusive.send_gift_title" else "shop.exclusive.gift_title",
+			{ item = p.title }
+		)
 		local titleH = math.ceil(Layout.wrappedHeight(pickerTitle.Text, STYLE.title, titleW, true))
 		pickerTitle.Position = UDim2.fromOffset(STYLE.pad, y)
 		pickerTitle.Size = UDim2.fromOffset(titleW, titleH)
 		y += titleH + 4
-		local message = pickerMessage or ExclusiveShopView.GIFT_HINT
+		local message = pickerMessage or Text.t(ExclusiveShopView.GIFT_HINT)
 		pickerText.Text = message
 		pickerText.TextColor3 = if pickerMessage then Theme.Text else Theme.Muted
 		local textH = math.ceil(Layout.wrappedHeight(message, STYLE.text, inner))
@@ -855,7 +882,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local list = ExclusiveShopView.giftTargets(if ctx.giftPlayers then ctx.giftPlayers() else {}, ctx.userId)
 		pickerEmpty.Visible = #list == 0
 		if #list == 0 then
-			local emptyH = math.ceil(Layout.wrappedHeight(ExclusiveShopView.GIFT_EMPTY, STYLE.text, inner))
+			local emptyH = math.ceil(Layout.wrappedHeight(pickerEmpty.Text, STYLE.text, inner))
 			pickerEmpty.Position = UDim2.fromOffset(STYLE.pad, y)
 			pickerEmpty.Size = UDim2.fromOffset(inner, emptyH)
 			y += emptyH + 8
@@ -929,7 +956,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local isBought = bought[detail.key] == true and (detail.state == "owned" or detail.state == "equipped")
 		boughtTitle.Visible = isBought
 		if isBought then
-			put(boughtTitle, STYLE.boughtText, ExclusiveShopView.BOUGHT, true, 2)
+			put(boughtTitle, STYLE.boughtText, Text.t(ExclusiveShopView.BOUGHT), true, 2)
 		end
 		exclusiveTag.Visible = detail.exclusive
 		if detail.exclusive then
@@ -937,7 +964,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			y += STYLE.tagH + 6
 		end
 		put(paneTitle, STYLE.title, detail.title, true, 4)
-		local text = if isBought and detail.kind == "seat" then ExclusiveShopView.BOUGHT_SEAT else detail.text
+		local text = if isBought and detail.kind == "seat" then Text.t(ExclusiveShopView.BOUGHT_SEAT) else detail.text
 		put(paneText, STYLE.text, text, false, 6)
 		local showPrice = detail.priceText ~= "" and (detail.state == "buy" or detail.state == "offsale")
 		put(price, STYLE.price, if showPrice then detail.priceText else "", true, 6)
@@ -948,7 +975,9 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			odds.Visible = false
 		end
 		if hasOdds then
-			detailsButton.setText(if detailsOpen then ExclusiveShopView.HIDE_DETAILS else ExclusiveShopView.DETAILS)
+			detailsButton.setText(
+				Text.t(if detailsOpen then ExclusiveShopView.HIDE_DETAILS else ExclusiveShopView.DETAILS)
+			)
 			detailsButton.instance.Position = UDim2.fromOffset(STYLE.pad, y)
 			detailsButton.instance.Size = UDim2.fromOffset(inner, STYLE.button)
 			y += STYLE.button + 8
@@ -977,8 +1006,8 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local ownedWell = action.kind == "equip" and not canEquip -- the server can't equip it yet
 		well.Visible = isWaiting or action.kind == "well" or ownedWell
 		well.Text = if isWaiting
-			then ExclusiveShopView.WAITING
-			elseif ownedWell then ExclusiveShopView.OWNED
+			then Text.t(ExclusiveShopView.WAITING)
+			elseif ownedWell then Text.t(ExclusiveShopView.OWNED)
 			else action.text
 		well.TextColor3 = if detail.state == "equipped" then Theme.Good else Theme.Muted
 		for _, inst in { buyButton.instance :: GuiObject, equipButton.instance, well } do
@@ -992,7 +1021,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local showUnequip = unequip ~= nil and hasAction(unequip.request)
 		unequipButton.instance.Visible = showUnequip
 		if showUnequip then
-			unequipButton.setText(detail.unequipText or ExclusiveShopView.UNEQUIP_TRAIL)
+			unequipButton.setText(detail.unequipText or Text.t(ExclusiveShopView.UNEQUIP_TRAIL))
 			unequipButton.instance.Position = UDim2.fromOffset(STYLE.pad, y)
 			unequipButton.instance.Size = UDim2.fromOffset(inner, STYLE.button)
 			y += STYLE.button + 8
@@ -1002,7 +1031,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		giftButton.instance.Visible = showGift
 		if gift and showGift then
 			local giftWait = giftWaiting == detail.key
-			giftButton.setText(if giftWait then ExclusiveShopView.WAITING else gift.text)
+			giftButton.setText(if giftWait then Text.t(ExclusiveShopView.WAITING) else gift.text)
 			giftButton.setEnabled(giftUsable(gift) and not giftWait)
 			giftButton.instance:SetAttribute("Mode", gift.mode)
 			giftButton.instance.Position = UDim2.fromOffset(STYLE.pad, y)
@@ -1092,7 +1121,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			button.instance:SetAttribute("Selected", key == tab)
 		end
 		if not on then
-			empty.Text = ExclusiveShopView.EMPTY
+			empty.Text = Text.t(ExclusiveShopView.EMPTY)
 			empty.Visible = true
 			empty.Position = UDim2.fromOffset(0, 0)
 			grid.Visible = false
@@ -1110,7 +1139,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		selected = ExclusiveShopView.firstSelected(list, selected)
 		summary.Visible = tab == "Clouds"
 		summary.Text = ExclusiveShopView.ownedSummary(latest, Config)
-		empty.Text = ExclusiveShopView.EMPTY_TAB
+		empty.Text = Text.t(ExclusiveShopView.EMPTY_TAB)
 		empty.Visible = #list == 0
 		grid.Visible = #list > 0
 		if not open then

@@ -24,9 +24,11 @@ local Layout = require(UI.Layout)
 local Progress = require(UI.Progress)
 local SlimeDex = require(UI.SlimeDex)
 local SlimePreview = require(UI.SlimePreview)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config") :: any)
 local FountainTiers = require(Shared:WaitForChild("FountainTiers") :: any)
 local MergeGate = require(Shared:WaitForChild("MergeGate") :: any)
 local Perks = require(Shared:WaitForChild("Perks") :: any)
@@ -103,50 +105,64 @@ Rebirth.TEXT = table.freeze({
 	statValueSize = 22,
 })
 
-Rebirth.COPY = table.freeze({
-	head = "Bring these",
-	button = "Hold to rebirth",
-	usedUp = "Used up on rebirth",
-	getOne = "Catch or merge one",
-	byMerge = "Obtained by merge (see SlimeDex)", -- a missing merge-only slime (SlimeRoster kind "hybrid")
-	brewing = "Brewing in the vat",
-	missing = "Missing",
-	nextTitle = "Next rebirth",
-	maxTitle = "Max rebirth",
-	nowLabel = "Now · Rebirth",
-	nextLabel = "After Rebirth",
-	keepTitle = "You keep",
-	resetTitle = "Resets",
-	keep = "Other slimes, pads, upgrades, rank",
-	keepAll = "Your slimes, pads, upgrades, rank",
-	reset = "Your cash and the slimes above",
-	resetCash = "Your cash",
-	lockMax = "Lock time is maxed",
-	newTitle = "A new title",
-	crownSub = "You finished every rebirth.",
-	maxed = "All rebirths done",
+-- The panel's fixed copy, as Strings keys (Strings/Collection); drawn with copy(name).
+Rebirth.KEYS = table.freeze({
+	head = "collection.rebirth.head",
+	button = "collection.rebirth.button",
+	usedUp = "collection.rebirth.used_up",
+	getOne = "collection.rebirth.get_one",
+	byMerge = "collection.rebirth.by_merge", -- a missing merge-only slime (SlimeRoster kind "hybrid")
+	brewing = "collection.rebirth.brewing",
+	missing = "collection.rebirth.missing",
+	nextTitle = "collection.rebirth.next_title",
+	maxTitle = "collection.rebirth.max_title",
+	nowLabel = "collection.rebirth.now_label",
+	nextLabel = "collection.rebirth.next_label",
+	keepTitle = "collection.rebirth.keep_title",
+	resetTitle = "collection.rebirth.reset_title",
+	keep = "collection.rebirth.keep",
+	keepAll = "collection.rebirth.keep_all",
+	reset = "collection.rebirth.reset",
+	resetCash = "collection.rebirth.reset_cash",
+	lockMax = "collection.rebirth.lock_max",
+	newTitle = "collection.rebirth.new_title",
+	crownSub = "collection.rebirth.crown_sub",
+	maxed = "collection.rebirth.maxed",
+	notReady = "collection.rebirth.not_ready",
 })
+
+-- The same copy in English, from the catalog (what LayoutAssert measures and the specs compare).
+local english: { [string]: string } = {}
+for name, key in Rebirth.KEYS do
+	english[name] = Text.catalog.byKey[key].source
+end
+Rebirth.COPY = table.freeze(english)
+
+-- The copy `name` (a Rebirth.KEYS entry) in the player's language.
+local function copy(name: string): string
+	return Text.t(Rebirth.KEYS[name])
+end
 
 -- "1 of 3 ready": the cash counts as one need, each slime as one more.
 function Rebirth.countText(ready: number, total: number): string
-	return `{ready} of {total} ready`
+	return Text.t("collection.rebirth.count", { ready = ready, total = total })
 end
 
 -- The panel title for a player at `rebirths`: the rebirth they get next, or the last one once all are done.
 function Rebirth.titleText(rebirths: number, maxed: boolean): string
-	return if maxed then `{Rebirth.COPY.maxTitle}: {rebirths}` else `{Rebirth.COPY.nextTitle}: {rebirths + 1}`
+	return if maxed then `{copy("maxTitle")}: {rebirths}` else `{copy("nextTitle")}: {rebirths + 1}`
 end
 
 -- The hero's two labels: the rebirth you are on and the one you get.
 function Rebirth.heroLabels(rebirths: number): (string, string)
-	return `{Rebirth.COPY.nowLabel} {rebirths}`, `{Rebirth.COPY.nextLabel} {rebirths + 1}`
+	return `{copy("nowLabel")} {rebirths}`, `{copy("nextLabel")} {rebirths + 1}`
 end
 
 -- The two wells under the checklist: what stays and what the rebirth resets. Cash waiting on the cash pads
 -- stays on them (contract/cash-pads.md).
 function Rebirth.keepText(slimes: number): (string, string)
-	local keep = if slimes == 0 then Rebirth.COPY.keepAll else Rebirth.COPY.keep
-	return keep, if slimes == 0 then Rebirth.COPY.resetCash else Rebirth.COPY.reset
+	local keep = if slimes == 0 then copy("keepAll") else copy("keep")
+	return keep, if slimes == 0 then copy("resetCash") else copy("reset")
 end
 
 local function capitalise(text: string): string
@@ -162,7 +178,39 @@ export type RankView = {
 	title: string,
 	desc: string,
 	income: string?, -- "+5% income": the rank's income bonus, only when `up`
+	incomeBonus: string?, -- "+5%", the same bonus as a number (the rank bonus chip)
 }
+
+-- A rank's title in the player's language (Config.REBIRTH_TIERS has no ids: keyed by the English title).
+local function tierTitle(tier: any): string
+	return Text.data("rebirthTier", tier.title, "title", tier.title)
+end
+
+-- The rarities a rank opens to merges ("Rare and Epic"), as MergeGate.opensAt counts them; nil when none.
+local function opensText(rank: any): string?
+	if MergeGate.opensAt(rank) == nil then
+		return nil
+	end
+	local names = {}
+	for tier = MergeGate.topTier(rank.rebirths - 1) + 1, math.min(rank.merge, Config.MAX_TIER) do
+		local name = Config.RARITIES[tier].name
+		table.insert(names, Text.data("rarity", name, "name", name))
+	end
+	local out = names[#names]
+	for i = #names - 1, 1, -1 do
+		out = Text.t(
+			if i == #names - 1 then "collection.rebirth.list_and" else "collection.rebirth.list_comma",
+			{ first = names[i], rest = out }
+		)
+	end
+	return out
+end
+
+-- The upgrade a rank unlocks, by name.
+local function upgradeText(id: string): string
+	local def = Perks.upgradeDef(id)
+	return Text.data("upgrade", id, "name", if def then def.name else id)
+end
 
 -- The rank row for a player at `rebirths` (pure): the rank the next rebirth reaches, else the next one
 -- ahead; nil past the last rank.
@@ -173,37 +221,61 @@ function Rebirth.rank(rebirths: number, tiers: { any }): RankView?
 			reached = tier
 		end
 	end
+	-- What a rank does, as one sentence: the key names its parts in order ("rank_up_unlock_merges").
 	if reached then
-		local parts = {}
+		local parts, args = {}, {}
 		if reached.unlock then
-			local def = Perks.upgradeDef(reached.unlock)
-			table.insert(parts, `unlocks the {if def then def.name else reached.unlock} upgrade`)
+			table.insert(parts, "unlock")
+			args.upgrade = upgradeText(reached.unlock)
 		end
-		local merges = MergeGate.opensAt(reached)
+		local merges = opensText(reached)
 		if merges then
-			table.insert(parts, `opens {merges} merges`)
+			table.insert(parts, "merges")
+			args.rarities = merges
 		end
 		local family = FountainTiers.family(reached.family)
 		if family then
 			local look = FountainTiers.LOOKS[family.tier]
-			table.insert(parts, `grows the {if look then look.name else family.name}`)
+			table.insert(parts, "grows")
+			args.fountain = if look
+				then Text.data("fountainLook", family.tier, "name", look.name)
+				else Text.data("fountainTier", family.id, "name", family.name)
 		end
+		local bonus = if reached.income then percent(reached.income) else nil
 		return {
 			up = true,
-			title = `New rank: {reached.title}`,
-			desc = if #parts > 0 then capitalise(table.concat(parts, ", ")) else Rebirth.COPY.newTitle,
-			income = if reached.income then `{percent(reached.income)} income` else nil,
+			title = Text.t("collection.rebirth.rank_new", { rank = tierTitle(reached) }),
+			desc = if #parts > 0
+				then Text.t(`collection.rebirth.rank_up_{table.concat(parts, "_")}`, args)
+				else copy("newTitle"),
+			income = if bonus then Text.t("collection.rebirth.income", { percent = bonus }) else nil,
+			incomeBonus = bonus,
 		}
 	end
 	local ahead = Perks.nextTier(rebirths)
 	if not ahead then
 		return nil
 	end
-	local what = Perks.tierText(ahead)
+	local parts, args = {}, { rank = tierTitle(ahead) }
+	if ahead.unlock then
+		table.insert(parts, "unlock")
+		args.upgrade = upgradeText(ahead.unlock)
+	end
+	if ahead.income then
+		table.insert(parts, "income")
+		args.income = percent(ahead.income)
+	end
+	local merges = opensText(ahead)
+	if merges then
+		table.insert(parts, "merges")
+		args.rarities = merges
+	end
 	return {
 		up = false,
-		title = `Next rank at Rebirth {ahead.rebirths}`,
-		desc = if what ~= "" then `{ahead.title}: {what}` else ahead.title,
+		title = Text.t("collection.rebirth.rank_ahead", { need = ahead.rebirths }),
+		desc = if #parts > 0
+			then Text.t(`collection.rebirth.rank_next_{table.concat(parts, "_")}`, args)
+			else args.rank,
 		income = nil,
 	}
 end
@@ -255,11 +327,10 @@ function Rebirth.plan(slimes: number, withRank: boolean): Plan
 end
 
 function Rebirth.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "RebirthPanel", "Rebirth", "♻️")
+	local panel = Widgets.panel(parent, "RebirthPanel", Text.t("collection.rebirth.title"), "♻️")
 	local R = Rebirth.ROWS
 	local C = Rebirth.CARD
 	local T = Rebirth.TEXT
-	local COPY = Rebirth.COPY
 	-- Scrolls only when the card is shorter than the content (landscape phones); a fixed canvas per layout.
 	local content = Widgets.scroll({
 		Name = "Content",
@@ -397,7 +468,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 	-- Checklist head.
 	local head = text({
 		Name = "Head",
-		Text = COPY.head,
+		Text = copy("head"),
 		Font = Theme.Font,
 		TextSize = T.headSize,
 		Size = UDim2.new(0.5, 0, 0, R.head),
@@ -504,7 +575,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		})
 		local state = stateChip(frame)
 		state.Name = "SlimeState"
-		state.Text = COPY.missing
+		state.Text = copy("missing")
 		state.TextColor3 = Theme.Bad
 		slimeRows[i] = {
 			frame = frame,
@@ -565,10 +636,10 @@ function Rebirth.new(parent: Instance, ctx: any)
 		row.name.TextColor3 = if slime.owned then Theme.Text else Theme.Muted
 		local entry = SlimeRoster.get(slime.id)
 		row.desc.Text = if slime.brewing
-			then COPY.brewing
-			elseif slime.owned then COPY.usedUp
-			elseif entry and entry.kind == "hybrid" then COPY.byMerge
-			else COPY.getOne
+			then copy("brewing")
+			elseif slime.owned then copy("usedUp")
+			elseif entry and entry.kind == "hybrid" then copy("byMerge")
+			else copy("getOne")
 		row.state.Visible = not slime.owned
 		setTick(row.frame, slime.owned and not slime.brewing)
 		showSlime(row, slime)
@@ -611,8 +682,8 @@ function Rebirth.new(parent: Instance, ctx: any)
 			Parent = box,
 		})
 	end
-	local keepBody = keepWell("Kept", COPY.keepTitle, Theme.Good, UDim.new(0, 0))
-	local resetBody = keepWell("Reset", COPY.resetTitle, Theme.Bad, UDim.new(0.5, 4))
+	local keepBody = keepWell("Kept", copy("keepTitle"), Theme.Good, UDim.new(0, 0))
+	local resetBody = keepWell("Reset", copy("resetTitle"), Theme.Bad, UDim.new(0.5, 4))
 
 	-- Until every need is met: a sunken well saying what is missing, no button.
 	local reasonLine = Widgets.status({
@@ -623,15 +694,15 @@ function Rebirth.new(parent: Instance, ctx: any)
 	})
 	local btn: any
 	-- Until the next State: the reason the server refused the hold, in place of the button.
-	local function showRefusal(message: string)
-		reasonLine.Text = capitalise(message)
+	local function showRefusal(message: any)
+		reasonLine.Text = capitalise(Text.text(message))
 		reasonLine.Visible = true
 		btn.instance.Visible = false
 	end
 	btn = Widgets.holdButton(
 		{
 			Name = "RebirthButton",
-			Text = COPY.button,
+			Text = copy("button"),
 			Visible = false,
 			Size = UDim2.new(1, 0, 0, Layout.BUTTON),
 			TextSize = T.buttonSize,
@@ -640,7 +711,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		function()
 			ctx.ask("Rebirth", function(result: any)
 				if type(result) == "table" and result.ok == false then
-					showRefusal(if type(result.message) == "string" then result.message else "Not ready yet")
+					showRefusal(if result.message ~= nil then result.message else copy("notReady"))
 				end
 			end)
 		end,
@@ -681,7 +752,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		})
 		text({
 			Name = "CrownSub",
-			Text = COPY.crownSub,
+			Text = copy("crownSub"),
 			TextSize = 15,
 			TextColor3 = Theme.Muted,
 			TextXAlignment = Enum.TextXAlignment.Center,
@@ -722,9 +793,9 @@ function Rebirth.new(parent: Instance, ctx: any)
 		return {
 			frame = crown,
 			title = crownTitle,
-			rebirths = stat("Rebirths", "rebirths", 1),
-			income = stat("Income", "income", 2),
-			rank = stat("RankBonus", "rank bonus", 3),
+			rebirths = stat("Rebirths", Text.t("collection.rebirth.stat_rebirths"), 1),
+			income = stat("Income", Text.t("collection.rebirth.stat_income"), 2),
+			rank = stat("RankBonus", Text.t("collection.rebirth.stat_rank"), 3),
 		}
 	end
 
@@ -755,10 +826,14 @@ function Rebirth.new(parent: Instance, ctx: any)
 		nextValue.Text = Format.formatMultiplier(nextUp.multiplier)
 		nextValue.TextStrokeTransparency = 0
 		perks.Position = UDim2.fromOffset(0, plan.perksY)
-		lockChip.Text = if nextUp.lockGain > 0 then `+{nextUp.lockGain}s lock time` else COPY.lockMax
+		lockChip.Text = if nextUp.lockGain > 0
+			then Text.t("collection.rebirth.lock_gain", { seconds = nextUp.lockGain })
+			else copy("lockMax")
 		lockChip.TextColor3 = if nextUp.lockGain > 0 then Theme.Good else Theme.Muted
 		rankChip.Visible = rank ~= nil and rank.income ~= nil
-		rankChip.Text = if rank and rank.income then `Rank bonus {rank.income}` else ""
+		rankChip.Text = if rank and rank.incomeBonus
+			then Text.t("collection.rebirth.rank_bonus", { percent = rank.incomeBonus })
+			else ""
 
 		-- Rank row.
 		rankRow.Visible = rank ~= nil
@@ -817,7 +892,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 			local card = crownCard or buildCrown()
 			crownCard = card
 			card.frame.Visible = true
-			card.title.Text = Perks.title(rebirths)
+			card.title.Text = tierTitle(Perks.tier(rebirths))
 			card.rebirths.Text = tostring(rebirths)
 			card.income.Text = Format.formatMultiplier(nextUp.current)
 			card.rank.Text = percent(Perks.rankIncomeBonus(rebirths))

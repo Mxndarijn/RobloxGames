@@ -11,6 +11,14 @@ local ServerFixtures = require("./ServerFixtures")
 local Snapshot = require("../src/server/Snapshot")
 local TestRunner = require("./TestRunner")
 
+local Localize = require("../../../shared/luau/src/locale/Localize")
+local Strings = require("../src/shared/Strings")
+
+-- The perk text is a Localize message; its English is what a player reads in English.
+local function english(message: any): string
+	return Localize.english(Strings.catalog, message)
+end
+
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
 
@@ -29,10 +37,10 @@ describe("Perks.petPassive", function()
 		local income = Perks.petPassive(withFav(Fixtures.slime("a", 2)))
 		expect(income and income.kind).toBe("income")
 		expect(income and income.value).toBe(0.02)
-		expect(income and income.text).toBe("+2% income")
+		expect(income and english(income.text)).toBe("+2% income")
 		local luck = Perks.petPassive(withFav(Fixtures.slime("a", 3)))
 		expect(luck and luck.kind).toBe("luck")
-		expect(luck and luck.text).toBe("+3% luck")
+		expect(luck and english(luck.text)).toBe("+3% luck")
 		local top = Perks.petPassive(withFav(Fixtures.slime("a", 5)))
 		expect(top and top.kind).toBe("income")
 		expect(top and top.value).toBe(0.05)
@@ -73,7 +81,7 @@ describe("applied server-side", function()
 		expect(Snapshot.build(world, s, T0).petPerk).toBe(nil)
 		s.data.favoriteId = "a"
 		local perk = Snapshot.build(world, s, T0).petPerk
-		expect(perk and perk.text).toBe("+3% luck")
+		expect(perk and english(perk.text)).toBe("+3% luck")
 		-- the client only sends a slime id (Favorite); the value is derived from owned data
 		expect(PlayerData.setFavorite(s.data, "not-mine")).toBe(false)
 		expect(Snapshot.build(world, s, T0).petPerk and true).toBe(true)

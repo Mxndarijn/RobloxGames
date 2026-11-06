@@ -29,6 +29,7 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local LabelFit = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
+local TaggedText = require(Shared:WaitForChild("TaggedText"))
 local Visuals = ReplicatedStorage:WaitForChild("Visuals")
 local Look = require(Visuals:WaitForChild("HomePlotMarker"))
 local ObbyLook = require(Visuals:WaitForChild("ObbyLook"))
@@ -350,7 +351,8 @@ local function buildArrow(): ScreenGui?
 	local A = HomePlotMarker.ARROW
 	local frame = homeBadge(gui, A.badge)
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
-	local label = outlined(frame, "Label", "Your plot", A.textSize)
+	local label = outlined(frame, "Label", "", A.textSize)
+	TaggedText.set(label, "Text", "world.marker.your_plot") -- "Your plot", in the player's language
 	label.AnchorPoint = Vector2.new(0.5, 0)
 	label.Position = UDim2.new(0.5, 0, 1, A.gap)
 	label.Size = UDim2.fromOffset(A.textW, A.textH)

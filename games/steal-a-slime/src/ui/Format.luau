@@ -12,6 +12,8 @@ local NumberFormat = if script
 	then require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("NumberFormat") :: any)
 	else require("../shared/NumberFormat")
 
+local Text = if script then require(script.Parent.Text) else require("./Text")
+
 local function trimZero(text: string): string
 	return (string.gsub(text, "%.0$", ""))
 end
@@ -86,8 +88,12 @@ end
 
 -- "Mushroom Meadow" -> "Mushroom meadow" for a title or label (the writing rule: sentence case). Every run
 -- of letters after the first that is a plain capitalised word is lowered ("Auto-Merge" -> "Auto-merge",
--- "Pad's" -> "pad's"); "SlimeDex", "XP" and numbers stay as they are.
+-- "Pad's" -> "pad's"); "SlimeDex", "XP" and numbers stay as they are. English only: another language's text
+-- (German nouns keep their capitals) comes back as its translation wrote it.
 function Format.sentenceCase(text: string): string
+	if string.sub(Text.locale(), 1, 2) ~= "en" then
+		return text
+	end
 	local first = true
 	return (
 		string.gsub(text, "%a+", function(run: string): string

@@ -25,6 +25,7 @@ local Economy = require(ReplicatedStorage.Shared.Economy)
 local MoveWatch = require(script.Parent.MoveWatch)
 local PlotLookup = require(script.Parent.PlotLookup)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
+local WorldText = require(script.Parent.WorldText)
 
 local BaseFloors = {}
 
@@ -37,8 +38,8 @@ export type Context = {
 	drop: ((player: Player, plotIndex: number) -> ())?,
 }
 
-BaseFloors.DROP_ACTION = "Drop down"
-BaseFloors.DROP_OBJECT = "Goo tube"
+BaseFloors.DROP_ACTION = "world.prompt.drop_down" -- "Drop down"
+BaseFloors.DROP_OBJECT = "world.prompt.goo_tube" -- "Goo tube"
 -- The DropPrompt sits on an Attachment this far in from the hatch (toward the jar's centre): its line of sight is
 -- measured to there, clear of the glass the hatch sits in, so a player inside sees it and the DropShield outside the
 -- glass hides it from anyone on the ledge.
@@ -64,8 +65,8 @@ local function addDropPrompts(instances: { Instance }, plotIndex: number, ctx: C
 				anchor.Parent = d
 				local prompt = Instance.new("ProximityPrompt")
 				prompt.Name = Constants.DROP_PROMPT_NAME
-				prompt.ActionText = BaseFloors.DROP_ACTION
-				prompt.ObjectText = BaseFloors.DROP_OBJECT
+				WorldText.set(prompt, "ActionText", BaseFloors.DROP_ACTION)
+				WorldText.set(prompt, "ObjectText", BaseFloors.DROP_OBJECT)
 				prompt.KeyboardKeyCode = Enum.KeyCode.E
 				-- the DropShield outside the glass blocks it, so a player outside the top jar does not see it
 				prompt.RequiresLineOfSight = true

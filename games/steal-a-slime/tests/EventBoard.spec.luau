@@ -8,11 +8,13 @@ local EventBoardView = require("../src/server/EventBoardView")
 local ServerFixtures = require("./ServerFixtures")
 local SlimeRoster = require("../src/shared/SlimeRoster")
 local Spawner = require("../src/server/Spawner")
+local TaggedText = require("../src/shared/TaggedText")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
 local NOW = 1000
+local en = TaggedText.english -- card texts are Localize messages; the specs read their English
 
 -- The card with id `id`, or nil.
 local function row(rows: { EventBoard.Row }, id: string): EventBoard.Row?
@@ -47,39 +49,39 @@ end)
 describe("EventBoard.rows", function()
 	it("names a boss that is here, else counts down to the next one", function()
 		local here = assert(row(EventBoard.rows({ bossHere = "King Goo", bossAt = NOW + 60 }, NOW), "boss"))
-		expect(here.detail).toBe("King Goo is here!")
-		expect(here.time).toBe("NOW")
+		expect(en(here.detail)).toBe("King Goo is here!")
+		expect(en(here.time)).toBe("NOW")
 		expect(here.live).toBe(true)
 		local coming = assert(row(EventBoard.rows({ bossAt = NOW + 125 }, NOW), "boss"))
-		expect(coming.time).toBe("2:05")
+		expect(en(coming.time)).toBe("2:05")
 		expect(coming.live).toBe(false)
 		expect(row(EventBoard.rows({}, NOW), "boss")).toBeNil()
 	end)
 	it("shows a running Slime Rain's time left, else when the next one starts", function()
 		local running = assert(row(EventBoard.rows({ rainEndsAt = NOW + 90, rainAt = NOW + 500 }, NOW), "rain"))
-		expect(running.time).toBe("1:30 left")
+		expect(en(running.time)).toBe("1:30 left")
 		expect(running.live).toBe(true)
-		expect((assert(row(EventBoard.rows({ rainAt = NOW + 600 }, NOW), "rain"))).time).toBe("10:00")
+		expect(en((assert(row(EventBoard.rows({ rainAt = NOW + 600 }, NOW), "rain"))).time)).toBe("10:00")
 		expect(row(EventBoard.rows({}, NOW), "rain")).toBeNil()
 	end)
 	it("never shows the weather", function()
 		expect(EventBoard.rows({}, NOW)).toEqual({})
 		for _, r in EventBoard.rows({ bossAt = NOW + 1, rainAt = NOW + 2, legendaryIn = 3, mythicIn = 4 }, NOW) do
 			expect(r.id ~= "weather").toBe(true)
-			expect(string.find(r.title, "Weather") == nil).toBe(true)
+			expect(string.find(en(r.title), "Weather") == nil).toBe(true)
 		end
 	end)
 	it("gives the guaranteed Legendary and Mythic a card each", function()
 		local rows = EventBoard.rows({ legendaryIn = 125, mythicIn = 600 }, NOW)
-		expect((assert(row(rows, "legendary"))).time).toBe("2:05")
-		expect((assert(row(rows, "mythic"))).time).toBe("10:00")
+		expect(en((assert(row(rows, "legendary"))).time)).toBe("2:05")
+		expect(en((assert(row(rows, "mythic"))).time)).toBe("10:00")
 		expect(row(EventBoard.rows({}, NOW), "legendary")).toBeNil()
 	end)
 	it("shows a running event with its time left when it has an end", function()
 		local event = assert(row(EventBoard.rows({ event = "Double Goo", eventEndsAt = NOW + 300 }, NOW), "event"))
-		expect(event.title).toBe("Double Goo")
-		expect(event.time).toBe("5:00 left")
-		expect((assert(row(EventBoard.rows({ event = "Shiny Week" }, NOW), "event"))).time).toBe("NOW")
+		expect(en(event.title)).toBe("Double Goo")
+		expect(en(event.time)).toBe("5:00 left")
+		expect(en((assert(row(EventBoard.rows({ event = "Shiny Week" }, NOW), "event"))).time)).toBe("NOW")
 	end)
 	it("puts running events first, then the soonest", function()
 		local rows = EventBoard.rows({
@@ -141,7 +143,7 @@ describe("EventBoardView.input", function()
 			expect(input.legendaryIn).toBe(Config.GUARANTEE_SECONDS[5] - 100)
 		end
 		for _, card in EventBoard.rows(input, T0 + 100) do
-			expect(string.find(card.title, "Weather") == nil).toBe(true)
+			expect(string.find(en(card.title), "Weather") == nil).toBe(true)
 		end
 	end)
 	it("names a running admin event and its end", function()

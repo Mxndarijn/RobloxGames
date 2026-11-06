@@ -24,37 +24,27 @@ local Collection = if script then require(script.Collection) else require("@self
 local Menus = if script then require(script.Menus) else require("@self/Menus")
 local World = if script then require(script.World) else require("@self/World")
 local Data = if script then require(script.Data) else require("@self/Data")
+local DataKey = if script then require(script.DataKey) else require("@self/DataKey")
 
 local Strings = {}
 
 -- Area modules, in catalog order, with the key prefix each one owns.
 Strings.AREAS = table.freeze({
-	{ name = "Common", prefix = "common.", defs = Common },
-	{ name = "Hud", prefix = "hud.", defs = Hud },
-	{ name = "Onboarding", prefix = "onboarding.", defs = Onboarding },
-	{ name = "Shop", prefix = "shop.", defs = Shop },
-	{ name = "Collection", prefix = "collection.", defs = Collection },
-	{ name = "Menus", prefix = "menus.", defs = Menus },
-	{ name = "World", prefix = "world.", defs = World },
-	{ name = "Data", prefix = "data.", defs = Data },
+	{ name = "Common", prefix = "common.", defs = Common :: any },
+	{ name = "Hud", prefix = "hud.", defs = Hud :: any },
+	{ name = "Onboarding", prefix = "onboarding.", defs = Onboarding :: any },
+	{ name = "Shop", prefix = "shop.", defs = Shop :: any },
+	{ name = "Collection", prefix = "collection.", defs = Collection :: any },
+	{ name = "Menus", prefix = "menus.", defs = Menus :: any },
+	{ name = "World", prefix = "world.", defs = World :: any },
+	{ name = "Data", prefix = "data.", defs = Data :: any },
 })
 
--- One key part from a data id: anything that is not a letter, digit or underscore becomes "_", and an id
--- that starts with a digit gets an "n" in front (Localize keys start with a letter).
-function Strings.keyPart(id: any): string
-	local part = string.gsub(tostring(id), "[^%w_]", "_")
-	if not string.match(part, "^%a") then
-		part = "n" .. part
-	end
-	return part
-end
+-- Data keys (DataKey): Strings.keyPart(id) and Strings.dataKey(kind, id, field) = "data.<kind>.<id>.<field>".
+Strings.keyPart = DataKey.keyPart
+Strings.dataKey = DataKey.dataKey
 
--- The key of a data field: "data.<kind>.<id>.<field>" (field defaults to "name").
-function Strings.dataKey(kind: string, id: any, field: string?): string
-	return `data.{kind}.{Strings.keyPart(id)}.{field or "name"}`
-end
-
-local groups = {}
+local groups: { any } = {}
 for _, area in Strings.AREAS do
 	table.insert(groups, area.defs)
 end

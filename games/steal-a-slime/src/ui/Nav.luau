@@ -10,18 +10,31 @@
 ]]
 
 -- `item` = the ItemIcons registry id of the tile's picture (B5); `icon` = the plain glyph for text (hint bubbles).
-export type Entry = { key: string, icon: string, label: string, item: string }
+-- `label` = the English label; `text` = its Strings key (the tile draws Text.t(text)).
+export type Entry = { key: string, icon: string, label: string, text: string, item: string }
 
 local Nav = {}
 
 Nav.ENTRIES = table.freeze({
-	table.freeze({ key = "Rebirth", icon = "♻️", label = "Rebirth", item = "Rebirth" }),
-	table.freeze({ key = "Goals", icon = "🎯", label = "Goals", item = "Quest" }),
-	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex", item = "Dex_50" }),
-	table.freeze({ key = "Codes", icon = "🎁", label = "Codes", item = "Gift" }),
-	table.freeze({ key = "Skins", icon = "🏠", label = "Skins", item = "PlotSkin_candy" }),
-	table.freeze({ key = "Leaderboard", icon = "🏆", label = "Leaders", item = "Badge_Millionaire" }),
-	table.freeze({ key = "Settings", icon = "⚙️", label = "Settings", item = "Settings" }),
+	table.freeze({ key = "Rebirth", icon = "♻️", label = "Rebirth", text = "hud.nav.rebirth", item = "Rebirth" }),
+	table.freeze({ key = "Goals", icon = "🎯", label = "Goals", text = "hud.nav.goals", item = "Quest" }),
+	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex", text = "hud.nav.dex", item = "Dex_50" }),
+	table.freeze({ key = "Codes", icon = "🎁", label = "Codes", text = "hud.nav.codes", item = "Gift" }),
+	table.freeze({ key = "Skins", icon = "🏠", label = "Skins", text = "hud.nav.skins", item = "PlotSkin_candy" }),
+	table.freeze({
+		key = "Leaderboard",
+		icon = "🏆",
+		label = "Leaders",
+		text = "hud.nav.leaders",
+		item = "Badge_Millionaire",
+	}),
+	table.freeze({
+		key = "Settings",
+		icon = "⚙️",
+		label = "Settings",
+		text = "hud.nav.settings",
+		item = "Settings",
+	}),
 } :: { Entry })
 
 local function num(value: any): number

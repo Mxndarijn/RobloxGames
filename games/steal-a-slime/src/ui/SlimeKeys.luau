@@ -26,6 +26,8 @@
 	(tests/ui/SlimeKeys.spec.luau). `destroy` removes every prompt it made.
 ]]
 
+local Text = if script then require(script.Parent.Text) else require("./Text")
+
 export type Key = { keyboard: Enum.KeyCode, gamepad: Enum.KeyCode }
 export type KeyNames = { keyboard: string, gamepad: string } -- Enum.KeyCode names (Constants.SLIME_PROMPT_KEYS)
 
@@ -70,7 +72,7 @@ SlimeKeys.FAVORITE_PROMPT = "FavoritePrompt"
 SlimeKeys.SELL_PROMPT = "SellPrompt"
 SlimeKeys.MOVE_PROMPT = "MovePrompt"
 SlimeKeys.HATCH_NOW_PROMPT = "HatchNowPrompt"
-SlimeKeys.MOVE_TEXT = "Move"
+SlimeKeys.MOVE_TEXT = "menus.slime_keys.move" -- a catalog key
 SlimeKeys.PAD_STATE = "Pad"
 
 -- The Enum.KeyCode pair named by `names` (an entry of Constants.SLIME_PROMPT_KEYS).
@@ -126,10 +128,15 @@ function SlimeKeys.labels(id: string, name: string, isEgg: boolean, state: any, 
 	local perk = if isFav and type(state.petPerk) == "table" then state.petPerk else nil
 	return {
 		favorite = {
-			action = if isFav then "Unfavorite" else "Favorite",
-			object = if perk then `{perk.icon} {perk.text}` else name,
+			action = Text.t(if isFav then "menus.slime_keys.unfavorite" else "menus.slime_keys.favorite"),
+			object = if perk then `{perk.icon} {Text.text(perk.text)}` else name,
 		},
-		sell = { action = if price then `Sell {formatCash(price)}` else "Sell", object = "" },
+		sell = {
+			action = if price
+				then Text.t("menus.slime_keys.sell_price", { price = formatCash(price) })
+				else Text.t("menus.slime_keys.sell"),
+			object = "",
+		},
 	}
 end
 
@@ -166,6 +173,8 @@ function SlimeKeys.start(opts: Options): Handle
 	): (ProximityPrompt, RBXScriptConnection)
 		local prompt = opts.newPrompt()
 		prompt.Name = name
+		-- its texts are set in the player's language (ui/Text): Roblox must not translate them again
+		prompt.AutoLocalize = false
 		prompt.KeyboardKeyCode = key.keyboard
 		prompt.GamepadKeyCode = key.gamepad
 		prompt.HoldDuration = hold
@@ -201,7 +210,7 @@ function SlimeKeys.start(opts: Options): Handle
 			entry.triggers.hatchNow = conn
 		end
 		local prompt = entry.hatchNow :: ProximityPrompt
-		prompt.ActionText = q.text
+		prompt.ActionText = Text.text(q.text)
 		prompt.ObjectText = nameOf(body)
 	end
 
@@ -295,7 +304,7 @@ function SlimeKeys.start(opts: Options): Handle
 					onMove(id, model)
 				end
 			end)
-			prompt.ActionText = SlimeKeys.MOVE_TEXT
+			prompt.ActionText = Text.t(SlimeKeys.MOVE_TEXT)
 			prompt.ObjectText = ""
 			entry.move = prompt
 			entry.triggers.move = conn

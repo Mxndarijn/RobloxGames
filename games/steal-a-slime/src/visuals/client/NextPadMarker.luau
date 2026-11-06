@@ -17,6 +17,7 @@ local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local HomePlotMarker = require(script.Parent:WaitForChild("HomePlotMarker"))
 local LabelFit = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local Look = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("NextPad"))
+local TaggedText = require(Shared:WaitForChild("TaggedText"))
 
 local NextPadMarker = {}
 
@@ -106,12 +107,13 @@ local function paint(m: Marker, t: Look.Tag)
 	m.pill.BackgroundColor3 = if t.affordable then MINT else INK
 	m.pill.BackgroundTransparency = if t.affordable then 0 else L.glassTransparency
 	local stroke = m.text:FindFirstChild("TextStroke") :: UIStroke
+	-- in the player's language (shared/TaggedText; ui/init.client's watcher translates it)
 	if t.affordable then
-		m.text.Text = t.text
+		TaggedText.set(m.text, "Text", "world.prompt.buy_pad_price", { price = t.price })
 		m.text.TextColor3 = INK
 		stroke.Enabled = false
 	else
-		m.text.Text = `{t.verb} <font color="{GOLD_HEX}">{t.price}</font>`
+		TaggedText.set(m.text, "Text", "world.marker.next_pad", { price = `<font color="{GOLD_HEX}">{t.price}</font>` })
 		m.text.TextColor3 = WHITE
 		stroke.Enabled = true
 	end

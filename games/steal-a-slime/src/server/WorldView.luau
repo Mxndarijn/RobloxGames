@@ -45,7 +45,6 @@ local EggModel = require(ReplicatedStorage.Visuals.EggModel)
 local FallbackWorld = require(script.Parent.FallbackWorld)
 local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
-local Genome = require(ReplicatedStorage.Shared.Genome)
 local GrabBlock = require(ReplicatedStorage.Shared.GrabBlock)
 local HabitatPads = require(script.Parent.HabitatPads)
 local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
@@ -94,6 +93,7 @@ local WalkRoute = require(script.Parent.WalkRoute)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 local WorldProps = require(script.Parent.WorldProps)
+local WorldText = require(script.Parent.WorldText)
 
 type Record = {
 	model: Model,
@@ -1036,7 +1036,12 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 	end
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = Constants.GRAB_PROMPT_NAME
-	prompt.ObjectText = (if entry.boss then "BOSS " else "") .. Genome.displayName(entry.slime)
+	local name = WorldText.slime(entry.slime)
+	WorldText.setMessage(
+		prompt,
+		"ObjectText",
+		if entry.boss then WorldText.msg("world.prompt.boss_slime", { name = name }) else name
+	)
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.RequiresLineOfSight = false
 	prompt.HoldDuration = Config.HOLD_CONFIRM_SECONDS -- reconcile sets the real value per state
@@ -1050,8 +1055,8 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 	if isEgg then
 		local p = Instance.new("ProximityPrompt")
 		p.Name = Constants.HATCH_PROMPT_NAME
-		p.ActionText = "Hatch!"
-		p.ObjectText = Genome.displayName(entry.slime)
+		WorldText.set(p, "ActionText", "world.prompt.hatch")
+		WorldText.setMessage(p, "ObjectText", name)
 		local keys = Constants.SLIME_PROMPT_KEYS.hatch
 		p.KeyboardKeyCode = (Enum.KeyCode :: any)[keys.keyboard]
 		p.GamepadKeyCode = (Enum.KeyCode :: any)[keys.gamepad]
@@ -1309,9 +1314,9 @@ local function kitArrived(record: Record, entry: Scene.Entry, clock: number): bo
 		and clock >= record.rideUntil
 end
 
--- A pad slime's status row: the vat's ("In vat"), else none.
-function WorldView.padStatus(owner: any, id: string): string?
-	return VatView.labelStatus(owner.data, id)
+-- A pad slime's status row as a Localize message: the vat's ("In vat"), else none.
+function WorldView.padStatus(owner: any, id: string): any?
+	return VatView.labelStatusMessage(owner.data, id)
 end
 
 --[[
@@ -1356,7 +1361,7 @@ function WorldView.reconcile(
 			records[id] = record
 		end
 		assert(record, "record")
-		record.prompt.ActionText = entry.promptText
+		WorldText.setMessage(record.prompt, "ActionText", entry.promptMessage)
 		-- GuestsOnly before Enabled: a client applies them in order, so the prompt never shows un-gated for a frame.
 		record.prompt:SetAttribute(Constants.PROMPT_GUESTS_ATTRIBUTE, entry.guestsOnly)
 		record.prompt.Enabled = entry.promptEnabled
@@ -1384,10 +1389,7 @@ function WorldView.reconcile(
 				if hatch.Enabled ~= entry.hatchReady then
 					hatch.Enabled = entry.hatchReady
 				end
-				local text = entry.hatchText or Genome.displayName(entry.slime)
-				if hatch.ObjectText ~= text then
-					hatch.ObjectText = text
-				end
+				WorldText.setMessage(hatch, "ObjectText", entry.hatchMessage or WorldText.slime(entry.slime))
 				-- Owner tag only while ready: PromptHide re-enables an owner prompt when its owner becomes the
 				-- local player, which would show Hatch on an egg that isn't ready (a stolen one, say).
 				setAttr(hatch, Constants.PROMPT_OWNER_ATTRIBUTE, if entry.hatchReady then entry.ownerUserId else nil)
@@ -1570,12 +1572,8 @@ local function applyPrompt(prompt: ProximityPrompt?, view: PlotPrompts.Prompt, o
 	if not prompt then
 		return
 	end
-	if prompt.ActionText ~= view.actionText then
-		prompt.ActionText = view.actionText
-	end
-	if prompt.ObjectText ~= view.objectText then
-		prompt.ObjectText = view.objectText
-	end
+	WorldText.setMessage(prompt, "ActionText", view.action)
+	WorldText.setMessage(prompt, "ObjectText", view.object)
 	local enabled = view.enabled and owner ~= nil
 	if prompt.Enabled ~= enabled then
 		prompt.Enabled = enabled

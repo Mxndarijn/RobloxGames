@@ -31,6 +31,7 @@ local EffectPrefs = require(ReplicatedStorage.Visuals.EffectPrefs)
 local EggKind = require(ReplicatedStorage.Shared.EggKind)
 local EggModel = require(ReplicatedStorage.Visuals.EggModel)
 local LocalCopy = require(script.Parent.LocalCopy)
+local TaggedText = require(ReplicatedStorage.Shared.TaggedText)
 local Timeline = require(ReplicatedStorage.Visuals.EggHatchTimeline)
 
 local EggHatchFx = {}
@@ -416,7 +417,7 @@ local function startPop(slime: Model, tier: number, lucky: boolean, owner: boole
 	label.Size = UDim2.fromScale(1, 1)
 	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
-	label.Text = Timeline.title(tier, lucky)
+	TaggedText.setMessage(label, "Text", Timeline.titleMessage(tier, lucky)) -- in the player's language
 	label.TextColor3 = color
 	label.Parent = gui
 	local stroke = Instance.new("UIStroke")

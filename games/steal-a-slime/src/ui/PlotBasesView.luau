@@ -12,9 +12,9 @@
 ]]
 
 local ExclusiveShopView = if script then require(script.Parent.ExclusiveShopView) else require("./ExclusiveShopView")
-local Format = if script then require(script.Parent.Format) else require("./Format")
 local PetSeatsView = if script then require(script.Parent.PetSeatsView) else require("./PetSeatsView")
 local PlotSkinsView = if script then require(script.Parent.PlotSkinsView) else require("./PlotSkinsView")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 local PlotBasesView = {}
 
@@ -24,14 +24,15 @@ export type State = "equipped" | "unlocked" | "locked"
 export type Row = PetSeatsView.Row
 export type Detail = PetSeatsView.Detail
 
+-- Strings keys (Strings/Collection), drawn with Text.t.
 PlotBasesView.EQUIPPED = PlotSkinsView.EQUIPPED
 PlotBasesView.EQUIP = PlotSkinsView.EQUIP
-PlotBasesView.EXCLUSIVE = ExclusiveShopView.EXCLUSIVE
-PlotBasesView.FREE_LINE = "Every player has this building."
-PlotBasesView.OWNED_LINE = "You own this building."
+PlotBasesView.EXCLUSIVE = PetSeatsView.EXCLUSIVE
+PlotBasesView.FREE_LINE = "collection.bases.free_line"
+PlotBasesView.OWNED_LINE = "collection.bases.owned_line"
 PlotBasesView.EXCLUSIVE_LINE = PetSeatsView.EXCLUSIVE_LINE
 PlotBasesView.EXCLUSIVE_ACTION = PetSeatsView.EXCLUSIVE_ACTION
-PlotBasesView.EMPTY = "Buildings are not on this server."
+PlotBasesView.EMPTY = "collection.bases.empty"
 
 local DEFAULT_COLOR: { number } = { 200, 200, 200 }
 
@@ -45,7 +46,7 @@ local function offerOf(base: any, config: any?): ExclusiveShopView.Offer?
 end
 
 local function titleOf(base: any): string
-	return Format.sentenceCase(if type(base.name) == "string" then base.name else base.id)
+	return PlotSkinsView.nameOf("plotBase", base.id, base.name)
 end
 
 local function find(plotBases: any, id: string): any
@@ -103,18 +104,20 @@ function PlotBasesView.detail(plotBases: any, id: string, config: any?): Detail?
 		title = titleOf(base),
 		state = state,
 		exclusive = exclusive,
-		heading = if exclusive then PetSeatsView.HOW_GET else "",
-		line = if exclusive
-			then PlotBasesView.EXCLUSIVE_LINE
-			elseif base.exclusive == true then PlotBasesView.OWNED_LINE
-			else PlotBasesView.FREE_LINE,
+		heading = if exclusive then Text.t(PetSeatsView.HOW_GET) else "",
+		line = Text.t(
+			if exclusive
+				then PlotBasesView.EXCLUSIVE_LINE
+				elseif base.exclusive == true then PlotBasesView.OWNED_LINE
+				else PlotBasesView.FREE_LINE
+		),
 		count = nil,
 		fraction = if state == "locked" then 0 else 1,
 		action = if state == "equipped"
-			then PlotBasesView.EQUIPPED
-			elseif state == "unlocked" then PlotBasesView.EQUIP
+			then Text.t(PlotBasesView.EQUIPPED)
+			elseif state == "unlocked" then Text.t(PlotBasesView.EQUIP)
 			elseif offer and offer.purchase then offer.text
-			else PlotBasesView.EXCLUSIVE_ACTION,
+			else Text.t(PlotBasesView.EXCLUSIVE_ACTION),
 		purchase = if offer then offer.purchase else nil,
 		shopKey = if exclusive then `plotBase:{id}` else nil,
 	}

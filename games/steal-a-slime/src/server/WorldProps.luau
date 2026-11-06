@@ -20,25 +20,28 @@ local Constants = require(ReplicatedStorage.Shared.Constants)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Leaderboards = require(ReplicatedStorage.Shared.Leaderboards)
 local Shops = require(ReplicatedStorage.Shared.Shops)
+local Strings = require(ReplicatedStorage.Shared.Strings)
+local WorldText = require(script.Parent.WorldText)
 
 local WorldProps = {}
 
--- One ShopPrompt per stand (CONTRACT.md §27.3); the server opens the shop on Triggered.
+-- One ShopPrompt per stand (CONTRACT.md §27.3); the server opens the shop on Triggered. Prompt texts are
+-- Strings keys (WorldText).
 WorldProps.SHOP_PROMPTS = table.freeze({
 	ItemShop = table.freeze({
 		name = Constants.SHOP_PROMPT_NAME,
-		objectText = "Item Shop",
-		actionText = "Browse items",
+		objectText = "world.prompt.item_shop",
+		actionText = "world.prompt.browse_items",
 	}),
 	UpgradeShop = table.freeze({
 		name = Constants.SHOP_PROMPT_NAME,
-		objectText = "Upgrade Shop",
-		actionText = "Browse upgrades",
+		objectText = "world.prompt.upgrade_shop",
+		actionText = "world.prompt.browse_upgrades",
 	}),
 	[Constants.EXCLUSIVE_SHOP_ID] = table.freeze({
 		name = Constants.SHOP_PROMPT_NAME,
-		objectText = "Exclusive Shop",
-		actionText = "Browse exclusives",
+		objectText = "world.prompt.exclusive_shop",
+		actionText = "world.prompt.browse_exclusives",
 	}),
 })
 -- The stand of each shop that has a ShopPrompt: the cash shops (Shops.ORDER) and the Exclusive Shop's claw shop, which
@@ -53,16 +56,16 @@ end
 -- Professor Goo's prompt only opens the client's Leaderboards panel (the UI listens for PromptTriggered).
 WorldProps.LEADERBOARD_PROMPT = table.freeze({
 	name = Constants.LEADERBOARD_PROMPT_NAME,
-	objectText = "Professor Goo",
-	actionText = "View leaderboards",
+	objectText = "world.prompt.professor_goo",
+	actionText = "world.prompt.view_leaderboards",
 })
 WorldProps.LEADERBOARD_CLICK_DISTANCE = 32
 -- The Guide's prompt opens a client menu (the UI listens for PromptTriggered); the server only counts it for the
 -- tutorial's Guide step.
 WorldProps.GUIDE_PROMPT = table.freeze({
 	name = Constants.GUIDE_PROMPT_NAME,
-	objectText = "Guide",
-	actionText = "Talk",
+	objectText = "world.prompt.guide",
+	actionText = "world.prompt.talk",
 })
 
 local function visual(name: string): any
@@ -137,7 +140,12 @@ function WorldProps.place(): { [string]: Model }
 	for _, def in Leaderboards.BOARDS do
 		builders[def.model] = if Props and Props.leaderboardBoard
 			then function()
-				return Props.leaderboardBoard(def)
+				return Props.leaderboardBoard({
+					model = def.model,
+					title = def.title,
+					titleKey = Strings.dataKey("leaderboards", def.stat, "title"),
+					accent = def.accent,
+				})
 			end
 			else nil
 	end
@@ -145,7 +153,12 @@ function WorldProps.place(): { [string]: Model }
 	local events = WorldLayout and WorldLayout.EVENT_BOARD
 	if events and Props and Props.leaderboardBoard then
 		builders[events.model] = function()
-			return Props.leaderboardBoard({ model = events.model, title = "UPCOMING EVENTS", accent = { 120, 90, 220 } })
+			return Props.leaderboardBoard({
+				model = events.model,
+				title = "UPCOMING EVENTS",
+				titleKey = "world.events.title",
+				accent = { 120, 90, 220 },
+			})
 		end
 	end
 	builders[Constants.SHOP_STAND_ITEM] = standBuilder(Props, "ItemShop")
@@ -206,8 +219,8 @@ local function addPrompt(part: Instance?, def: { name: string, objectText: strin
 	end
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = def.name
-	prompt.ObjectText = def.objectText
-	prompt.ActionText = def.actionText
+	WorldText.set(prompt, "ObjectText", def.objectText)
+	WorldText.set(prompt, "ActionText", def.actionText)
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.HoldDuration = 0
 	prompt.RequiresLineOfSight = false
@@ -324,8 +337,14 @@ function WorldProps.fillBoard(board: any)
 		if frame then
 			for field, text in { Rank = row.rank, Name = row.name, Value = row.value } :: { [string]: string } do
 				local label = frame:FindFirstChild(field)
-				if label and label:IsA("TextLabel") and label.Text ~= text then
-					label.Text = text
+				if label and label:IsA("TextLabel") then
+					if field == "Name" and text == Leaderboard.EMPTY_TEXT then
+						WorldText.set(label, "Text", "world.board.no_entries")
+					elseif field == "Name" then
+						WorldText.setMessage(label, "Text", WorldText.boardName(text))
+					else
+						WorldText.setMessage(label, "Text", text)
+					end
 				end
 			end
 		end

@@ -11,6 +11,8 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
 
 local OBBY = Config.OBBY
 
@@ -103,14 +105,20 @@ function ObbyRules.courseNumber(slot: number): number
 	return math.max(1, slot - OBBY.COURSE_EPOCH + 1)
 end
 
--- "Course #1,204" for a course number (courseNumber).
-function ObbyRules.courseLabel(number: number): string
+-- "Course #1,204" for a course number (courseNumber), as a Localize message.
+function ObbyRules.courseMessage(number: number): Localize.Message
 	local text = tostring(math.max(0, math.floor(number)))
 	local count
 	repeat
 		text, count = string.gsub(text, "^(%d+)(%d%d%d)", "%1,%2")
 	until count == 0
-	return `Course #{text}`
+	return Localize.msg("world.obby.course", { number = text })
+end
+
+-- The English of ObbyRules.courseMessage.
+function ObbyRules.courseLabel(number: number): string
+	local TaggedText = if script then require(script.Parent.TaggedText) :: any else require("./TaggedText") :: any
+	return TaggedText.english(ObbyRules.courseMessage(number))
 end
 
 -- "#23"; past OBBY.BOARD.RANK_DEPTH "#100+"; nil without a rank.

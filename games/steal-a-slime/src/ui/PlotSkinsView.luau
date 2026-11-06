@@ -14,6 +14,7 @@
 local ExclusiveShopView = if script then require(script.Parent.ExclusiveShopView) else require("./ExclusiveShopView")
 local Format = if script then require(script.Parent.Format) else require("./Format")
 local SlimeDex = if script then require(script.Parent.SlimeDex) else require("./SlimeDex")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 local PlotSkinsView = {}
 
@@ -54,14 +55,15 @@ export type Detail = {
 	shopKey: string?, -- an Exclusive: its Exclusive shop card, opened while it is not on sale
 }
 
-PlotSkinsView.EQUIPPED = "Equipped"
-PlotSkinsView.EQUIP = "Equip"
-PlotSkinsView.FOUND = "Found"
-PlotSkinsView.MERGE = "Merge"
-PlotSkinsView.EMPTY = "Plot skins are not on this server."
-PlotSkinsView.EXCLUSIVE_LINE = "Buy it here or in the Exclusive shop."
-PlotSkinsView.EXCLUSIVE_ACTION = "Exclusive shop"
-PlotSkinsView.OWNED_LINE = "You own this skin."
+-- Strings keys (Strings/Collection), drawn with Text.t.
+PlotSkinsView.EQUIPPED = "collection.equipped"
+PlotSkinsView.EQUIP = "collection.equip"
+PlotSkinsView.FOUND = "collection.found"
+PlotSkinsView.MERGE = "collection.merge_tag"
+PlotSkinsView.EMPTY = "collection.skins.empty"
+PlotSkinsView.EXCLUSIVE_LINE = "collection.exclusive_line"
+PlotSkinsView.EXCLUSIVE_ACTION = "collection.exclusive_action"
+PlotSkinsView.OWNED_LINE = "collection.skins.owned_line"
 
 local DEFAULT_COLOR: { number } = { 110, 226, 170 }
 
@@ -71,6 +73,14 @@ end
 
 local function stateOf(skin: any): State
 	return if skin.equipped == true then "equipped" elseif skin.unlocked == true then "unlocked" else "locked"
+end
+
+-- A Config row's name in the player's language (Text.data `kind`): the English one in sentence case
+-- ("Classic ranch"), a translation as the translator wrote it.
+function PlotSkinsView.nameOf(kind: string, id: string, name: any): string
+	local english = if type(name) == "string" then name elseif type(name) == "table" then Text.text(name) else id
+	local shown = Text.data(kind, id, "name", english)
+	return if shown == english then Format.sentenceCase(shown) else shown
 end
 
 local function offerOf(skin: any, config: any?): ExclusiveShopView.Offer?
@@ -96,7 +106,7 @@ function PlotSkinsView.rows(plotSkins: any, config: any): { Row }
 			table.insert(out, {
 				key = `skin:{skin.id}`,
 				id = skin.id,
-				title = Format.sentenceCase(if type(skin.name) == "string" then skin.name else skin.id),
+				title = PlotSkinsView.nameOf("plotSkin", skin.id, skin.name),
 				state = state,
 				count = if state == "locked" and not exclusive then `{math.min(owned, needed)}/{needed}` else "",
 				fraction = if state ~= "locked" then 1 elseif needed > 0 then math.clamp(owned / needed, 0, 1) else 0,
@@ -143,8 +153,8 @@ function PlotSkinsView.detail(
 				title = card.title,
 				found = card.found,
 				tag = if card.found
-					then PlotSkinsView.FOUND
-					elseif card.kind == "hybrid" then PlotSkinsView.MERGE
+					then Text.t(PlotSkinsView.FOUND)
+					elseif card.kind == "hybrid" then Text.t(PlotSkinsView.MERGE)
 					else card.set or SlimeDex.UNKNOWN,
 				tier = card.tier,
 				speciesColor = card.speciesColor,
@@ -159,17 +169,17 @@ function PlotSkinsView.detail(
 		local offer = if locked then offerOf(skin, config) else nil
 		return {
 			id = id,
-			title = Format.sentenceCase(if type(skin.name) == "string" then skin.name else id),
+			title = PlotSkinsView.nameOf("plotSkin", id, skin.name),
 			state = state,
-			line = if locked then PlotSkinsView.EXCLUSIVE_LINE else PlotSkinsView.OWNED_LINE,
+			line = Text.t(if locked then PlotSkinsView.EXCLUSIVE_LINE else PlotSkinsView.OWNED_LINE),
 			count = nil,
 			fraction = if locked then 0 else 1,
 			slimes = {},
 			action = if state == "equipped"
-				then PlotSkinsView.EQUIPPED
-				elseif state == "unlocked" then PlotSkinsView.EQUIP
+				then Text.t(PlotSkinsView.EQUIPPED)
+				elseif state == "unlocked" then Text.t(PlotSkinsView.EQUIP)
 				elseif offer and offer.purchase then offer.text
-				else PlotSkinsView.EXCLUSIVE_ACTION,
+				else Text.t(PlotSkinsView.EXCLUSIVE_ACTION),
 			exclusive = locked,
 			purchase = if offer then offer.purchase else nil,
 			shopKey = if locked then `plotSkin:{id}` else nil,
@@ -177,16 +187,18 @@ function PlotSkinsView.detail(
 	end
 	return {
 		id = id,
-		title = Format.sentenceCase(if type(skin.name) == "string" then skin.name else id),
+		title = PlotSkinsView.nameOf("plotSkin", id, skin.name),
 		state = state,
-		line = if total > 0 then `Find {needed} of these {total} slimes` else "Every player has this skin",
+		line = if total > 0
+			then Text.t("collection.skins.find_line", { needed = needed, total = total })
+			else Text.t("collection.skins.free_line"),
 		count = if total > 0 then `{math.min(owned, needed)}/{needed}` else nil,
 		fraction = if needed > 0 then math.clamp(owned / needed, 0, 1) else 1,
 		slimes = slimes,
 		action = if state == "equipped"
-			then PlotSkinsView.EQUIPPED
-			elseif state == "unlocked" then PlotSkinsView.EQUIP
-			else `Need {left} more slime{if left == 1 then "" else "s"}`,
+			then Text.t(PlotSkinsView.EQUIPPED)
+			elseif state == "unlocked" then Text.t(PlotSkinsView.EQUIP)
+			else Text.count("collection.need_more_slimes", left),
 		exclusive = false,
 	}
 end
@@ -209,7 +221,7 @@ function PlotSkinsView.summary(rows: { Row }): string
 			n += 1
 		end
 	end
-	return `{n}/{#rows} unlocked`
+	return Text.t("collection.unlocked_summary", { unlocked = n, total = #rows })
 end
 
 return table.freeze(PlotSkinsView)

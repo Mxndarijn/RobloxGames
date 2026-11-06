@@ -2,6 +2,7 @@
 -- The tutorial notice cards above the hotbar (src/ui/TutorialCard.luau): the step card and its Hide button,
 -- the mint done card between steps and the "Tutorial done" card at the end.
 local TestRunner = require("../TestRunner")
+local Text = require("../../src/ui/Text")
 local Tutorial = require("../../src/ui/Tutorial")
 local UiHarness = require("./UiHarness")
 local roblox = require("@lune/roblox") :: any
@@ -68,16 +69,16 @@ describe("TutorialCard step card", function()
 		local card = newCard()
 		card.update(GRAB)
 		local sub = UiHarness.find(stepCard(card), "Sub")
-		expect(sub.Text).toBe((Tutorial.find("Grab") :: Tutorial.Step).bodies.keyboard)
+		expect(sub.Text).toBe(Tutorial.body(Tutorial.find("Grab") :: Tutorial.Step, "keyboard"))
 		local before = UiHarness.lastInputType
 		UiHarness.lastInputType = roblox.Enum.UserInputType.Touch
 		for _, handler in table.clone(UiHarness.userInput.LastInputTypeChanged.handlers) do
 			handler(UiHarness.lastInputType)
 		end
-		expect(sub.Text).toBe((Tutorial.find("Grab") :: Tutorial.Step).bodies.touch)
+		expect(sub.Text).toBe(Tutorial.body(Tutorial.find("Grab") :: Tutorial.Step, "touch"))
 		UiHarness.lastInputType = before
 		card.update(GRAB)
-		expect(sub.Text).toBe((Tutorial.find("Grab") :: Tutorial.Step).bodies.keyboard)
+		expect(sub.Text).toBe(Tutorial.body(Tutorial.find("Grab") :: Tutorial.Step, "keyboard"))
 	end)
 end)
 
@@ -91,7 +92,7 @@ describe("TutorialCard Hide", function()
 				expect(d.Name == "Hide" or d.Name == "HideButton").toBe(true)
 			end
 		end
-		expect(UiHarness.find(step, "HideButton").Text).toBe(TutorialCard.HIDE_TEXT)
+		expect(UiHarness.find(step, "HideButton").Text).toBe(Text.t(TutorialCard.HIDE_TEXT))
 		hide(card)
 		expect(step.Visible).toBe(false)
 		expect(card.frame.Visible).toBe(false)
@@ -152,7 +153,7 @@ describe("TutorialCard done cards", function()
 			card.update(DEPOSIT)
 			local done = doneCard(card)
 			expect(done.Visible).toBe(true)
-			expect(UiHarness.find(done, "Title").Text).toBe((Tutorial.find("Grab") :: Tutorial.Step).done)
+			expect(UiHarness.find(done, "Title").Text).toBe(Tutorial.done(Tutorial.find("Grab") :: Tutorial.Step))
 			expect(UiHarness.find(done, "Sub").Visible).toBe(false)
 			expect(stepCard(card).Visible).toBe(true) -- the next step shows under it
 			expect(card.finishedShowing()).toBe(false)
@@ -177,8 +178,8 @@ describe("TutorialCard done cards", function()
 			expect(card.frame.Visible).toBe(true)
 			expect(stepCard(card).Visible).toBe(false)
 			expect(done.Visible).toBe(true)
-			expect(UiHarness.find(done, "Title").Text).toBe(Tutorial.FINISHED)
-			expect(UiHarness.find(done, "Sub").Text).toBe(Tutorial.FINISHED_SUB)
+			expect(UiHarness.find(done, "Title").Text).toBe(Text.t(Tutorial.FINISHED))
+			expect(UiHarness.find(done, "Sub").Text).toBe(Text.t(Tutorial.FINISHED_SUB))
 			expect(card.finishedShowing()).toBe(true)
 			UiHarness.advance(TutorialCard.FINISHED_SECONDS + 0.1)
 			card.tick(0)

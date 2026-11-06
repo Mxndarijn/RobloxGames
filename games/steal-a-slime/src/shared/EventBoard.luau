@@ -4,8 +4,15 @@
 	The cards of the Upcoming Events wall at the fountain (server/EventBoardView draws them): the boss, Slime Rain,
 	the guaranteed Legendary and Mythic drops, and a running admin or weekly event (the weather is not on it). Each
 	card has an icon key, an accent colour, a title, a detail line and a "m:ss" countdown. Running events come first,
-	then the rest soonest first; a card with nothing to say is left out.
+	then the rest soonest first; a card with nothing to say is left out. Card texts are Localize messages (the
+	board draws them in each player's language, server/EventBoardView); `text` gives their English.
 ]]
+
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
+local TaggedText = if script then require(script.Parent.TaggedText) else require("./TaggedText")
+
+type Text = Localize.Text
 
 export type Input = {
 	bossHere: string?, -- name of the boss on the plaza now (nil = none)
@@ -14,7 +21,7 @@ export type Input = {
 	rainAt: number?, -- next Slime Rain start (when none runs)
 	legendaryIn: number?, -- seconds until the guaranteed Legendary (Spawner.guaranteeIn)
 	mythicIn: number?, -- seconds until the guaranteed Mythic
-	event: string?, -- a running admin or weekly event's label
+	event: Text?, -- a running admin or weekly event's label
 	eventEndsAt: number?,
 }
 
@@ -22,16 +29,16 @@ export type Row = {
 	id: string, -- "boss" | "rain" | "legendary" | "mythic" | "event"
 	icon: string, -- EventBoard.ICONS key (the view maps it to an image or a glyph)
 	accent: { number }, -- RGB
-	title: string,
-	detail: string,
-	time: string, -- the countdown, "NOW" or "2:05 left"
+	title: Text,
+	detail: Text,
+	time: Text, -- the countdown "2:05", "NOW" or "2:05 left" ("" = none)
 	live: boolean, -- running now
 	inSeconds: number, -- seconds until it starts (0 while live); the sort key
 }
 
 local EventBoard = {}
 
-EventBoard.TITLE = "Upcoming Events"
+EventBoard.TITLE = "world.events.title" -- Strings key: "UPCOMING EVENTS"
 EventBoard.MAX_ROWS = 6
 
 -- Accent colours per card.
@@ -55,9 +62,9 @@ end
 local function card(
 	id: string,
 	accent: { number },
-	title: string,
-	detail: string,
-	time: string,
+	title: Text,
+	detail: Text,
+	time: Text,
 	live: boolean,
 	inSeconds: number
 ): Row
@@ -76,21 +83,68 @@ end
 -- The cards, running ones first, then soonest first; at most MAX_ROWS.
 function EventBoard.rows(input: Input, now: number): { Row }
 	local A = EventBoard.ACCENTS
+	local m = Localize.msg
+	local NOW = m("world.events.now")
+	local function leftText(seconds: number): Text
+		return m("world.events.left", { time = EventBoard.clock(seconds) })
+	end
 	local rows: { Row } = {}
 	if input.bossHere then
-		table.insert(rows, card("boss", A.boss, "Boss Fight", `{input.bossHere} is here!`, "NOW", true, 0))
+		table.insert(
+			rows,
+			card(
+				"boss",
+				A.boss,
+				m("world.events.boss_fight"),
+				m("world.events.boss_here", {
+					name = input.bossHere,
+				}),
+				NOW,
+				true,
+				0
+			)
+		)
 	elseif input.bossAt then
 		local left = input.bossAt - now
-		table.insert(rows, card("boss", A.boss, "Boss", "arrives at the fountain", EventBoard.clock(left), false, left))
+		table.insert(
+			rows,
+			card(
+				"boss",
+				A.boss,
+				m("world.events.boss"),
+				m("world.events.boss_arrives"),
+				EventBoard.clock(left),
+				false,
+				left
+			)
+		)
 	end
 	if input.rainEndsAt then
-		local left = EventBoard.clock(input.rainEndsAt - now)
-		table.insert(rows, card("rain", A.rain, "Slime Rain", "rarer slimes fall now!", `{left} left`, true, 0))
+		table.insert(
+			rows,
+			card(
+				"rain",
+				A.rain,
+				m("world.events.slime_rain"),
+				m("world.events.rain_now"),
+				leftText(input.rainEndsAt - now),
+				true,
+				0
+			)
+		)
 	elseif input.rainAt then
 		local left = input.rainAt - now
 		table.insert(
 			rows,
-			card("rain", A.rain, "Slime Rain", "slimes pour from the sky", EventBoard.clock(left), false, left)
+			card(
+				"rain",
+				A.rain,
+				m("world.events.slime_rain"),
+				m("world.events.rain_soon"),
+				EventBoard.clock(left),
+				false,
+				left
+			)
 		)
 	end
 	if input.legendaryIn then
@@ -99,8 +153,8 @@ function EventBoard.rows(input: Input, now: number): { Row }
 			card(
 				"legendary",
 				A.legendary,
-				"Legendary",
-				"guaranteed from the fountain",
+				m("world.events.legendary"),
+				m("world.events.guaranteed"),
 				EventBoard.clock(input.legendaryIn),
 				false,
 				input.legendaryIn
@@ -113,8 +167,8 @@ function EventBoard.rows(input: Input, now: number): { Row }
 			card(
 				"mythic",
 				A.mythic,
-				"Mythic",
-				"guaranteed from the fountain",
+				m("world.events.mythic"),
+				m("world.events.guaranteed"),
 				EventBoard.clock(input.mythicIn),
 				false,
 				input.mythicIn
@@ -122,8 +176,8 @@ function EventBoard.rows(input: Input, now: number): { Row }
 		)
 	end
 	if input.event then
-		local left = if input.eventEndsAt then `{EventBoard.clock(input.eventEndsAt - now)} left` else "NOW"
-		table.insert(rows, card("event", A.event, input.event, "event running", left, true, 0))
+		local time = if input.eventEndsAt then leftText(input.eventEndsAt - now) else NOW
+		table.insert(rows, card("event", A.event, input.event, m("world.events.event_running"), time, true, 0))
 	end
 	table.sort(rows, function(a: Row, b: Row): boolean
 		if a.live ~= b.live then
@@ -143,9 +197,10 @@ end
 -- The cards as plain text, one "Title: detail (time)" line each (logs and tests).
 function EventBoard.text(rows: { Row }): string
 	local lines = {}
+	local en = TaggedText.english
 	for _, row in rows do
-		local time = if row.time ~= "" then ` ({row.time})` else ""
-		table.insert(lines, `{row.title}: {row.detail}{time}`)
+		local time = if row.time ~= "" then ` ({en(row.time)})` else ""
+		table.insert(lines, `{en(row.title)}: {en(row.detail)}{time}`)
 	end
 	return table.concat(lines, "\n")
 end

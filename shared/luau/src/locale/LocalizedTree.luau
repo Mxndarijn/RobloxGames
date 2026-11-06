@@ -35,9 +35,12 @@ export type Handle = { destroy: () -> () }
 function LocalizedTree.set(inst: any, property: string, message: any, deps: ServerDeps)
 	local attr = LocalizedTree.PREFIX .. property
 	local encoded = deps.encode(message)
-	if inst:GetAttribute(attr) ~= encoded then
-		inst:SetAttribute(attr, encoded)
+	if inst:GetAttribute(attr) == encoded and inst:HasTag(LocalizedTree.TAG) then
+		-- Same message again: the property already holds it (translated by the watcher on a client), so a
+		-- per-frame caller writes nothing and the label never flashes English.
+		return
 	end
+	inst:SetAttribute(attr, encoded)
 	local english = deps.english(message)
 	if inst[property] ~= english then
 		inst[property] = english

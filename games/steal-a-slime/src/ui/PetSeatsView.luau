@@ -11,8 +11,8 @@
 ]]
 
 local ExclusiveShopView = if script then require(script.Parent.ExclusiveShopView) else require("./ExclusiveShopView")
-local Format = if script then require(script.Parent.Format) else require("./Format")
 local PlotSkinsView = if script then require(script.Parent.PlotSkinsView) else require("./PlotSkinsView")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 local PetSeatsView = {}
 
@@ -46,13 +46,14 @@ export type Detail = {
 	shopKey: string?, -- an Exclusive: its Exclusive shop card, opened while it is not on sale
 }
 
-PetSeatsView.EXCLUSIVE = "Exclusive"
-PetSeatsView.EXCLUSIVE_LINE = "Buy it here or in the Exclusive shop."
-PetSeatsView.EXCLUSIVE_ACTION = "Exclusive shop"
-PetSeatsView.HOW_UNLOCK = "How to unlock"
-PetSeatsView.HOW_GET = "How to get it"
-PetSeatsView.FREE_LINE = "Every player has this cloud."
-PetSeatsView.EMPTY = "Pet seats are not on this server."
+-- Strings keys (Strings/Collection), drawn with Text.t.
+PetSeatsView.EXCLUSIVE = "collection.exclusive"
+PetSeatsView.EXCLUSIVE_LINE = PlotSkinsView.EXCLUSIVE_LINE
+PetSeatsView.EXCLUSIVE_ACTION = PlotSkinsView.EXCLUSIVE_ACTION
+PetSeatsView.HOW_UNLOCK = "collection.how_unlock"
+PetSeatsView.HOW_GET = "collection.how_get"
+PetSeatsView.FREE_LINE = "collection.seats.free_line"
+PetSeatsView.EMPTY = "collection.seats.empty"
 
 local DEFAULT_COLOR = { 235, 240, 255 }
 
@@ -68,15 +69,15 @@ end
 local function lineOf(seat: any): string
 	local need = num(seat.need)
 	if seat.kind == "merges" then
-		return `Merge {need} slimes.`
+		return Text.count("collection.seats.merges_line", need)
 	elseif seat.kind == "dex" then
-		return `Complete {need}% of the SlimeDex.`
+		return Text.t("collection.seats.dex_line", { percent = need })
 	elseif seat.kind == "exclusive" then
-		return PetSeatsView.EXCLUSIVE_LINE
+		return Text.t(PetSeatsView.EXCLUSIVE_LINE)
 	elseif seat.kind == "daily" then
-		return `Daily streak day {need}.`
+		return Text.t("collection.seats.daily_line", { day = need })
 	end
-	return PetSeatsView.FREE_LINE
+	return Text.t(PetSeatsView.FREE_LINE)
 end
 
 -- "136/200" or "52%/80%"; "" for seats without a bar.
@@ -99,7 +100,7 @@ local function fractionOf(seat: any, state: State): number
 end
 
 local function titleOf(seat: any): string
-	return Format.sentenceCase(if type(seat.name) == "string" then seat.name else seat.id)
+	return PlotSkinsView.nameOf("petSeat", seat.id, seat.name)
 end
 
 local function offerOf(seat: any, config: any?): ExclusiveShopView.Offer?
@@ -160,20 +161,22 @@ function PetSeatsView.detail(petSeats: any, id: string, config: any?): Detail?
 	local left = math.max(num(seat.need) - num(seat.have), 0)
 	local offer = if exclusive then offerOf(seat, config) else nil
 	local action = if state == "equipped"
-		then PlotSkinsView.EQUIPPED
-		elseif state == "unlocked" then PlotSkinsView.EQUIP
+		then Text.t(PlotSkinsView.EQUIPPED)
+		elseif state == "unlocked" then Text.t(PlotSkinsView.EQUIP)
 		elseif offer and offer.purchase then offer.text
-		elseif exclusive then PetSeatsView.EXCLUSIVE_ACTION
-		elseif seat.kind == "merges" then `Merge {left} more slime{if left == 1 then "" else "s"}`
-		elseif seat.kind == "dex" then `{left}% more of the SlimeDex`
-		elseif seat.kind == "daily" then `Reach day {num(seat.need)} of your daily streak`
-		else PlotSkinsView.EQUIP
+		elseif exclusive then Text.t(PetSeatsView.EXCLUSIVE_ACTION)
+		elseif seat.kind == "merges" then Text.count("collection.seats.merge_more", left)
+		elseif seat.kind == "dex" then Text.t("collection.seats.dex_more", { percent = left })
+		elseif seat.kind == "daily" then Text.t("collection.seats.daily_more", { day = num(seat.need) })
+		else Text.t(PlotSkinsView.EQUIP)
 	return {
 		id = id,
 		title = titleOf(seat),
 		state = state,
 		exclusive = exclusive,
-		heading = if seat.kind == "free" then "" elseif exclusive then PetSeatsView.HOW_GET else PetSeatsView.HOW_UNLOCK,
+		heading = if seat.kind == "free"
+			then ""
+			else Text.t(if exclusive then PetSeatsView.HOW_GET else PetSeatsView.HOW_UNLOCK),
 		line = lineOf(seat),
 		count = if count ~= "" then count else nil,
 		fraction = fractionOf(seat, state),
@@ -201,7 +204,7 @@ function PetSeatsView.summary(rows: { Row }): string
 			n += 1
 		end
 	end
-	return `{n}/{#rows} unlocked`
+	return Text.t("collection.unlocked_summary", { unlocked = n, total = #rows })
 end
 
 return table.freeze(PetSeatsView)

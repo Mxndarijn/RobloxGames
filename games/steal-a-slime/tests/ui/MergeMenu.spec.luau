@@ -135,7 +135,7 @@ describe("Merge menu: describe", function()
 		expect(Merge.describe(state({ "a" }), NOW, rarityOf, Genome.displayName).slots[2].name).toBe(
 			"Move a Common here"
 		)
-		expect(Merge.withArticle("Uncommon")).toBe("an Uncommon")
+		expect(Merge.jumpText(0.5, "Uncommon")).toBe("50% chance of an Uncommon")
 	end)
 end)
 

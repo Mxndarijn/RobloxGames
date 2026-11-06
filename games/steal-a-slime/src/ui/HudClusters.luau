@@ -34,6 +34,7 @@ local Format = if script then require(script.Parent.Format) else require("./Form
 local FriendBadge = if script then require(script.Parent.FriendBadge) else require("./FriendBadge")
 local ModifierBadge = if script then require(script.Parent.ModifierBadge) else require("./ModifierBadge")
 local RainTimer = if script then require(script.Parent.RainTimer) else require("./RainTimer")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Money = { cash: string, income: string, rebirths: string, rebirthCount: string, multiplier: string }
 export type Slot = {
@@ -43,6 +44,7 @@ export type Slot = {
 	kind: string, -- "active" | "soon" | "boost" | "pet" | "week" | "cooldown"
 	name: string, -- tooltip title: "Slime Rain"
 	effect: string, -- tooltip body: what the event does
+	untimed: boolean?, -- true: no end time to count down (an untimed modifier, a rain without an end)
 }
 export type Tooltip = { title: string, body: string, time: string }
 export type Inputs = {
@@ -94,13 +96,6 @@ HudClusters.ICONS = table.freeze({
 	LockBreak = "Lock",
 })
 
-HudClusters.LOCK_BREAK_NAME = "Lock break"
-HudClusters.LOCK_BREAK_EFFECT = "You can walk through that base's locked door. It stays locked for everyone else."
-
-HudClusters.OBBY_NAME = "Obby"
-
-HudClusters.RAIN_EFFECT = "Slimes pour from the sky and rarer ones show up more often. Grab them!"
-
 local function num(value: any): number
 	return if type(value) == "number" and value == value then value else 0
 end
@@ -129,14 +124,17 @@ function HudClusters.rain(rain: RainTimer.Rain?, now: number): Slot?
 		return nil
 	end
 	if rain.active then
-		local text = if rain.endsAt then Format.formatDuration(Format.remainingSeconds(rain.endsAt, now)) else "Now"
+		local text = if rain.endsAt
+			then Format.formatDuration(Format.remainingSeconds(rain.endsAt, now))
+			else Text.t("hud.status.now")
 		return {
 			id = "Rain",
 			icon = HudClusters.ICONS.Rain,
 			text = text,
 			kind = "active",
-			name = "Slime Rain",
-			effect = HudClusters.RAIN_EFFECT,
+			name = Text.t("hud.status.rain.name"),
+			effect = Text.t("hud.status.rain.effect"),
+			untimed = rain.endsAt == nil,
 		}
 	end
 	if rain.nextAt then
@@ -147,8 +145,8 @@ function HudClusters.rain(rain: RainTimer.Rain?, now: number): Slot?
 				icon = HudClusters.ICONS.Rain,
 				text = Format.formatDuration(wait),
 				kind = "soon",
-				name = "Slime Rain",
-				effect = HudClusters.RAIN_EFFECT,
+				name = Text.t("hud.status.rain.name"),
+				effect = Text.t("hud.status.rain.effect"),
 			}
 		end
 	end
@@ -171,8 +169,9 @@ function HudClusters.event(view: ModifierBadge.View?, now: number, enabled: bool
 		icon = "Event_luck",
 		text = text,
 		kind = "active",
-		name = view.label,
-		effect = `x{string.format("%g", view.luck)} luck: rarer slimes show up more often.`,
+		name = ModifierBadge.label(view),
+		effect = Text.t("hud.status.event.effect", { luck = string.format("x%g", view.luck) }),
+		untimed = view.endsAt == nil,
 	}
 end
 
@@ -187,8 +186,8 @@ function HudClusters.friend(view: FriendBadge.View?, enabled: boolean): Slot?
 		icon = HudClusters.ICONS.Friend,
 		text = label,
 		kind = "boost",
-		name = "Friend boost",
-		effect = `{label} income while your friends play on this server.`,
+		name = Text.t("hud.status.friend.name"),
+		effect = Text.t("hud.status.friend.effect", { percent = label }),
 	}
 end
 
@@ -209,8 +208,8 @@ function HudClusters.blessed(view: Blessed?, now: number): Slot?
 		icon = HudClusters.ICONS.Blessed,
 		text = Format.formatDuration(remaining),
 		kind = "active",
-		name = "Blessed",
-		effect = `+{math.floor(view.bonus * 100 + 0.5)}% income from the Slime Ritual.`,
+		name = Text.t("hud.status.blessed.name"),
+		effect = Text.t("hud.status.blessed.effect", { percent = `+{math.floor(view.bonus * 100 + 0.5)}%` }),
 	}
 end
 
@@ -222,9 +221,11 @@ function HudClusters.mvp(view: Blessed?, now: number): Slot?
 	end
 	slot.id = "Mvp"
 	slot.icon = HudClusters.ICONS.Mvp
-	slot.name = "Boss Champion"
-	slot.effect =
-		`+{math.floor(view.bonus * 100 + 0.5)}% income and +{math.floor(Config.BOSS.MVP_SPEED * 100 + 0.5)}% speed for bringing a boss home.`
+	slot.name = Text.t("hud.status.mvp.name")
+	slot.effect = Text.t("hud.status.mvp.effect", {
+		income = `+{math.floor(view.bonus * 100 + 0.5)}%`,
+		speed = `+{math.floor(Config.BOSS.MVP_SPEED * 100 + 0.5)}%`,
+	})
 	return slot
 end
 
@@ -240,8 +241,8 @@ function HudClusters.obby(view: ObbyBoost?, now: number): Slot?
 		if slot then
 			slot.id = "Obby"
 			slot.icon = HudClusters.ICONS.Obby
-			slot.name = HudClusters.OBBY_NAME
-			slot.effect = `{income} income from the obby sections you cleared.`
+			slot.name = Text.t("hud.status.obby.name")
+			slot.effect = Text.t("hud.status.obby.effect", { income = income })
 			return slot
 		end
 	end
@@ -257,8 +258,8 @@ function HudClusters.obby(view: ObbyBoost?, now: number): Slot?
 		icon = HudClusters.ICONS.Obby,
 		text = Format.formatDuration(wait),
 		kind = "cooldown",
-		name = HudClusters.OBBY_NAME,
-		effect = `Run the obby again after this: every section adds income, up to {income}.`,
+		name = Text.t("hud.status.obby.name"),
+		effect = Text.t("hud.status.obby.cooldown_effect", { income = income }),
 	}
 end
 
@@ -279,8 +280,8 @@ function HudClusters.boost(view: CodesBoost?, now: number): Slot?
 		icon = HudClusters.ICONS.Boost,
 		text = Format.formatDuration(remaining),
 		kind = "active",
-		name = "Income boost",
-		effect = `{Format.formatMultiplier(view.boostMult)} income from a code or quest reward.`,
+		name = Text.t("hud.status.boost.name"),
+		effect = Text.t("hud.status.boost.effect", { income = Format.formatMultiplier(view.boostMult) }),
 	}
 end
 
@@ -298,10 +299,10 @@ function HudClusters.pet(view: PetPerk?): Slot?
 		icon = HudClusters.ICONS.Pet,
 		text = percent,
 		kind = "pet",
-		name = "Pet bonus",
+		name = Text.t("hud.status.pet.name"),
 		effect = if view.kind == "income"
-			then `{percent} income from your favourite slime riding along with you.`
-			else `{percent} luck from your favourite slime riding along with you: rarer slimes show up more often.`,
+			then Text.t("hud.status.pet.income_effect", { percent = percent })
+			else Text.t("hud.status.pet.luck_effect", { percent = percent }),
 	}
 end
 
@@ -322,8 +323,8 @@ function HudClusters.secret(view: FeaturedSecret?, now: number): Slot?
 		icon = HudClusters.ICONS.Secret,
 		text = Format.formatTimeLeft(remaining),
 		kind = "week",
-		name = `Featured Secret: {view.name}`,
-		effect = "Can spawn as a Secret this week.",
+		name = Text.t("hud.status.secret.name", { name = Text.text(view.name) }),
+		effect = Text.t("hud.status.secret.effect"),
 	}
 end
 
@@ -341,8 +342,8 @@ function HudClusters.lockBreak(view: LockBreak?, now: number): Slot?
 		icon = HudClusters.ICONS.LockBreak,
 		text = Format.formatDuration(remaining),
 		kind = "active",
-		name = HudClusters.LOCK_BREAK_NAME,
-		effect = HudClusters.LOCK_BREAK_EFFECT,
+		name = Text.t("hud.status.lock_break.name"),
+		effect = Text.t("hud.status.lock_break.effect"),
 	}
 end
 
@@ -404,19 +405,19 @@ end
 function HudClusters.tooltip(slot: Slot): Tooltip
 	local time
 	if slot.kind == "week" then
-		time = `Ends in {slot.text}`
+		time = Text.t("hud.tooltip.ends_in", { time = slot.text })
 	elseif slot.kind == "boost" then
-		time = "Active while friends are here"
+		time = Text.t("hud.tooltip.while_friends")
 	elseif slot.kind == "pet" then
-		time = "Active while your pet follows you"
-	elseif string.find(slot.text, ":", 1, true) == nil then
-		time = "Active now" -- an untimed modifier ("x3") or a rain without an end time ("Now")
+		time = Text.t("hud.tooltip.while_pet")
+	elseif slot.untimed then
+		time = Text.t("hud.tooltip.active_now") -- an untimed modifier ("x3") or a rain without an end time ("Now")
 	elseif slot.kind == "soon" then
-		time = `Starts in {slot.text}`
+		time = Text.t("hud.tooltip.starts_in", { time = slot.text })
 	elseif slot.kind == "cooldown" then
-		time = `Next boost ready in {slot.text}`
+		time = Text.t("hud.tooltip.next_boost", { time = slot.text })
 	else
-		time = `Time left: {slot.text}`
+		time = Text.t("hud.tooltip.time_left", { time = slot.text })
 	end
 	return { title = slot.name, body = slot.effect, time = time }
 end

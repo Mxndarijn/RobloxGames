@@ -12,9 +12,11 @@ local SlimeRoster = require("../src/shared/SlimeRoster")
 local Snapshot = require("../src/server/Snapshot")
 local SpeciesDex = require("../src/shared/SpeciesDex")
 local Steal = require("../src/shared/Steal")
+local TaggedText = require("../src/shared/TaggedText")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+local en = TaggedText.english -- Dex hints are Localize messages; the specs read their English
 local T0 = ServerFixtures.T0
 
 local STATE_KEYS = {
@@ -208,7 +210,7 @@ describe("Snapshot State.dex", function()
 		local moo = entry(state, "moo")
 		expect(moo.found).toBe(false)
 		expect(moo.name).toBe("Moo")
-		expect(entry(state, "goozilla").hint).toBe(SpeciesDex.BOSS_HINT)
+		expect(en(entry(state, "goozilla").hint)).toBe(SpeciesDex.BOSS_HINT)
 		expect(entry(state, "glitch").kind).toBe("event")
 	end)
 	it("a hybrid card carries its real recipe hint and fills the slots of found ingredients", function()
@@ -217,7 +219,7 @@ describe("Snapshot State.dex", function()
 		local state = Snapshot.build(world, s, T0) :: any
 		local recipe = MergeRecipes.recipeFor("soda") :: MergeRecipes.Recipe
 		local soda = entry(state, "soda")
-		expect(soda.hint).toBe(recipe.hint)
+		expect(en(soda.hint)).toBe(recipe.hint)
 		expect(#soda.ingredients).toBe(3)
 		for i, input in recipe.inputs do
 			expect(soda.ingredients[i]).toBe(if input == "gummy" then "gummy" else "")
@@ -232,7 +234,7 @@ describe("Snapshot State.dex", function()
 		local e = entry(state, featured.id)
 		expect(e.found).toBe(false)
 		expect(e.name).toBe(featured.name)
-		expect(e.hint).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(featured.startsAt)}`)
+		expect(en(e.hint)).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(featured.startsAt)}`)
 		for _, other in SpeciesDex.BONUS do
 			if other.kind == "event" and other.id ~= featured.id then
 				local o = entry(state, other.id)

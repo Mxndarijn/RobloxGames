@@ -44,8 +44,15 @@ local function reconciles(fn: () -> ()): number
 	return n
 end
 
+-- The result with `message` as the English reason (a refusal's message is a Localize message; `reason` keeps the
+-- English, server/RequestText).
 local function invoke(...)
-	return request.OnServerInvoke(player, ...)
+	local res = request.OnServerInvoke(player, ...)
+	if type(res) == "table" and res.reason then
+		res = table.clone(res)
+		res.message = res.reason
+	end
+	return res
 end
 
 -- The scenarios run here, at load time: Runtime keeps only the most recently built runtime "current" (players, etc.),

@@ -18,6 +18,13 @@ local PlayerData = if script then require(script.Parent.PlayerData) else require
 local Progression = if script then require(script.Parent.Progression) else require("./Progression")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 local Types = if script then require(script.Parent.Types) else require("./Types")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
+
+-- shared/TaggedText, loaded on first use (it reads the Strings catalog).
+local function tagged(): any
+	return if script then require(script.Parent.TaggedText) :: any else require("./TaggedText") :: any
+end
 
 type Data = PlayerData.Data
 type Features = { [string]: boolean }?
@@ -25,7 +32,8 @@ type Features = { [string]: boolean }?
 export type Kind = "cash" | "egg" | "boost" | "consumable" | "trail" | "seat"
 
 -- One day's reward as given (after the swaps) and as State.daily shows it (Types.DailyReward): kind is a Kind,
--- `short` the label on a narrow track tile ("$1K", "Egg", "2x", "Luck", "x2", "Golden").
+-- `short` the label on a narrow track tile ("$1K", "Egg", "2x", "Luck", "x2", "Golden"). Both are Localize messages
+-- where they hold words (ui/Text.text draws either); DailyRewards.english gives the English.
 export type Reward = Types.DailyReward
 export type View = Types.DailyView
 
@@ -91,16 +99,36 @@ local function fallback(day: number, data: Data): Reward
 	return cashReward(day, Config.DAILY_FALLBACK_CASH, data.rebirths)
 end
 
--- "Luck Potion" -> "Luck", "Golden Cloud" -> "Golden": what fits on a narrow tile.
-local function firstWord(name: string): string
+-- "Luck Potion" -> "Luck", "Golden Cloud" -> "Golden": what fits on a narrow tile, as the Strings entry
+-- world.daily_short.<kind>.<id> (Strings/World makes it with this function).
+function DailyRewards.firstWord(name: string): string
 	return string.match(name, "^%s*(%S+)") or name
+end
+local function short(kind: string, id: string, name: string): Localize.Text
+	return tagged().known(`world.daily_short.{kind}.{id}`, DailyRewards.firstWord(name))
+end
+
+local function dataName(kind: string, id: string, name: string): Localize.Text
+	return tagged().known(`data.{kind}.{id}.name`, name)
+end
+
+-- The English of a reward's label or short.
+function DailyRewards.english(text: Localize.Text): string
+	return tagged().english(text)
 end
 
 local function eggReward(day: number, data: Data, features: Features): Reward
 	if not feature(features, "MysteryEggs") or PlayerData.freePad(data) == nil then
 		return fallback(day, data)
 	end
-	return { day = day, kind = "egg", label = "Mystery Egg", short = "Egg", icon = "MysteryEgg", skin = false }
+	return {
+		day = day,
+		kind = "egg",
+		label = Localize.msg("world.daily.egg"),
+		short = Localize.msg("world.daily.egg_short"),
+		icon = "MysteryEgg",
+		skin = false,
+	}
 end
 
 -- What streak `day` gives this player now: the listed reward, or what replaces it (contract/daily-streak.md).
@@ -115,7 +143,7 @@ function DailyRewards.resolve(data: Data, day: number, features: Features): Rewa
 		return {
 			day = day,
 			kind = "boost",
-			label = `{entry.mult}x income {entry.minutes}m`,
+			label = Localize.msg("world.daily.boost", { mult = entry.mult, minutes = entry.minutes }),
 			short = `{entry.mult}x`,
 			icon = "Boost_Code",
 			skin = false,
@@ -133,8 +161,13 @@ function DailyRewards.resolve(data: Data, day: number, features: Features): Rewa
 		return {
 			day = day,
 			kind = "consumable",
-			label = if count == 1 then def.name else `{count} {def.name}s`,
-			short = if count == 1 then firstWord(def.name) else `x{count}`,
+			label = if count == 1
+				then dataName("consumable", def.id, def.name)
+				else Localize.msg(
+					"world.daily.consumables",
+					{ count = count, name = dataName("consumable", def.id, def.name) }
+				),
+			short = if count == 1 then short("consumable", def.id, def.name) else `x{count}`,
 			icon = `Consumable_{def.id}`,
 			skin = false,
 			id = def.id,
@@ -150,8 +183,10 @@ function DailyRewards.resolve(data: Data, day: number, features: Features): Rewa
 		return {
 			day = day,
 			kind = "trail",
-			label = `{if def then def.name else entry.id} trail`,
-			short = firstWord(if def then def.name else entry.id),
+			label = Localize.msg("world.daily.trail", {
+				name = if def then dataName("carryTrail", def.id, def.name) else entry.id,
+			}),
+			short = if def then short("trail", def.id, def.name) else entry.id,
 			icon = `Trail_{entry.id}`,
 			skin = true,
 			id = entry.id,
@@ -161,8 +196,11 @@ function DailyRewards.resolve(data: Data, day: number, features: Features): Rewa
 	return {
 		day = day,
 		kind = "seat",
-		label = `{if seat then seat.name else entry.id} seat`,
-		short = firstWord(if seat then seat.name else entry.id),
+		label = Localize.msg(
+			"world.daily.seat",
+			{ name = if seat then dataName("petSeat", seat.id, seat.name) else entry.id }
+		),
+		short = if seat then short("seat", seat.id, seat.name) else entry.id,
 		icon = `PetSeat_{entry.id}`,
 		skin = true,
 		id = entry.id,

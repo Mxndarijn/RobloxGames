@@ -17,6 +17,8 @@
 	  PvpEffectsLogic.shows(payload, localId, others) whether this client draws a PvpEvent ("Other players' effects")
 ]]
 
+local Text = if script then require(script.Parent.Text) else require("./Text")
+
 local PvpEffectsLogic = {}
 
 export type RGB = { number }
@@ -205,7 +207,7 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 		}
 		local freeze = plan :: Plan
 		if itemId == "GooTrap3" then
-			freeze.popup = { text = "CHOMP!", color = GOO, seconds = PvpEffectsLogic.POPUP_SECONDS }
+			freeze.popup = { text = Text.t("hud.fx.chomp"), color = GOO, seconds = PvpEffectsLogic.POPUP_SECONDS }
 			if freeze.burst then
 				freeze.burst.count *= 2
 			end
@@ -281,7 +283,7 @@ function PvpEffectsLogic.special(plan: Plan, payload: any, pvp: any)
 		end
 	end
 	if special == "bonk" then
-		plan.popup = { text = "BONK!", color = GOLD, seconds = PvpEffectsLogic.POPUP_SECONDS }
+		plan.popup = { text = Text.t("hud.fx.bonk"), color = GOLD, seconds = PvpEffectsLogic.POPUP_SECONDS }
 	elseif special == "bounce" and type(payload.pogo) == "table" then
 		local heights = {}
 		for i, h in payload.pogo do

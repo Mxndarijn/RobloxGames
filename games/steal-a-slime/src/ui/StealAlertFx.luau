@@ -34,6 +34,7 @@ local Layout = require(script.Parent.Layout)
 local SoundController = require(script.Parent.SoundController)
 local Sounds = require(script.Parent.Sounds)
 local StealAlertLayout = require(script.Parent.StealAlertLayout)
+local Text = require(script.Parent.Text)
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
@@ -108,7 +109,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		Visible = false,
 		ZIndex = Layout.ZINDEX.Banners + 1,
 		BackgroundTransparency = 1,
-		Text = "Thief",
+		Text = Text.t("hud.alert.thief"),
 		TextSize = 16,
 		Font = Theme.Font,
 		TextColor3 = Theme.Text,
@@ -272,7 +273,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		local label = create("TextLabel", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
-			Text = "BONK!",
+			Text = Text.t("hud.fx.bonk"),
 			TextSize = 30,
 			Font = Theme.Font,
 			TextColor3 = Theme.Gold,
@@ -399,7 +400,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		syncPings(wanted)
 		local character = thiefCharacter()
 		local visitor = if theft == nil and radarIds[1] ~= nil then characterOf(radarIds[1]) else nil
-		arrowLabel.Text = if theft == nil and visitor then "Visitor" else "Thief"
+		arrowLabel.Text = if theft == nil and visitor then Text.t("hud.alert.visitor") else Text.t("hud.alert.thief")
 		if theft == nil then
 			flashStroke.Transparency = 1
 			if visitor then

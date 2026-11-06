@@ -27,7 +27,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-cp -r "$root/default.project.json" "$root/rokit.toml" "$root/src" "$root/world" "$tmp/"
+cp -r "$root/default.project.json" "$root/rokit.toml" "$root/src" "$root/world" "$root/locale" "$tmp/"
 rm -rf "$tmp/src/visuals/static" # Archer's build-map output, not in the Rojo tree
 # ReplicatedStorage.Lib is the repo's shared/luau library, outside this folder: copy it in and point the project at the copy.
 mkdir -p "$tmp/lib"

@@ -11,6 +11,7 @@ local LayoutAssert = require("./LayoutAssert")
 local PurchasePrompt = require("../../src/ui/PurchasePrompt")
 local Remotes = require("../../src/shared/Remotes")
 local TestRunner = require("../TestRunner")
+local Text = require("../../src/ui/Text")
 local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -392,7 +393,7 @@ describe("Exclusive shop panel", function()
 	it("flag off: one closed line, no tabs, no cards", function()
 		local panel = openShop(1920, 1080, { petSeat = "cloud" }, ctx(Config))
 		expect(UiHarness.find(panel.frame, "Empty").Visible).toBe(true)
-		expect(UiHarness.find(panel.frame, "Empty").Text).toBe(ExclusiveShopView.EMPTY)
+		expect(UiHarness.find(panel.frame, "Empty").Text).toBe(Text.t(ExclusiveShopView.EMPTY))
 		expect(UiHarness.find(panel.frame, "Tab_Featured").Visible).toBe(false)
 		expect(UiHarness.find(panel.frame, "Grid").Visible).toBe(false)
 		expect(UiHarness.find(panel.frame, "Pane").Visible).toBe(false)
@@ -1171,7 +1172,7 @@ describe("Style tab and gifts (panel)", function()
 		UiHarness.fire(UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Gift"), "Activated")
 		local empty = UiHarness.find(UiHarness.find(panel.frame, "GiftPicker"), "GiftEmpty")
 		expect(empty.Visible).toBe(true)
-		expect(empty.Text).toBe(ExclusiveShopView.GIFT_EMPTY)
+		expect(empty.Text).toBe(Text.t(ExclusiveShopView.GIFT_EMPTY))
 	end)
 
 	local viewports: { any } = {}
@@ -1245,7 +1246,7 @@ describe("Exclusive shop perks and boosts (ExclusiveShopView)", function()
 		local ready = shopState({ passes = { VIP = true }, vipPotion = true })
 		local d = ExclusiveShopView.detail("pass:VIP", ready, config) :: any
 		expect(d.action.kind).toBe("equip")
-		expect(d.action.text).toBe(ExclusiveShopView.VIP_POTION)
+		expect(d.action.text).toBe(Text.t(ExclusiveShopView.VIP_POTION))
 		expect(d.action.equip.request).toBe("ClaimPerk")
 		expect(d.action.equip.arg).toBe("vipPotion")
 		local used = ExclusiveShopView.detail(
@@ -1254,7 +1255,7 @@ describe("Exclusive shop perks and boosts (ExclusiveShopView)", function()
 			config
 		) :: any
 		expect(used.action.kind).toBe("well")
-		expect(used.action.text).toBe(ExclusiveShopView.VIP_POTION_USED)
+		expect(used.action.text).toBe(Text.t(ExclusiveShopView.VIP_POTION_USED))
 		local restricted = ExclusiveShopView.detail(
 			"pass:VIP",
 			shopState({ passes = { VIP = true }, vipPotion = true, paidRandomAllowed = false }),
@@ -1284,7 +1285,7 @@ describe("Exclusive shop perks and boosts (ExclusiveShopView)", function()
 		expect(off.action.kind).toBe("offsale")
 		local member = shopState({ subscriptions = { SlimeClub = true } })
 		expect((ExclusiveShopView.detail("sub:SlimeClub", member, config) :: any).action.text).toBe(
-			ExclusiveShopView.SUBSCRIBED
+			Text.t(ExclusiveShopView.SUBSCRIBED)
 		)
 		expect(ExclusiveShopView.tabOf("sub:SlimeClub")).toBe("Perks")
 	end)
@@ -1293,7 +1294,7 @@ describe("Exclusive shop perks and boosts (ExclusiveShopView)", function()
 		local credits = { brew = 0, hatch = 0, rain = 1, boss = 0, totem = 0, snack = 0 }
 		local d = ExclusiveShopView.detail("product:SlimeRain", shopState({ credits = credits }), config) :: any
 		expect(d.action.kind).toBe("equip")
-		expect(d.action.text).toBe(ExclusiveShopView.USE_CREDIT)
+		expect(d.action.text).toBe(Text.t(ExclusiveShopView.USE_CREDIT))
 		expect(d.action.equip.request).toBe("UseCredit")
 		expect(d.action.equip.arg).toBe("rain")
 		local boss = ExclusiveShopView.detail("product:SummonBoss", shopState({ credits = credits }), config) :: any
@@ -1400,7 +1401,7 @@ describe("Exclusive styles, seasons and bundles (ExclusiveShopView)", function()
 		end
 		local selling = sellingConfig()
 		local detail = ExclusiveShopView.detail("plotBase:rocket", shopState(), selling) :: any
-		expect(detail.text).toBe(ExclusiveShopView.BASE_TEXT)
+		expect(detail.text).toBe(Text.t(ExclusiveShopView.BASE_TEXT))
 		expect(detail.action.kind).toBe("buy")
 		expect(detail.action.text).toBe("Buy · R$499")
 		expect(detail.action.purchase.id).toBe(selling.EXCLUSIVE_SHOP.products.Base_rocket.productId)

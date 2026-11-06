@@ -25,6 +25,7 @@ local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
 local ShopCatalog = require(UI.ShopCatalog)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 local WorldShopLogic = require(UI.WorldShopLogic)
 
@@ -205,7 +206,7 @@ end
 type RowOpts = { thin: boolean?, strip: boolean?, bare: boolean?, onBuy: ((WorldShopLogic.Row) -> ())? }
 
 function WorldShop.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "WorldShopPanel", "Shop", WorldShop.ICON.ItemShop.text)
+	local panel = Widgets.panel(parent, "WorldShopPanel", Text.t("shop.world.title"), WorldShop.ICON.ItemShop.text)
 	local tile = panel.icon.Parent :: Frame
 	local arrow = GooIcons.upArrow(panel.icon, ICON_DEPS, Theme.Ink, panel.icon.ZIndex)
 	arrow.Visible = false
@@ -253,7 +254,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		local button = Widgets.button(
 			{
 				Name = `Tab_{def.id}`,
-				Text = def.label,
+				Text = Text.t(def.label),
 				TextSize = SIZE.tab,
 				Size = UDim2.fromOffset(0, WorldShop.TAB_H),
 			},
@@ -397,8 +398,10 @@ function WorldShop.new(parent: Instance, ctx: any)
 			end,
 			ctx.Config.HOLD_CONFIRM_SECONDS
 		)
+		Widgets.fitText(buy.instance)
 		buy.instance.Parent = frame
 		local status = Widgets.status({
+			Text = "",
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = slotCentre,
 			Size = UDim2.fromOffset(WorldShop.BUY_W, slotH),
@@ -410,7 +413,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		})
 		local stamp = WorldShop.tag({
 			Name = "MaxStamp",
-			Text = "Max",
+			Text = Text.t("shop.button.max"),
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = slotCentre,
 			Visible = false,
@@ -422,7 +425,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 			local details = Widgets.button(
 				{
 					Name = "Details",
-					Text = ExclusiveShopView.DETAILS,
+					Text = Text.t(ExclusiveShopView.DETAILS),
 					TextSize = SIZE.buy,
 					Position = UDim2.fromOffset(WorldShop.EDGE, mainH),
 					Size = UDim2.fromOffset(WorldShop.SERVER_POTION.detailsW, Layout.BUTTON),
@@ -551,6 +554,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		})
 		local aside = Widgets.label({
 			Name = if entry.aside == "restock" then "RestockTimer" else "Aside",
+			Text = "",
 			FontFace = Theme.FontBody,
 			TextSize = SIZE.aside,
 			TextColor3 = Theme.Gold,
@@ -688,8 +692,10 @@ function WorldShop.new(parent: Instance, ctx: any)
 			end,
 			ctx.Config.HOLD_CONFIRM_SECONDS
 		)
+		Widgets.fitText(buy.instance)
 		buy.instance.Parent = frame
 		local status = Widgets.status({
+			Text = "",
 			Position = slotPos,
 			Size = slotSize,
 			TextSize = SIZE.status,

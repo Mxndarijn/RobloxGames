@@ -18,6 +18,7 @@ local ExclusiveShopView = require(UI.ExclusiveShopView)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
+local Text = require(UI.Text)
 local WelcomeBack = require(UI.WelcomeBack)
 local Widgets = require(UI.Widgets)
 
@@ -70,7 +71,7 @@ type Row = { frame: Frame, pic: any, name: TextLabel, desc: TextLabel }
 type Tile = { frame: Frame, stroke: UIStroke, label: TextLabel, amount: TextLabel, icon: any }
 
 function Welcome.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "WelcomePanel", "Welcome back", "👋") -- WelcomeBack.view sets the mode's title
+	local panel = Widgets.panel(parent, "WelcomePanel", Text.t(WelcomeBack.TITLES.join.title), "👋") -- WelcomeBack.view sets the mode's title
 	local body = panel.body
 	local row = Welcome.ROW
 	local tileSpec = Welcome.TILE
@@ -403,7 +404,9 @@ function Welcome.new(parent: Instance, ctx: any)
 		local cash = view.cash
 		if cash then
 			cashRow.name.Text = cash.name
-			cashRow.desc.Text = if short and growth then `{cash.desc}. {growth.name}.` else cash.desc
+			cashRow.desc.Text = if short and growth
+				then Text.t("onboarding.welcome.cash_and_growth", { cash = cash.desc, growth = growth.name })
+				else cash.desc
 		end
 		place(cashRow, cash ~= nil, metrics.rowH)
 
@@ -474,7 +477,7 @@ function Welcome.new(parent: Instance, ctx: any)
 		-- The main button: Claim (gold), Got it (mint), or a "Claimed" well after a claim.
 		if claimedShown then
 			actionKind = "close"
-			action.setText("Claimed")
+			action.setText(Text.t("onboarding.welcome.claimed"))
 			action.setEnabled(false)
 		else
 			actionKind = view.action.kind

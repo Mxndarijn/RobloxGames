@@ -1,5 +1,6 @@
 --!strict
 -- Local goals derived from State (src/ui/Goals.luau).
+local Config = require("../../src/shared/Config")
 local Goals = require("../../src/ui/Goals")
 local TestRunner = require("../TestRunner")
 
@@ -142,6 +143,18 @@ describe("Goals.fromServer (v13 State.goals)", function()
 		expect(rows[1].fraction).toBeCloseTo(0.4)
 		expect(rows[2].done).toBe(true)
 		expect(rows[2].detail).toBe("All 3 stages done")
+	end)
+	it("with Config, titles come from the goal's count keys (cash goals with $)", function()
+		local rows = Goals.fromServer({
+			{ id = "Catch", title = "x", progress = 0, stage = 0, stages = 5, target = 1, nextTitle = "y" },
+			{ id = "Earn", title = "x", progress = 0, stage = 0, stages = 4, target = 1e4, nextTitle = "y" },
+			{ id = "Lock", title = "x", progress = 120, stage = 3, stages = 3, done = true },
+		}, Config) :: { Goals.Goal }
+		expect(rows[1].title).toBe("Catch 1 slime")
+		expect(rows[1].next).toBe("Next: Catch 10 slimes")
+		expect(rows[2].title).toBe("Earn $10K in total")
+		expect(rows[2].nextShort).toBe("Next: $1M")
+		expect(rows[3].title).toBe("Lock your base 100 times")
 	end)
 	it("returns nil on a server without goals and skips junk", function()
 		expect(Goals.fromServer(nil)).toBeNil()

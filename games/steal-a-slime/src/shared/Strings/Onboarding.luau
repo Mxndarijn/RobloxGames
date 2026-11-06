@@ -1,3 +1,163 @@
 --!strict
--- Player-facing English for the onboarding area (keys start with "onboarding."). Localize.catalog checks it.
-return {}
+-- Player-facing English for the onboarding area (keys start with "onboarding."): the tutorial card, the hint
+-- bubble, the Guide, the Goals panel and the welcome back / daily reward card. Localize.catalog checks it.
+local function key(source: string): any
+	return { source = source, example = { key = "E" } }
+end
+
+return {
+	-- Tutorial card (ui/Tutorial, ui/TutorialCard). A hint with a prompt has a "body_key" line ({key} = the
+	-- prompt's key or button on keyboard / gamepad: "E", "X", "Square") and a "body_touch" line.
+	["onboarding.tutorial.grab.title"] = "Grab a slime",
+	["onboarding.tutorial.grab.done"] = "Slime grabbed",
+	["onboarding.tutorial.grab.body_key"] = key("Go to a free slime and press {key}"),
+	["onboarding.tutorial.grab.body_touch"] = "Go to a free slime and tap the prompt",
+	["onboarding.tutorial.deposit.title"] = "Bring it home",
+	["onboarding.tutorial.deposit.done"] = "Slime home",
+	["onboarding.tutorial.deposit.body"] = "Walk into your plot while you carry it",
+	["onboarding.tutorial.lock.title"] = "Lock your base",
+	["onboarding.tutorial.lock.done"] = "Base locked",
+	["onboarding.tutorial.lock.body"] = "Stand on your lock pad",
+	["onboarding.tutorial.leaderboard.title"] = "Check the leaderboard",
+	["onboarding.tutorial.leaderboard.done"] = "Leaderboard found",
+	["onboarding.tutorial.leaderboard.body"] = "Walk to the Top Earners board",
+	["onboarding.tutorial.guide.title"] = "Meet the Guide",
+	["onboarding.tutorial.guide.done"] = "Guide met",
+	["onboarding.tutorial.guide.body_key"] = key("Press {key} at the Guide to talk"),
+	["onboarding.tutorial.guide.body_touch"] = "Tap the prompt at the Guide to talk",
+	["onboarding.tutorial.buy_pad.title"] = "Buy a pad",
+	["onboarding.tutorial.buy_pad.done"] = "Pad bought",
+	["onboarding.tutorial.buy_pad.body_key"] = key("Hold {key} at the glowing pad"),
+	["onboarding.tutorial.buy_pad.body_touch"] = "Hold the prompt at the glowing pad",
+	["onboarding.tutorial.merge.title"] = "Merge slimes",
+	["onboarding.tutorial.merge.done"] = "First merge",
+	["onboarding.tutorial.merge.body"] = "Brew 3 alike in your merge vat",
+	["onboarding.tutorial.buy_item.title"] = "Buy an item",
+	["onboarding.tutorial.buy_item.done"] = "Item bought",
+	["onboarding.tutorial.buy_item.body"] = "Buy anything at a shop",
+	["onboarding.tutorial.finished"] = "Tutorial done",
+	["onboarding.tutorial.finished_sub"] = "Next things to do are in Goals",
+	["onboarding.tutorial.hide"] = "Hide",
+
+	-- Hint bubble (ui/Hint): {icon} is the nav button's icon.
+	["onboarding.hint.goals"] = { source = "Tap {icon} Goals in the left menu", example = { icon = "🎯" } },
+
+	-- Guide panel (Panels/Guide, ui/GuideTips)
+	["onboarding.guide.title"] = "Guide",
+	["onboarding.guide.next_goal"] = "Next goal",
+	["onboarding.guide.show_tutorial"] = "Show the tutorial again",
+	["onboarding.guide.skip_tutorial"] = "Hold to skip the tutorial",
+	["onboarding.guide.goal.grab"] = "Grab a slime at the fountain",
+	["onboarding.guide.goal.deposit"] = "Carry it home to your plot",
+	["onboarding.guide.goal.lock"] = "Lock your base",
+	["onboarding.guide.goal.buy_pad"] = "Buy another pad",
+	["onboarding.guide.goal.merge"] = "Merge two slimes",
+	["onboarding.guide.keep_collecting"] = "Keep collecting slimes",
+	["onboarding.guide.all_done"] = "Every goal done. Nice!",
+	["onboarding.guide.tip.fountain"] = "Rare slimes spill from the fountain",
+	["onboarding.guide.tip.slap"] = "Bat thieves to get your slimes back",
+	["onboarding.guide.tip.dex"] = "New slimes fill your SlimeDex",
+	["onboarding.guide.tip.stolen"] = "Thief has your slime: use your bat!",
+	["onboarding.guide.tip.lock"] = "Your plot is open: lock it",
+	["onboarding.guide.tip.rebirth"] = "Rebirth is ready",
+	["onboarding.guide.tip.vat_done"] = "Your merge vat is done: collect it",
+	["onboarding.guide.tip.merge_match"] = "Three slimes match: Move them into the vat",
+	["onboarding.guide.tip.shop"] = "You can afford a shop upgrade",
+	["onboarding.guide.tip.pads"] = "Free pad: bring home another slime",
+
+	-- Goals panel (Panels/Goals, ui/Goals)
+	["onboarding.goals.title"] = "Goals",
+	["onboarding.goals.note_server"] = "Rewards pay out on their own",
+	["onboarding.goals.note_local"] = "Just for fun",
+	["onboarding.goals.summary"] = { source = "{done}/{total} done", example = { done = 3, total = 7 } },
+	["onboarding.goals.quests_heading"] = "Daily quests",
+	["onboarding.goals.milestones_heading"] = "Milestones",
+	["onboarding.goals.resets_in"] = { source = "Resets in {time}", example = { time = "4:05:00" } },
+	["onboarding.goals.done"] = "Done",
+	["onboarding.goals.claimed"] = "Claimed",
+	["onboarding.goals.claim"] = "Claim",
+	["onboarding.goals.claim_boost"] = "Claim boost",
+	["onboarding.goals.claim_cash"] = { source = "Claim {cash}", example = { cash = "$100" } },
+	["onboarding.goals.daily_title"] = "Daily reward",
+	["onboarding.goals.daily_open"] = "Open",
+	["onboarding.goals.daily_ready_claim"] = { source = "Ready to claim {amount}", example = { amount = "$1K" } },
+	["onboarding.goals.next"] = { source = "Next: {title}", example = { title = "Catch 50 slimes" } },
+	["onboarding.goals.next_short"] = { source = "Next: {target}", example = { target = "$1M" } },
+	["onboarding.goals.all_stages_done"] = { source = "All {stages} stages done", example = { stages = 5 } },
+	["onboarding.goals.stage_detail"] = {
+		source = "{progress} · stage {stage}/{stages}",
+		example = { progress = "8/10", stage = 2, stages = 5 },
+	},
+	["onboarding.goals.stage_detail_reward"] = {
+		source = "{progress} · reward {reward} · stage {stage}/{stages}",
+		example = { progress = "8/10", reward = "$500", stage = 2, stages = 5 },
+	},
+	["onboarding.goals.meta_stage"] = {
+		source = "{progress} · Stage {stage} of {stages}",
+		example = { progress = "8/10", stage = 4, stages = 5 },
+	},
+	["onboarding.goals.meta_last"] = { source = "{progress} · Last stage", example = { progress = "8/10" } },
+	-- Local goals (a server without State.goals)
+	["onboarding.goals.fill_pads"] = "Fill your pads",
+	["onboarding.goals.fill_pads_detail"] = { source = "{used}/{pads} pads used", example = { used = 3, pads = 6 } },
+	["onboarding.goals.all_pads"] = "Unlock every pad",
+	["onboarding.goals.pads_next_rebirth"] = {
+		source = "{pads}/{max} · next at Rebirth {rebirth}",
+		example = { pads = 6, max = 8, rebirth = 2 },
+	},
+	["onboarding.goals.pads_next_cost"] = {
+		source = "{pads}/{max} · next {cost}",
+		example = { pads = 6, max = 8, cost = "$500" },
+	},
+	["onboarding.goals.daily"] = "Claim today's daily reward",
+	["onboarding.goals.daily_ready"] = { source = "Day {day}: {reward}", example = { day = 3, reward = "$1K" } },
+	["onboarding.goals.daily_claimed"] = { source = "Claimed · streak {streak}", example = { streak = 4 } },
+	["onboarding.goals.tier"] = { source = "Tier {tier}", example = { tier = 7 } },
+	["onboarding.goals.best_tier"] = { source = "Own a {rarity} slime", example = { rarity = "Rare" } },
+	["onboarding.goals.best_tier_detail"] = { source = "Best now: tier {best}/{top}", example = { best = 2, top = 6 } },
+	["onboarding.goals.first_rebirth"] = "Reach your first rebirth",
+	["onboarding.goals.next_rebirth"] = { source = "Reach rebirth {rebirth}", example = { rebirth = 2 } },
+	["onboarding.goals.dex"] = { source = "Discover {percent}% of the SlimeDex", example = { percent = 25 } },
+	["onboarding.goals.dex_detail"] = {
+		source = "{found}/{need} species ({percent}%)",
+		example = { found = 8, need = 13, percent = 16 },
+	},
+	["onboarding.goals.speed_coil"] = "Get the Speed Coil",
+	["onboarding.goals.owned"] = "Owned",
+	["onboarding.goals.speed_coil_price"] = { source = "Shop · {price}", example = { price = "$2.5K" } },
+
+	-- Welcome back / daily reward card (Panels/Welcome, ui/WelcomeBack, ui/Daily)
+	["onboarding.welcome.title_join"] = "Welcome back",
+	["onboarding.welcome.title_daily"] = "Daily reward",
+	["onboarding.welcome.away"] = { source = "Away {time}", example = { time = "5h 20m" } },
+	["onboarding.welcome.no_cash"] = "No cash earned while you were away",
+	["onboarding.welcome.earned_pads"] = {
+		source = "Earned in {time}, waiting on your cash pads",
+		example = { time = "5h 20m" },
+	},
+	["onboarding.welcome.earned_cash"] = {
+		source = "Earned in {time}, added to your cash",
+		example = { time = "5h 20m" },
+	},
+	["onboarding.welcome.next_skin"] = {
+		source = "Next skin: {skin} on day {day}",
+		example = { skin = "Mint Fizz", day = 7 },
+	},
+	["onboarding.welcome.come_back"] = "Come back tomorrow",
+	["onboarding.welcome.streak_broke"] = "Your streak broke",
+	["onboarding.welcome.streak_broke_days"] = { source = "Your {days}-day streak broke", example = { days = 5 } },
+	["onboarding.welcome.streak_day"] = { source = "Day {day} of {cap}", example = { day = 3, cap = 30 } },
+	["onboarding.welcome.claimed_today"] = "Claimed today",
+	["onboarding.welcome.daily_claimed"] = "Daily reward claimed",
+	["onboarding.welcome.grown.one"] = { source = "{count} slime grew", example = { count = 1 } },
+	["onboarding.welcome.grown.other"] = { source = "{count} slimes grew", example = { count = 3 } },
+	["onboarding.welcome.grown_desc"] = "on your pads while you were gone",
+	["onboarding.welcome.cash_and_growth"] = {
+		source = "{cash}. {growth}.",
+		example = { cash = "Earned in 5h 20m, added to your cash", growth = "3 slimes grew" },
+	},
+	["onboarding.welcome.claim"] = { source = "Claim {amount}", example = { amount = "$1K" } },
+	["onboarding.welcome.got_it"] = "Got it",
+	["onboarding.welcome.claimed"] = "Claimed",
+	["onboarding.daily.day"] = { source = "Day {day}", example = { day = 3 } },
+}

@@ -15,6 +15,7 @@ local LocaleFonts = {}
 
 export type Script =
 	"latin"
+	| "latinExt"
 	| "vietnamese"
 	| "cyrillic"
 	| "greek"
@@ -26,7 +27,21 @@ export type Script =
 	| "hebrew"
 	| "devanagari"
 
+-- "latin": the Western European letters (Latin-1) most display fonts have. "latinExt": Latin letters beyond
+-- it (Turkish ş ğ İ, Polish ż ł ą, Czech ř, ...), which many display fonts lack.
 local BY_LANGUAGE: { [string]: Script } = {
+	tr = "latinExt",
+	pl = "latinExt",
+	cs = "latinExt",
+	sk = "latinExt",
+	hu = "latinExt",
+	ro = "latinExt",
+	hr = "latinExt",
+	sl = "latinExt",
+	lt = "latinExt",
+	lv = "latinExt",
+	et = "latinExt",
+	az = "latinExt",
 	ru = "cyrillic",
 	uk = "cyrillic",
 	bg = "cyrillic",

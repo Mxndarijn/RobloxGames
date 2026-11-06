@@ -16,6 +16,7 @@
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Item = {
 	id: string,
@@ -70,17 +71,30 @@ ShopCatalog.UPGRADE_ICONS = table.freeze({
 	Luck = "🍀",
 })
 
--- v28 short row text per upgrade id: the leading number of `text` (e.g.
--- "+4%") + this phrase. Unknown ids (or no number) keep the server text.
-ShopCatalog.UPGRADE_SHORT = table.freeze({
-	Luck = "rarity-up chance",
+-- The Strings key of each upgrade's effect phrase: a row reads the leading number of the upgrade's text (e.g.
+-- "+4%") + this phrase ("+4% rarity-up chance"). Unknown ids keep the rest of the server text.
+ShopCatalog.UPGRADE_EFFECT = table.freeze({
+	Income = "shop.upgrade.effect.income",
+	CarrySpeed = "shop.upgrade.effect.carry_speed",
+	OfflineCap = "shop.upgrade.effect.offline_cap",
+	Luck = "shop.upgrade.effect.luck",
+	QuickBrew = "shop.upgrade.effect.quick_brew",
 })
 
--- The one-line description of a v13 upgrade row.
+-- The effect phrase of upgrade `id` in the player's language; `rest` (the English after the amount) for an
+-- upgrade without one.
+function ShopCatalog.effectPhrase(id: string, rest: string): string
+	local key = (ShopCatalog.UPGRADE_EFFECT :: any)[id]
+	return if key then Text.t(key) else rest
+end
+
+-- The one-line description of an upgrade row from its (English) server text.
 function ShopCatalog.upgradeText(id: string, text: string): string
-	local phrase = (ShopCatalog.UPGRADE_SHORT :: any)[id]
 	local amount = string.match(text, "^([%+%-]%d+%.?%d*%%?)")
-	return if phrase and amount then `{amount} {phrase}` else text
+	if amount and (ShopCatalog.UPGRADE_EFFECT :: any)[id] then
+		return Text.t("shop.upgrade.amount", { amount = amount, effect = ShopCatalog.effectPhrase(id, "") })
+	end
+	return text
 end
 
 function ShopCatalog.find(id: string): Item?
@@ -110,7 +124,7 @@ function ShopCatalog.speedCoilText(config: any): string?
 	if type(base) ~= "number" or type(coil) ~= "number" then
 		return nil
 	end
-	return `Hold it: speed {base} → {coil}`
+	return Text.t("shop.speed_coil.speed", { base = base, coil = coil })
 end
 
 -- `config` (optional, Shared Config) fills in numbers for some descriptions.
@@ -125,7 +139,7 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 	local cash = if type(state) == "table" and type(state.cash) == "number" then state.cash else 0
 	local affordable = price == nil or cash >= price
 
-	local description = item.description
+	local description = Text.data("shopItem", item.id, "text", item.description)
 	if item.id == "SpeedCoil" then
 		description = ShopCatalog.speedCoilText(config) or description
 	end
@@ -134,14 +148,14 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 	local buttonText
 	local kind: Status = "buy"
 	if not available then
-		buttonText, kind = "Coming soon", "unavailable"
+		buttonText, kind = Text.t("shop.button.coming_soon"), "unavailable"
 	elseif maxed then
-		buttonText = if owned then "Owned" else "Max"
+		buttonText = if owned then Text.t("shop.button.owned") else Text.t("shop.button.max")
 		kind = if owned then "owned" else "maxed"
 	elseif price then
 		buttonText = Format.formatCash(price)
 	else
-		buttonText = "Buy"
+		buttonText = Text.t("shop.button.buy")
 	end
 
 	return {
@@ -155,7 +169,9 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 		enabled = available and not maxed and affordable,
 		buttonText = buttonText,
 		levelText = if type(level) == "number"
-			then (if type(maxLevel) == "number" then `Lv {level}/{maxLevel}` else `Lv {level}`)
+			then (if type(maxLevel) == "number"
+				then Text.t("shop.level_of", { level = level, max = maxLevel })
+				else Text.t("shop.level", { level = level }))
 			else nil,
 		progress = if type(level) == "number"
 				and type(maxLevel) == "number"
@@ -188,22 +204,22 @@ function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { Ite
 			local buttonText
 			local kind: Status = "buy"
 			if not available then
-				buttonText, kind = "Coming soon", "unavailable"
+				buttonText, kind = Text.t("shop.button.coming_soon"), "unavailable"
 			elseif maxed then
-				buttonText, kind = "Max", "maxed"
+				buttonText, kind = Text.t("shop.button.max"), "maxed"
 			elseif not unlocked then
-				buttonText, kind = `Rebirth {u.requires or "?"}`, "locked"
+				buttonText, kind = Text.t("shop.button.rebirth", { rebirths = u.requires or "?" }), "locked"
 			elseif price then
 				buttonText = Format.formatCash(price)
 			else
-				buttonText = "Buy"
+				buttonText = Text.t("shop.button.buy")
 			end
 			local text = ShopCatalog.upgradeText(u.id, if type(u.text) == "string" then u.text else "")
 			local icon = (ShopCatalog.UPGRADE_ICONS :: any)[u.id] or "⬆️"
 			table.insert(out, {
 				item = {
 					id = `Upgrade_{u.id}`,
-					name = if type(u.name) == "string" then u.name else u.id,
+					name = Text.data("upgrade", u.id, "name", if type(u.name) == "string" then u.name else u.id),
 					icon = icon,
 					description = text,
 					action = "BuyUpgrade",
@@ -217,7 +233,7 @@ function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { Ite
 				maxed = maxed,
 				enabled = available and unlocked and not maxed and (price == nil or cash >= price),
 				buttonText = buttonText,
-				levelText = `Lv {level}/{maxLevel}`,
+				levelText = Text.t("shop.level_of", { level = level, max = maxLevel }),
 				progress = if maxLevel > 0 then math.clamp(level / maxLevel, 0, 1) else nil,
 				level = level,
 				maxLevel = maxLevel,
@@ -243,31 +259,36 @@ function ShopCatalog.consumableViews(state: any, actions: { [string]: any }): { 
 		local buttonText
 		local kind: Status = "buy"
 		if not available then
-			buttonText, kind = "Coming soon", "unavailable"
+			buttonText, kind = Text.t("shop.button.coming_soon"), "unavailable"
 		elseif soldOut then
-			buttonText, kind = "Sold out", "soldOut"
+			buttonText, kind = Text.t("shop.button.sold_out"), "soldOut"
 		else
 			buttonText = Format.formatCash(c.price)
 		end
+		local name =
+			Text.data("consumable", c.id, "name", if type(c.name) == "string" then c.name else Text.text(c.name))
+		local text =
+			Text.data("consumable", c.id, "text", if type(c.text) == "string" then c.text else Text.text(c.text))
+		local left = Text.t("shop.stock_left", { left = c.left, max = c.max })
 		table.insert(out, {
 			item = {
 				id = `Consumable_{c.id}`,
-				name = c.name,
+				name = name,
 				icon = c.icon,
-				description = c.text,
+				description = text,
 				action = "BuyConsumable",
 				args = { c.id },
 			},
 			status = kind,
 			icon = c.icon,
-			description = c.text,
+			description = text,
 			price = c.price,
 			available = available,
 			maxed = soldOut,
 			enabled = available and not soldOut and cash >= c.price,
 			buttonText = buttonText,
-			levelText = `{c.left}/{c.max} left`,
-			stockText = `{c.left}/{c.max} left`,
+			levelText = left,
+			stockText = left,
 		})
 	end
 	return out
@@ -276,7 +297,7 @@ end
 -- "Restocks in 3:07" for the consumables header, from the unix restock time and the current server time.
 function ShopCatalog.restockText(restockAt: number, now: number): string
 	local left = math.max(0, math.ceil(restockAt - now))
-	return `Restocks in {left // 60}:{string.format("%02d", left % 60)}`
+	return Text.t("shop.restocks_in", { time = `{left // 60}:{string.format("%02d", left % 60)}` })
 end
 
 return table.freeze(ShopCatalog)

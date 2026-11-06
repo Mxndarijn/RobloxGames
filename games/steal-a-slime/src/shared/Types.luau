@@ -21,7 +21,9 @@ local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require
 export type SlimeData = Genome.Slime
 
 -- Return value of every `Request` invoke.
-export type RequestResult = { ok: boolean, message: string?, code: string? } -- code: ShopEvent deny code (OpenShop / ShopBuy, CONTRACT.md §27.7)
+-- code: ShopEvent deny code (OpenShop / ShopBuy, CONTRACT.md §27.7). On the client a refusal's `message` is a Localize
+-- message (server/RequestText; draw it with ui/Text.text) and `reason` its English reason ("too fast").
+export type RequestResult = { ok: boolean, message: any?, code: string?, reason: string? }
 
 export type NotifyKind = "info" | "good" | "bad" | "badge"
 
@@ -93,7 +95,7 @@ export type ObbyView = {
 }
 
 -- Follow-pet passive (CONTRACT.md §14): the favourite slime's perk, text "+5% luck".
-export type PetPerkView = { kind: string, value: number, icon: string, text: string }
+export type PetPerkView = { kind: string, value: number, icon: string, text: any } -- text: a Localize message
 
 -- Plot skins (CONTRACT.md §15): one skin with its SlimeDex set progress.
 export type PlotSkinView = PlotSkins.View
@@ -104,13 +106,13 @@ export type CodesView = { boostMult: number, boostEndsAt: number, redeemed: numb
 
 export type QuestView = {
 	id: string,
-	title: string,
+	title: any, -- a Localize message (Quests.view): the quest's count key with {count}
 	icon: string,
 	progress: number,
 	target: number,
 	done: boolean,
 	claimed: boolean,
-	reward: string,
+	reward: any, -- "+$500", or a Localize message for a boost (Quests.view)
 	rewardKind: string,
 }
 export type DailyQuestsView = { day: number, resetsIn: number, quests: { QuestView } }
@@ -119,8 +121,8 @@ export type DailyQuestsView = { day: number, resetsIn: number, quests: { QuestVi
 export type DailyReward = {
 	day: number,
 	kind: string,
-	label: string,
-	short: string,
+	label: any, -- a Localize message or a plain string (cash "$1K"): draw it with ui/Text.text
+	short: any,
 	icon: string,
 	amount: number?,
 	skin: boolean,
@@ -181,8 +183,8 @@ export type EggView = {
 }
 
 -- v13 progression views (CONTRACT.md §8.2)
-export type RebirthTierView = { rebirths: number, title: string, text: string, unlocked: boolean }
-export type NextRebirthTier = { rebirths: number, title: string, text: string }
+export type RebirthTierView = { rebirths: number, title: string, text: any, unlocked: boolean } -- text: "" or a Localize message
+export type NextRebirthTier = { rebirths: number, title: string, text: any } -- text: "" or a Localize message
 export type UpgradeView = {
 	id: string,
 	name: string,

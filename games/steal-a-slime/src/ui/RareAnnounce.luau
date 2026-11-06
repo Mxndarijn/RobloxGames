@@ -11,6 +11,8 @@
 	State field (`State.boss`, Panels/BossMeter).
 ]]
 
+local Text = if script then require(script.Parent.Text) else require("./Text")
+
 export type Drop = { tier: number?, at: number, text: string? } -- at = server time of the drop
 export type Banner = { text: string, kind: "drop" }
 
@@ -47,20 +49,24 @@ function RareAnnounce.dropFromAttributes(tier: any, at: any): Drop?
 	return { tier = if type(tier) == "number" then tier else nil, at = at, text = nil }
 end
 
--- Banner for the latest Legendary+ drop; `tierNames[tier]` names the rarity.
+-- Banner for the latest Legendary+ drop; `tierNames[tier]` names the rarity (English, as in Config.RARITIES).
+-- `drop.text` is the server's Notify line, shown as it came.
 function RareAnnounce.dropBanner(drop: Drop?, now: number, tierNames: { string }): Banner?
 	if drop == nil or now - drop.at >= RareAnnounce.DROP_SECONDS or now < drop.at - 5 then
 		return nil
 	end
 	local tier = drop.tier or 0
+	local function rarity(english: string): string
+		return string.upper(Text.data("rarity", english, "name", english))
+	end
 	local mark = if tier >= RareAnnounce.SECRET_TIER
-		then `🌌 {string.upper(tierNames[tier] or "Secret")} 🌌`
+		then `🌌 {if tierNames[tier] then rarity(tierNames[tier]) else Text.t("hud.rare.secret")} 🌌`
 		else "✨"
 	if drop.text then
 		return { text = `{mark} {drop.text}`, kind = "drop" }
 	end
-	local name = if drop.tier and tierNames[drop.tier] then string.upper(tierNames[drop.tier]) else "RARE"
-	return { text = `{mark} A {name} slime spilled from the fountain! Grab it!`, kind = "drop" }
+	local name = if drop.tier and tierNames[drop.tier] then rarity(tierNames[drop.tier]) else Text.t("hud.rare.rare")
+	return { text = `{mark} {Text.t("hud.rare.spilled", { rarity = name })}`, kind = "drop" }
 end
 
 return table.freeze(RareAnnounce)

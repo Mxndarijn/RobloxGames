@@ -24,6 +24,7 @@ local MergeGate = if Shared then require(Shared.MergeGate) else require("../shar
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local VatDecor = if Shared then require(Shared.Parent.Visuals.VatDecor) else require("../visuals/shared/VatDecor")
 local StealGhost = if script then require(script.Parent.StealGhost) else require("./StealGhost")
+local WorldText = if script then require(script.Parent.WorldText) else require("./WorldText")
 local LabelFit = if Shared
 	then require(Shared.Parent.Lib.ui.LabelFit)
 	else require("../../../../shared/luau/src/ui/LabelFit")
@@ -55,24 +56,37 @@ VatView.TAG = table.freeze({
 	phoneMaxDistance = 40, -- studs, on a phone-sized screen
 })
 
-export type Line = { text: string, color: "Mint" | "Gold" | "MutedWell" | "Warn" }
+-- `message`: the text as a Localize message (drawn through WorldText); `text`: its English.
+export type Line = { text: string, message: any, color: "Mint" | "Gold" | "MutedWell" | "Warn" }
+
+local function lineOf(message: any, color: "Mint" | "Gold" | "MutedWell" | "Warn"): Line
+	return { text = WorldText.english(message), message = message, color = color }
+end
 
 -- What the vat's pill says at server time `now`.
 function VatView.tagLine(data: any, now: number): Line
 	local ids = VatState.ids(data)
 	if VatState.isBrewing(data) then
 		if VatState.isReady(data, now) then
-			return { text = "Ready", color = "Gold" }
+			return lineOf(WorldText.msg("world.vat.ready"), "Gold")
 		end
 		local s = math.max(0, math.ceil(VatState.timeLeft(data, now)))
-		return { text = string.format("Brewing %d:%02d", s // 60, s % 60), color = "Mint" }
+		return lineOf(WorldText.msg("world.vat.brewing", { time = string.format("%d:%02d", s // 60, s % 60) }), "Mint")
 	end
 	local tier = VatState.tier(data)
 	if not tier then
-		return { text = "Move slimes in", color = "MutedWell" }
+		return lineOf(WorldText.msg("world.vat.move_in"), "MutedWell")
 	end
 	local locked = VatState.gateText(data) ~= nil
-	return { text = `{#ids}/{VatState.SIZE} {Genome.rarity(tier).name}`, color = if locked then "Warn" else "Mint" }
+	local rarity = Genome.rarity(tier).name
+	return lineOf(
+		WorldText.msg("world.vat.load", {
+			count = #ids,
+			max = VatState.SIZE,
+			rarity = WorldText.data("rarity", rarity, "name", rarity),
+		}),
+		if locked then "Warn" else "Mint"
+	)
 end
 
 -- The line under the pill: "Rebirth 3 to merge" for a load the owner's rank can't merge yet, else their cap
@@ -84,17 +98,28 @@ function VatView.capLine(data: any): Line?
 	local tier = VatState.tier(data)
 	if tier and VatState.gateText(data) then
 		local need = MergeGate.rebirthsFor(tier)
-		return { text = if need then `Rebirth {need} to merge` else "Can't merge", color = "Warn" }
+		return lineOf(
+			if need
+				then WorldText.msg("world.vat.rebirth_to_merge", { count = need })
+				else WorldText.msg("world.vat.cant_merge"),
+			"Warn"
+		)
 	end
-	return { text = MergeGate.capText(data.rebirths), color = "MutedWell" }
+	return lineOf(MergeGate.capMessage(data.rebirths), "MutedWell")
 end
 
 -- The status line of a pad slime that is in the vat (it replaces the income line on its sign and tag); nil otherwise.
 function VatView.labelStatus(data: any, id: string): string?
+	local message = VatView.labelStatusMessage(data, id)
+	return if message then WorldText.english(message) else nil
+end
+
+-- VatView.labelStatus as a Localize message.
+function VatView.labelStatusMessage(data: any, id: string): any?
 	if not VatState.contains(data, id) then
 		return nil
 	end
-	return if VatState.isBrewing(data) then "IN VAT" else "In vat"
+	return WorldText.msg(if VatState.isBrewing(data) then "world.vat.in_vat_brewing" else "world.vat.in_vat")
 end
 
 -- Spot `i`'s offset from the vat's centre on the goo (x, z), the three spots in a triangle.
@@ -169,7 +194,7 @@ local function buildTag(vat: BasePart): BillboardGui
 	head.Font = Enum.Font.FredokaOne
 	head.TextSize = T.titleSize
 	head.TextColor3 = rgb(GooPalette.White)
-	head.Text = "Merge vat"
+	WorldText.set(head, "Text", "world.prompt.merge_vat")
 	stroke(head, rgb(GooPalette.Ink), 2.5, 0, true)
 	head.Parent = gui
 	local pill = Instance.new("TextLabel")
@@ -400,15 +425,15 @@ function VatView.sync(
 	placeAnchor(vat, tag :: BillboardGui)
 	local line = (tag :: Instance):FindFirstChild("Line") :: TextLabel?
 	if line then
-		local view = if data then VatView.tagLine(data, now) else { text = "", color = "MutedWell" }
-		line.Text = view.text
+		local view = if data then VatView.tagLine(data, now) else { text = "", message = "", color = "MutedWell" }
+		WorldText.setMessage(line, "Text", view.message)
 		line.Visible = view.text ~= ""
 		line.TextColor3 = rgb((GooPalette :: any)[view.color])
 	end
 	local capLabel = (tag :: Instance):FindFirstChild("Cap") :: TextLabel?
 	if capLabel then
 		local view = if data then VatView.capLine(data) else nil
-		capLabel.Text = if view then view.text else ""
+		WorldText.setMessage(capLabel, "Text", if view then view.message else "")
 		capLabel.Visible = view ~= nil
 		capLabel.TextColor3 = rgb((GooPalette :: any)[if view then view.color else "MutedWell"])
 	end

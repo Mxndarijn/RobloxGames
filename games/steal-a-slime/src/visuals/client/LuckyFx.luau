@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local TaggedText = require(ReplicatedStorage.Shared.TaggedText)
 local Timeline = require(ReplicatedStorage.Visuals.LuckyTimeline)
 
 local LuckyFx = {}
@@ -167,11 +168,14 @@ local function startBurst(model: Model, fromTier: number, tier: number, owner: b
 		gui.LightInfluence = 0
 		gui.MaxDistance = Timeline.TITLE_DISTANCE
 		gui.Parent = anchor
-		local top, step = Timeline.title(fromTier, tier)
+		local top, step = Timeline.titleMessages(fromTier, tier)
 		labels = {
-			textLabel(gui, top, 0, 0.55, GOLD, false),
-			textLabel(gui, step, 0.55, 0.45, Color3.new(1, 1, 1), true),
+			textLabel(gui, "", 0, 0.55, GOLD, false),
+			textLabel(gui, "", 0.55, 0.45, Color3.new(1, 1, 1), true),
 		}
+		-- in the player's language (shared/TaggedText)
+		TaggedText.setMessage(labels[1], "Text", top)
+		TaggedText.setMessage(labels[2], "Text", step)
 		for _, label in labels do
 			local stroke = Instance.new("UIStroke")
 			stroke.Thickness = 2

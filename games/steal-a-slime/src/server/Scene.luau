@@ -26,6 +26,7 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local WorldText = if script then require(script.Parent.WorldText) else require("./WorldText")
 local LuckyShow = if script then require(script.Parent.LuckyShow) else require("./LuckyShow")
 local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
@@ -46,7 +47,8 @@ export type Entry = {
 	pad: number?,
 	carrierUserId: number?,
 	wild: World.Wild?, -- wild only: landing angle / radius / dropped position
-	promptText: string,
+	promptText: string, -- English of promptMessage
+	promptMessage: any, -- the grab prompt's ActionText (Carry.actionMessage, drawn through WorldText)
 	promptHold: number, -- ProximityPrompt.HoldDuration (B1)
 	promptEnabled: boolean,
 	hideFromUserId: number?, -- the owner, on Steal prompts; nil = visible to everyone
@@ -57,6 +59,7 @@ export type Entry = {
 	despawnAt: number?, -- uncarried wild only, inside the telegraph window (model attribute DespawnAt)
 	hatchReady: boolean, -- a ready Mystery Egg resting on its owner's pad: the owner-only HatchPrompt is on
 	hatchText: string?, -- a ready egg: the HatchPrompt ObjectText, the egg name and the owner's lucky meter
+	hatchMessage: any?, -- hatchText as a Localize message (WorldText)
 	hatch: World.Hatch?, -- a slime hatched moments ago: its show (model attributes HatchedAt / HatchedFrom / HatchLucky)
 	lucky: World.Lucky?, -- a slime the Lucky Charm just upgraded: its show (model attributes LuckyAt / LuckyFromTier)
 	key: string, -- changes whenever the model must be re-placed
@@ -112,6 +115,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			carrierUserId = carrier,
 			wild = wild,
 			promptText = Carry.actionText(wild.price),
+			promptMessage = Carry.actionMessage(wild.price),
 			promptHold = Carry.holdDuration(wild.price),
 			promptEnabled = carrier == nil
 				and wild.smashedAt == nil
@@ -133,6 +137,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				),
 			hatchReady = false,
 			hatchText = nil,
+			hatchMessage = nil,
 			hatch = nil,
 			lucky = nil,
 			key = `{state}|{carrier or 0}|{wild.position ~= nil}|{wild.spawnedAt}|{bossScale or 1}|{wild.smashedAt or 0}`,
@@ -159,6 +164,12 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				else LuckyShow.shown(world, slime, now)
 			local ready = shown == slime and state == "Pad" and EggKind.isReady(slime, now)
 			local kind = EggKind.of(slime)
+			local hatchMessage = if ready and kind
+				then WorldText.msg("world.egg.hatch_object", {
+					egg = WorldText.slime(slime),
+					meter = MysteryEgg.meterMessage(session.data, kind),
+				})
+				else nil
 			entries[slime.id] = {
 				id = slime.id,
 				slime = shown,
@@ -173,6 +184,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				carrierUserId = carrier,
 				wild = nil,
 				promptText = Carry.actionText(nil),
+				promptMessage = Carry.actionMessage(nil),
 				promptHold = Carry.holdDuration(nil),
 				promptEnabled = state == "Pad"
 					and (unlocked or guestsOnly ~= nil)
@@ -184,9 +196,8 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				rare = nil,
 				despawnAt = nil,
 				hatchReady = ready,
-				hatchText = if ready and kind
-					then `{EggKind.displayName(kind)} · {MysteryEgg.meterText(session.data, kind)}`
-					else nil,
+				hatchText = if hatchMessage then WorldText.english(hatchMessage) else nil,
+				hatchMessage = hatchMessage,
 				hatch = hatch,
 				lucky = LuckyShow.get(world, slime.id),
 				key = `{state}|{carrier or 0}|{session.plotIndex}|{slime.pad or 0}`,

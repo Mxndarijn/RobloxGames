@@ -14,6 +14,7 @@ local Remotes = require("../../src/shared/Remotes")
 local ShopGuard = require("../../src/server/ShopGuard")
 local Shops = require("../../src/shared/Shops")
 local TestRunner = require("../TestRunner")
+local Text = require("../../src/ui/Text")
 local UiHarness = require("./UiHarness")
 local WorldShopLogic = require("../../src/ui/WorldShopLogic")
 
@@ -571,8 +572,9 @@ describe("deny codes", function()
 
 	it("every code the server can send has a short friendly message", function()
 		for code, source in serverCodes() do
-			local text = (WorldShopLogic.MESSAGES :: any)[code]
-			expect(`{code} ({source}): {type(text)}`).toBe(`{code} ({source}): string`)
+			local key = (WorldShopLogic.MESSAGES :: any)[code]
+			expect(`{code} ({source}): {type(key)}`).toBe(`{code} ({source}): string`)
+			local text = Text.t(key)
 			expect(#text > 0 and #text <= 40).toBe(true)
 			expect(WorldShopLogic.messageFor(code, nil)).toBe(text)
 		end

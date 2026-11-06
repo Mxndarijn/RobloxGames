@@ -104,6 +104,10 @@ describe("Localize.csv", function()
 		expect(lines[1]).toBe("Key,Source,Context,Example")
 		expect(lines[2]).toBe('a.a,"Line')
 		expect(string.find(csv, 'a.b,"Say ""hi"", {name}",,', 1, true) ~= nil).toBe(true)
+		local dup = Localize.csv(Localize.catalog({ { ["a.x"] = "Close", ["b.x"] = "Close", ["c.x"] = "Open" } }))
+		expect(string.find(dup, "a.x,Close,a.x,", 1, true) ~= nil).toBe(true)
+		expect(string.find(dup, "b.x,Close,b.x,", 1, true) ~= nil).toBe(true)
+		expect(string.find(dup, "c.x,Open,,", 1, true) ~= nil).toBe(true)
 		local ex = Localize.csv(catalog)
 		expect(string.find(ex, "shop.buy,Buy {item} for {price},,Buy Speed Coil for $1.2K", 1, true) ~= nil).toBe(true)
 	end)
@@ -113,6 +117,7 @@ describe("LocaleFonts", function()
 	it("maps locale ids to scripts", function()
 		expect(LocaleFonts.script("ru-ru")).toBe("cyrillic")
 		expect(LocaleFonts.script("pt-br")).toBe("latin")
+		expect(LocaleFonts.script("tr-tr")).toBe("latinExt")
 		expect(LocaleFonts.script("zh-cn")).toBe("chinese")
 		expect(LocaleFonts.script("ja-jp")).toBe("japanese")
 		expect(LocaleFonts.script("th-th")).toBe("thai")
@@ -188,6 +193,32 @@ describe("RobloxTranslator", function()
 		expect(RobloxTranslator.new(catalog, deps).t("common.close")).toBe("Close")
 		expect(RobloxTranslator.pseudo(catalog).t("common.close")).toBe(Localize.pseudo("Close"))
 		expect(RobloxTranslator.english(catalog).t("steal.done", { slime = "Bob" })).toBe("You stole Bob!")
+	end)
+
+	it("answers a forced locale from the place's tables while the cloud fetch hangs", function()
+		local english = fakeTranslator("ru-ru", { ["common.close"] = "Close" }, {})
+		local russian = fakeTranslator("ru-ru", { ["common.close"] = "Закрыть" }, {})
+		local function tableOf(tr: any)
+			return {
+				IsA = function(_self: any, class: string): boolean
+					return class == "LocalizationTable"
+				end,
+				GetTranslator = function()
+					return tr
+				end,
+			}
+		end
+		local deps = table.clone(syncDeps) :: any
+		deps.spawn = function() end -- the async translator never arrives
+		deps.locale = "ru-ru"
+		deps.localization = {
+			GetChildren = function()
+				return { tableOf(english), tableOf(russian) }
+			end,
+		}
+		local t = RobloxTranslator.new(catalog, deps)
+		expect(t.t("common.close")).toBe("Закрыть")
+		expect(t.t("steal.done", { slime = "Bob" })).toBe("You stole Bob!")
 	end)
 
 	it("keeps English when Roblox has no translator", function()

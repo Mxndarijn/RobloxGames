@@ -37,6 +37,7 @@ local InventoryCore = require(script.Parent.InventoryCore)
 local InventoryLayout = require(script.Parent.InventoryLayout)
 local ItemIconView = require(script.Parent.ItemIconView)
 local Layout = require(script.Parent.Layout)
+local Text = require(script.Parent.Text)
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
@@ -95,11 +96,11 @@ Inventory.ORDER_TIMEOUT = 5 -- seconds an unconfirmed order (or an unanswered se
 Inventory.ORDER_RETRY = table.freeze({ ["too fast"] = true, ["still loading"] = true })
 Inventory.ORDER_RETRIES = 10
 Inventory.JOIN_GRACE = 10 -- seconds after the first State in which an arriving Tool is not new (placeNewItems)
-Inventory.HINT = "Drag items here" -- the plate heading's hint
+Inventory.HINT = "menus.inventory.hint" -- the plate heading's hint (a catalog key, like the texts below)
 -- The bag panel holding nothing but the starting Bat (already on the hotbar): this message instead of the grid.
 Inventory.EMPTY = table.freeze({
-	title = "Your bag is empty",
-	body = "Items you buy at the Item shop and rewards from goals show up here.",
+	title = "menus.inventory.empty_title",
+	body = "menus.inventory.empty_body",
 	titleSize = 24,
 	titleH = 30,
 	bodySize = 16,
@@ -107,8 +108,8 @@ Inventory.EMPTY = table.freeze({
 	gap = 8,
 })
 Inventory.ORDER_TEXT = table.freeze({
-	refused = "Couldn't save your hotbar",
-	blanked = "That item can't go on the hotbar",
+	refused = "menus.inventory.order_refused",
+	blanked = "menus.inventory.order_blanked",
 })
 
 -- True when the bag holds nothing but the Bat every player starts with.
@@ -122,8 +123,7 @@ function Inventory.bagEmpty(entries: { InventoryCore.Entry }): boolean
 end
 
 function Inventory.footerText(keyboard: boolean): string
-	return "Drag an item onto a hotbar slot to put it there. Drag it off the bar to take it off. "
-		.. `{if keyboard then "Click" else "Tap"} an item to equip it.`
+	return Text.t(if keyboard then "menus.inventory.footer_click" else "menus.inventory.footer_tap")
 end
 
 local KEYS: { [Enum.KeyCode]: number } = {
@@ -236,6 +236,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 
 	local tip = Widgets.label({
 		Name = "Tip",
+		Text = "",
 		Visible = false,
 		BackgroundTransparency = 0.1,
 		BackgroundColor3 = Theme.Bg,
@@ -501,7 +502,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	Widgets.centreEmoji(bagIcon)
 	Widgets.label({
 		Name = "Caption",
-		Text = "Bag",
+		Text = Text.t("menus.inventory.bag"),
 		Font = Theme.Font,
 		TextSize = 12,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -526,7 +527,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 		Parent = bag,
 	})
 	bagIcon.TextYAlignment = Enum.TextYAlignment.Center
-	local bagTip = if keyboard then `Inventory ({Inventory.BAG_KEYS.label})` else "Inventory"
+	local bagTip = if keyboard
+		then Text.t("menus.inventory.bag_tip_key", { key = Inventory.BAG_KEYS.label })
+		else Text.t("menus.inventory.title")
 	bag.MouseEnter:Connect(function()
 		showTip(bag, bagTip)
 	end)
@@ -579,14 +582,14 @@ function Inventory.new(parent: Instance, deps: Deps)
 				flight.busy = false
 				local refused = type(result) == "table" and result.ok == false
 				if refused and pendingOrder == order then
-					local passing = Inventory.ORDER_RETRY[result.message] == true
+					local passing = Inventory.ORDER_RETRY[result.reason or result.message] == true
 					if passing and retries < Inventory.ORDER_RETRIES then
 						retries += 1
 						flight.queued = true -- the same order again, ORDER_GAP after this one
 					else
 						pendingOrder = nil -- refused: the server's order stands
 						sync(true)
-						orderTip(Inventory.ORDER_TEXT.refused)
+						orderTip(Text.t(Inventory.ORDER_TEXT.refused))
 					end
 				end
 				if flight.queued then
@@ -665,7 +668,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		ZIndex = Layout.ZINDEX.Menu,
 		Parent = parent,
 	})
-	local panel = Widgets.panel(parent, "InventoryPanel", "Inventory", "🎒")
+	local panel = Widgets.panel(parent, "InventoryPanel", Text.t("menus.inventory.title"), "🎒")
 
 	local function bodyWidth(): number
 		return if screen then Layout.panelBody(Layout.panelFor(screen, "Inventory")).w else Layout.MENU_WIDTH
@@ -722,6 +725,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		end, false, panelOnDrag)
 		slot.name = Widgets.label({
 			Name = "Name",
+			Text = "",
 			Font = Theme.Font,
 			TextSize = P.nameSize,
 			TextColor3 = Theme.Text,
@@ -766,7 +770,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			return parts
 		end
 		-- the bag heading first: its count chip is the panel's first "Count"
-		local bagHeading = heading("BagHeading", "Bag")
+		local bagHeading = heading("BagHeading", Text.t("menus.inventory.bag"))
 		local countChip = Widgets.chip({
 			Name = "Count",
 			FontFace = Theme.FontBody,
@@ -778,10 +782,10 @@ function Inventory.new(parent: Instance, deps: Deps)
 			Size = fromOffset(0, CELL.top - 2),
 			Parent = bagHeading,
 		})
-		local barHeading = heading("HotbarHeading", "Hotbar")
+		local barHeading = heading("HotbarHeading", Text.t("menus.inventory.hotbar"))
 		local hint = Widgets.label({
 			Name = "Hint",
-			Text = Inventory.HINT,
+			Text = Text.t(Inventory.HINT),
 			TextSize = P.hintSize,
 			TextColor3 = Theme.Muted,
 			TextXAlignment = Enum.TextXAlignment.Right,
@@ -846,7 +850,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		p.hint.TextColor3 = Theme.Warn
 		task.delay(Inventory.TIP_SECONDS, function()
 			if hintToken == token then
-				p.hint.Text = Inventory.HINT
+				p.hint.Text = Text.t(Inventory.HINT)
 				p.hint.TextColor3 = Theme.Muted
 			end
 		end)
@@ -910,7 +914,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			})
 			Widgets.label({
 				Name = "Title",
-				Text = e.title,
+				Text = Text.t(e.title),
 				Font = Theme.Font,
 				TextSize = e.titleSize,
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -919,7 +923,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			})
 			Widgets.label({
 				Name = "Body",
-				Text = e.body,
+				Text = Text.t(e.body),
 				TextSize = e.bodySize,
 				TextColor3 = Theme.Muted,
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -1023,7 +1027,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 				cell.Visible = false
 			end
 		end
-		p.countChip.Text = if #entries == 1 then "1 item" else `{#entries} items`
+		p.countChip.Text = Text.count("menus.inventory.count", #entries)
 		local gridH = InventoryLayout.gridHeight(total, gridBodyW)
 		local footerH = Layout.wrappedHeight(footerText, P.hintSize, gridBodyW)
 		local footerY = CELL.gridPad + gridH + InventoryLayout.PLATE.footerGap
@@ -1153,7 +1157,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		local wanted = InventoryCore.applyDrop(keys, from, to)
 		local _, blanked = InventoryCore.cleanOrder(wanted)
 		if blanked then
-			orderTip(Inventory.ORDER_TEXT.blanked)
+			orderTip(Text.t(Inventory.ORDER_TEXT.blanked))
 		end
 		if setOrder(wanted) then
 			sync(true)
@@ -1552,7 +1556,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			if entry.kind == "consumable" and entry.itemId == heldConsumable then
 				local request = InventoryCore.useRequest(entry)
 				if not request then
-					feedback(entry, "Not in hand")
+					feedback(entry, Text.t("menus.inventory.not_in_hand"))
 					return false
 				end
 				lastUse = now

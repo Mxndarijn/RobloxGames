@@ -38,6 +38,7 @@ local Kit = require(Shared:WaitForChild("ObbySections"):WaitForChild("Kit"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local ObbyCourse = require(Shared:WaitForChild("ObbyCourse"))
 local ObbySigns = require(script.Parent:WaitForChild("ObbySigns"))
+local TaggedText = require(Shared:WaitForChild("TaggedText"))
 
 local ObbyParts = {}
 
@@ -356,7 +357,7 @@ local HOME = table.freeze({
 	labelInset = 4.6, -- studs from the ring's middle to the label's centre: clear of the ring's puddle
 	labelTurn = 90, -- degrees about Y
 	maxDistance = 60,
-	text = "BACK TO BASE",
+	text = "world.obby.back_to_base", -- Strings key: "BACK TO BASE"
 })
 
 local ICE = PhysicalProperties.new(0.9, 0, 0.5, 100, 1)
@@ -1245,7 +1246,14 @@ local function makePart(data: ObbyCourse.Part, frameCf: CFrame, model: Instance)
 	end
 end
 
-function ObbyParts.signLabel(parent: Instance, name: string, text: string, y: number, h: number, maxSize: number)
+function ObbyParts.signLabel(
+	parent: Instance,
+	name: string,
+	text: string,
+	y: number,
+	h: number,
+	maxSize: number
+): TextLabel
 	local label = Instance.new("TextLabel")
 	label.Name = name
 	label.BackgroundTransparency = 1
@@ -1263,6 +1271,7 @@ function ObbyParts.signLabel(parent: Instance, name: string, text: string, y: nu
 	stroke.Thickness = 3
 	stroke.Parent = label
 	label.Parent = parent
+	return label
 end
 
 -- The Goo Ring: kit meshes (shared/modeling-kit models obby_goo_ring, obby_goo_swirl; Shared.MeshAssets), shared by
@@ -1365,7 +1374,8 @@ local function buildHome(frameCf: CFrame, parent: Instance)
 	gui.MaxDistance = HOME.maxDistance
 	gui.LightInfluence = 0
 	gui.Adornee = label
-	ObbyParts.signLabel(gui, "Title", HOME.text, 0.08, 0.84, ObbyParts.PIXELS_PER_STUD)
+	local title = ObbyParts.signLabel(gui, "Title", "", 0.08, 0.84, ObbyParts.PIXELS_PER_STUD)
+	TaggedText.set(title, "Text", HOME.text) -- in the player's language (shared/TaggedText)
 	gui.Parent = label
 end
 

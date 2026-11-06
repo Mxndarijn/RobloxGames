@@ -9,6 +9,7 @@
 local UI = script.Parent.Parent
 local ExclusiveShopView = require(UI.ExclusiveShopView)
 local Layout = require(UI.Layout)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -210,7 +211,7 @@ function Admin.rows(ctx: any): { [string]: { Row } }
 	-- "VIP", "Fast brew": the shop's own names; a season's name ("Halloween") for a seasonal item.
 	local function shopName(key: string): string
 		local t = (ExclusiveShopView.TEXTS :: any)[key]
-		return if t then t.title else key
+		return if t then Text.t(t.title) else key
 	end
 	local function seasonName(id: string?): string?
 		local def = if id and shop.seasons then shop.seasons[id] else nil

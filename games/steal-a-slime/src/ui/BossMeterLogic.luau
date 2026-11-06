@@ -9,6 +9,7 @@
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 -- Band and ring colour: pink while you fight it, gold when it is your moment (dazed, down, won), muted when it
 -- got away.
@@ -43,17 +44,17 @@ end
 -- The fight's pill: what the boss is doing to you, else your share of all hits ("You 42%", at least 1% once you hit).
 local function fightPill(boss: any, now: number): (string, PillTone, Tone)
 	if type(boss.stunnedUntil) == "number" and now < boss.stunnedUntil then
-		return `Ouch! {math.max(1, math.ceil(boss.stunnedUntil - now))}s`, "pink", "fight"
+		return Text.t("hud.boss.ouch", { seconds = math.max(1, math.ceil(boss.stunnedUntil - now)) }), "pink", "fight"
 	end
 	if live(boss, now) then
 		if boss.move == "dazed" then
-			return `Hits x{boss.multiplier or 3}`, "gold", "gold"
+			return Text.t("hud.boss.hits", { mult = `x{boss.multiplier or 3}` }), "gold", "gold"
 		elseif boss.move == "rise" then
 			local left = if type(boss.guardsLeft) == "number" then boss.guardsLeft else 0
 			local total = if type(boss.guardsTotal) == "number" then boss.guardsTotal else left
-			return `Guards {left}/{total}`, "plain", "fight"
+			return Text.t("hud.boss.guards", { left = left, total = total }), "plain", "fight"
 		elseif boss.move == "windup" or boss.move == "attack" or boss.move == "hop" then
-			return "Dodge!", "pink", "fight"
+			return Text.t("hud.boss.dodge"), "pink", "fight"
 		end
 	end
 	local points = if type(boss.yourPoints) == "number" then boss.yourPoints else 0
@@ -61,9 +62,11 @@ local function fightPill(boss: any, now: number): (string, PillTone, Tone)
 		local share = if type(boss.yourPercent) == "number" and boss.yourPercent == boss.yourPercent
 			then math.clamp(boss.yourPercent, 0, 1)
 			else 0
-		return `You {math.max(1, math.floor(share * 100 + 0.5))}%`, "plain", "fight"
+		return Text.t("hud.boss.you_share", { percent = `{math.max(1, math.floor(share * 100 + 0.5))}%` }),
+			"plain",
+			"fight"
 	end
-	return "Hit it!", "mint", "fight"
+	return Text.t("hud.boss.hit_it"), "mint", "fight"
 end
 
 --[[
@@ -74,7 +77,9 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 	if type(boss) ~= "table" or type(boss.phase) ~= "string" then
 		return nil
 	end
-	local name = if type(boss.name) == "string" then boss.name else "The boss"
+	local name = if type(boss.name) == "string" or type(boss.name) == "table"
+		then Text.text(boss.name)
+		else Text.t("hud.boss.the_boss")
 	local left = Format.remainingSeconds(boss.endsAt, now)
 	local timer = if type(boss.endsAt) == "number" then Format.formatDuration(left) else nil
 	local meter = if type(boss.meter) == "number" then boss.meter else 0
@@ -83,11 +88,11 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 	if phase == "warning" then
 		local result: View = {
 			icon = icon,
-			title = "BOSS INCOMING",
+			title = Text.t("hud.boss.incoming"),
 			timer = timer,
 			tone = "fight",
 			who = name,
-			pill = "To the plaza",
+			pill = Text.t("hud.boss.to_plaza"),
 			pillTone = "mint",
 		}
 		return result
@@ -106,33 +111,37 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 	elseif phase == "haul" then
 		local view: View = {
 			icon = icon,
-			title = `{name} is down!`,
+			title = Text.t("hud.boss.down", { name = name }),
 			timer = timer,
 			tone = "gold",
-			who = "Grab it!",
-			pill = "Carry it home",
+			who = Text.t("hud.boss.grab_it"),
+			pill = Text.t("hud.boss.carry_home"),
 			pillTone = "mint",
 		}
 		if type(boss.carrierName) == "string" then
-			view.who = `{boss.carrierName} has it`
-			view.pill, view.pillTone = "Bonk!", "pink"
+			view.who = Text.t("hud.boss.has_it", { name = boss.carrierName })
+			view.pill, view.pillTone = Text.t("hud.boss.bonk"), "pink"
 		elseif type(boss.priorityName) == "string" then
-			view.who = `{boss.priorityName} grabs first`
+			view.who = Text.t("hud.boss.grabs_first", { name = boss.priorityName })
 			view.pill = Format.formatDuration(Format.remainingSeconds(boss.priorityUntil, now))
 		end
 		return view
 	elseif phase == "won" then
-		local who = if type(boss.winnerName) == "string" then `{boss.winnerName} + team` else "The team"
+		local who = if type(boss.winnerName) == "string"
+			then Text.t("hud.boss.winner_team", { name = boss.winnerName })
+			else Text.t("hud.boss.the_team")
 		local gained = if type(badgesBefore) == "number" and type(boss.badges) == "number"
 			then boss.badges - badgesBefore
 			else 0
 		local result: View = {
 			icon = icon,
-			title = "Brought home!",
+			title = Text.t("hud.boss.brought_home"),
 			timer = nil,
 			tone = "gold",
 			who = who,
-			pill = if gained > 0 then `+{gained} badge{if gained == 1 then "" else "s"}` else "Shared win",
+			pill = if gained > 0
+				then Text.count("hud.boss.badges", gained, { count = `+{gained}` })
+				else Text.t("hud.boss.shared_win"),
 			pillTone = "gold",
 		}
 		return result
@@ -140,11 +149,13 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 		local nextLeft = Format.remainingSeconds(boss.nextAt, now)
 		local result: View = {
 			icon = icon,
-			title = `{name} got away`,
+			title = Text.t("hud.boss.got_away", { name = name }),
 			timer = nil,
 			tone = "mute",
 			meter = meter,
-			pill = if type(boss.nextAt) == "number" then `Next {Format.formatDuration(nextLeft)}` else "Next time!",
+			pill = if type(boss.nextAt) == "number"
+				then Text.t("hud.boss.next_in", { time = Format.formatDuration(nextLeft) })
+				else Text.t("hud.boss.next_time"),
 			pillTone = "muted",
 		}
 		return result

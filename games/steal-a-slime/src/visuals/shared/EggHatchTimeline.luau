@@ -170,10 +170,25 @@ function EggHatchTimeline.popScale(s: number): number
 	return 0.92 + 0.08 * (u - 0.8) / 0.2
 end
 
+-- shared/TaggedText (the English of a message), loaded on first use.
+local function english(message: any): string
+	local TaggedText = if script
+		then require((script.Parent.Parent :: any).Shared.TaggedText) :: any
+		else require("../../shared/TaggedText") :: any
+	return TaggedText.english(message)
+end
+
 -- The title over the hatched slime: "LEGENDARY!", "LUCKY! MYTHIC!".
 function EggHatchTimeline.title(tier: number, lucky: boolean): string
-	local name = string.upper(Config.RARITIES[math.clamp(tier, 1, Config.MAX_TIER)].name)
-	return if lucky then `LUCKY! {name}!` else `{name}!`
+	return english(EggHatchTimeline.titleMessage(tier, lucky))
+end
+
+-- EggHatchTimeline.title as a Localize message ({ key, args }): the rarity's shout is the Strings entry
+-- world.fx.shout.<rarity> ("LEGENDARY!", made from Config.RARITIES), inside world.fx.lucky_hatch when lucky.
+function EggHatchTimeline.titleMessage(tier: number, lucky: boolean): { key: string, args: any }
+	local name = Config.RARITIES[math.clamp(tier, 1, Config.MAX_TIER)].name
+	local shout = { key = `world.fx.shout.{name}` }
+	return if lucky then { key = "world.fx.lucky_hatch", args = { rarity = shout } } else shout
 end
 
 -- Whether a viewer gets the title: always for their own hatch, from Epic up for someone else's.

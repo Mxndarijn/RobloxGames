@@ -4,6 +4,7 @@ local Config = require("../../src/shared/Config")
 local Layout = require("../../src/ui/Layout")
 local Leaderboards = require("../../src/shared/Leaderboards")
 local TestRunner = require("../TestRunner")
+local Text = require("../../src/ui/Text")
 local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -166,7 +167,7 @@ describe("Leaderboard panel", function()
 		local count = #Leaderboards.BOARDS
 		local tabW = (body - R.tabs.gap * (count - 1)) / count
 		for _, label in Panel.TABS do
-			expect(Layout.lineWidth(label, R.tabs.size) + 8 <= tabW).toBe(true)
+			expect(Layout.lineWidth(Text.t(label), R.tabs.size) + 8 <= tabW).toBe(true)
 		end
 	end)
 end)

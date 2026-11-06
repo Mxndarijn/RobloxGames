@@ -21,6 +21,7 @@ local GooPalette = require(ReplicatedStorage.Shared.GooPalette)
 local LabelFit = require(ReplicatedStorage.Lib.ui.LabelFit)
 local Ritual = require(ReplicatedStorage.Shared.Ritual)
 local RitualLook = require(ReplicatedStorage.Visuals.RitualLook)
+local WorldText = require(script.Parent.WorldText)
 
 local RitualView = {}
 
@@ -213,7 +214,7 @@ function RitualView.setup(): Model?
 		rule.TextScaled = true
 		rule.TextWrapped = true
 		rule.TextColor3 = rgb(GooPalette.Text)
-		rule.Text = Ritual.signText()
+		WorldText.setMessage(rule, "Text", Ritual.signMessage())
 		rule.Parent = card
 	end
 
@@ -240,12 +241,12 @@ function RitualView.update(state: Ritual.State, now: number)
 	if orb then
 		orb.Color = tint
 	end
-	local top, bottom = Ritual.label(state, now)
+	local top, bottom = Ritual.labelMessages(state, now)
 	if title then
-		title.Text = top
+		WorldText.setMessage(title, "Text", top)
 	end
 	if line then
-		line.Text = bottom
+		WorldText.setMessage(line, "Text", bottom)
 	end
 	model:SetAttribute(Constants.RITUAL_PHASE_ATTRIBUTE, state.phase)
 	model:SetAttribute(

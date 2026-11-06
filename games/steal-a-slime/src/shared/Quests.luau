@@ -16,18 +16,21 @@ local Economy = if script then require(script.Parent.Economy) else require("./Ec
 local Goals = if script then require(script.Parent.Goals) else require("./Goals")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
+local DataKey = if script then require(script.Parent.Strings.DataKey) else require("./Strings/DataKey")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
 
 type Data = PlayerData.Data
 
 export type View = {
 	id: string,
-	title: string,
+	title: Localize.Message, -- the quest's count key (data.dailyQuest.<id>.title.one / .other), {count} as shown
 	icon: string, -- Config.GOALS id (ItemIcons.forGoal)
 	progress: number,
 	target: number,
 	done: boolean,
 	claimed: boolean,
-	reward: string, -- "+$500" / "2x income for 5m"
+	reward: Localize.Text, -- "+$500" (a string), or a boost message ("2x income for 5m")
 	rewardKind: string, -- "cash" | "boost"
 }
 
@@ -90,10 +93,22 @@ local function rewardText(def: Config.DailyQuest, rebirths: number): (string, nu
 	return `+${Economy.formatNumber(amount)}`, amount
 end
 
-local function title(def: Config.DailyQuest, target: number): string
+local function title(def: Config.DailyQuest, target: number): Localize.Message
 	local n = Economy.formatNumber(target)
-	local out = string.gsub(def.title, "<n>", if def.cash then `${n}` else n)
-	return (string.gsub(out, "<s>", if target == 1 then "" else "s"))
+	local form = if target == 1 then ".one" else ".other"
+	return Localize.msg(
+		DataKey.dataKey("dailyQuest", def.id, "title") .. form,
+		{ count = if def.cash then `${n}` else n }
+	)
+end
+
+-- What the quest card shows as its reward: the cash text, or the boost as a message.
+local function rewardView(def: Config.DailyQuest, rebirths: number): Localize.Text
+	local reward = def.reward
+	if reward.kind == "boost" then
+		return Localize.msg("data.dailyQuest.boost.reward", { mult = reward.mult, minutes = reward.minutes })
+	end
+	return (rewardText(def, rebirths))
 end
 
 function Quests.view(data: Data, now: number): DayView
@@ -104,7 +119,6 @@ function Quests.view(data: Data, now: number): DayView
 			local def = find(slot.id)
 			if def then
 				local have = progress(data, slot, def)
-				local text = rewardText(def, data.rebirths)
 				table.insert(out, {
 					id = def.id,
 					title = title(def, slot.target),
@@ -113,7 +127,7 @@ function Quests.view(data: Data, now: number): DayView
 					target = slot.target,
 					done = have >= slot.target,
 					claimed = slot.claimed,
-					reward = text,
+					reward = rewardView(def, data.rebirths),
 					rewardKind = def.reward.kind,
 				})
 			end

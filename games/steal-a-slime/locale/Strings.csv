@@ -1,4 +1,1430 @@
 Key,Source,Context,Example
-common.egg_name,{kind} Mystery Egg,,Lava Mystery Egg
+collection.bases.empty,Buildings are not on this server.,,
+collection.bases.free_line,Every player has this building.,,
+collection.bases.owned_line,You own this building.,,
+collection.dex.event_secrets,Event Secrets,,
+collection.dex.fact_have,You have,,
+collection.dex.fact_how,How to get it,collection.dex.fact_how,
+collection.dex.fact_set,Set,,
+collection.dex.fact_used_in,Used in merges,,
+collection.dex.have.one,{count} in your base,collection.dex.have.one,1 in your base
+collection.dex.have.other,{count} in your base,collection.dex.have.other,2 in your base
+collection.dex.have_none,None in your base,,
+collection.dex.how_boss,Defeat the boss event,collection.dex.how_boss,
+collection.dex.how_event,An event Secret,,
+collection.dex.how_hybrid,Merge it in the Merge vat,,
+collection.dex.how_spawn,Catch it at the fountain,,
+collection.dex.in_base,In base,,
+collection.dex.made,Made,,
+collection.dex.merge_hint,Put all three in the Merge vat to make the slime.,,
+collection.dex.merges_with,Merges with {name},,Merges with Sprout
+collection.dex.need_more.one,Need {count} more,collection.dex.need_more.one,Need 1 more
+collection.dex.need_more.other,Need {count} more,collection.dex.need_more.other,Need 2 more
+collection.dex.next_reward,Next reward at {count}: +{cash} and +{bonus} income,,Next reward at 16: +$19K and +2% income
+collection.dex.ready,Ready to merge,,
+collection.dex.rewards_done,Every species reward collected,,
+collection.dex.see_merges,See merges,,
+collection.dex.set,{set} set,,Garden set
+collection.dex.show_all,Show all,,
+collection.dex.tab_bosses,Bosses,,
+collection.dex.tab_fountain,Fountain,,
+collection.dex.tab_merges,Merges,collection.dex.tab_merges,
+collection.dex.tab_secrets,Secrets,,
+collection.dex.title,SlimeDex,collection.dex.title,
+collection.equip,Equip,collection.equip,
+collection.equipped,Equipped,collection.equipped,
+collection.exclusive,Exclusive,collection.exclusive,
+collection.exclusive_action,Exclusive shop,collection.exclusive_action,
+collection.exclusive_line,Buy it here or in the Exclusive shop.,,
+collection.found,Found,,
+collection.found_summary,{found}/{total} found,,12/61 found
+collection.how_get,How to get it,collection.how_get,
+collection.how_unlock,How to unlock,,
+collection.merge.add_more.one,Add {count} more {rarity},collection.merge.add_more.one,Add 1 more Common
+collection.merge.add_more.other,Add {count} more {rarity},collection.merge.add_more.other,Add 2 more Common
+collection.merge.always,Always this slime,,
+collection.merge.brew_time,Brew time {time},,Brew time 2m 30s
+collection.merge.brewing,Brewing,,
+collection.merge.brewing_reason,"Safe while it brews: no stealing, and no income until you collect.",,
+collection.merge.collect,Collect,,
+collection.merge.count_in,{count}/{slots} in,,2/3 in
+collection.merge.done_reason,Done. Collect puts it on a pad.,,
+collection.merge.empty_reason,Use Move on one of your pad slimes and place it in the vat.,,
+collection.merge.empty_well,Add 3 slimes of one rarity,,
+collection.merge.fresh,Fresh from the vat,,
+collection.merge.full_reason,You can take slimes out until you start.,,
+collection.merge.gate_chip,Rebirth {need},,Rebirth 3
+collection.merge.gate_fill,You can fill the vat now and start it once you reach Rebirth {need}.,,You can fill the vat now and start it once you reach Rebirth 3.
+collection.merge.gate_full.one,"Rebirth {count} more time to merge {rarity}s. Until you start, these still earn on their pads.",,"Rebirth 1 more time to merge Epics. Until you start, these still earn on their pads."
+collection.merge.gate_full.other,"Rebirth {count} more times to merge {rarity}s. Until you start, these still earn on their pads.",,"Rebirth 2 more times to merge Epics. Until you start, these still earn on their pads."
+collection.merge.gate_line,{rarity} merges open at Rebirth {need},,Epic merges open at Rebirth 3
+collection.merge.gate_line_locked,{rarity} merges are locked,collection.merge.gate_line_locked,Epic merges are locked
+collection.merge.gate_well,Rebirth {need} to unlock,,Rebirth 3 to unlock
+collection.merge.hold_cancel,Hold to cancel,,
+collection.merge.jump,{percent} chance of a {rarity},,20% chance of a Rare
+collection.merge.jump_an,{percent} chance of an {rarity},,20% chance of an Epic
+collection.merge.locked,Locked,collection.merge.locked,
+collection.merge.move_any,Move a slime here,,
+collection.merge.move_here,Move a {rarity} here,,Move a Rare here
+collection.merge.move_here_an,Move an {rarity} here,,Move an Epic here
+collection.merge.no_jump,No jump past this rarity,,
+collection.merge.no_jump_opens,No jump: {rarity} opens at Rebirth {need},,No jump: Epic opens at Rebirth 3
+collection.merge.on_pad,On pad {pad},,On pad 4
+collection.merge.partial_reason,"Until you start, these still earn and can be stolen from their pads.",,
+collection.merge.random_slime,Random slime,,
+collection.merge.ready,Ready,collection.merge.ready,
+collection.merge.start,Start merge,,
+collection.merge.start_time,Start merge · {time},,Start merge · 30s
+collection.merge.three_line,make one rarer slime,,
+collection.merge.three_title,Three of one rarity,,
+collection.merge.time_left,{time} left,collection.merge.time_left,0:25 left
+collection.merge.title,Merge vat,collection.merge.title,
+collection.merge.vat_chip,{rarity} vat,,Rare vat
+collection.merge_tag,Merge,,
+collection.need_more_slimes.one,Need {count} more slime,,Need 1 more slime
+collection.need_more_slimes.other,Need {count} more slimes,,Need 3 more slimes
+collection.not_found_yet,Not found yet,,
+collection.pet.auto,Auto,,
+collection.pet.auto_line,Your favourite slime rides the cloud.,,
+collection.pet.auto_state,Your favourite,,
+collection.pet.found_line,Rides your cloud. Looks only.,,
+collection.pet.locked_action,Find it in the SlimeDex first,,
+collection.pet.locked_line,Find this slime to use it as your pet.,,
+collection.rebirth.brewing,Brewing in the vat,,
+collection.rebirth.button,Hold to rebirth,,
+collection.rebirth.by_merge,Obtained by merge (see SlimeDex),,
+collection.rebirth.count,{ready} of {total} ready,,1 of 3 ready
+collection.rebirth.crown_sub,You finished every rebirth.,,
+collection.rebirth.get_one,Catch or merge one,,
+collection.rebirth.head,Bring these,,
+collection.rebirth.income,{percent} income,,+5% income
+collection.rebirth.keep,"Other slimes, pads, upgrades, rank",,
+collection.rebirth.keep_all,"Your slimes, pads, upgrades, rank",,
+collection.rebirth.keep_title,You keep,,
+collection.rebirth.list_and,{first} and {rest},,Rare and Epic
+collection.rebirth.list_comma,"{first}, {rest}",,"Uncommon, Rare and Epic"
+collection.rebirth.lock_gain,+{seconds}s lock time,,+10s lock time
+collection.rebirth.lock_max,Lock time is maxed,,
+collection.rebirth.max_title,Max rebirth,,
+collection.rebirth.maxed,All rebirths done,collection.rebirth.maxed,
+collection.rebirth.missing,Missing,,
+collection.rebirth.new_title,A new title,,
+collection.rebirth.next_label,After Rebirth,,
+collection.rebirth.next_title,Next rebirth,,
+collection.rebirth.not_ready,Not ready yet,collection.rebirth.not_ready,
+collection.rebirth.now_label,Now · Rebirth,,
+collection.rebirth.rank_ahead,Next rank at Rebirth {need},,Next rank at Rebirth 25
+collection.rebirth.rank_bonus,Rank bonus {percent} income,,Rank bonus +5% income
+collection.rebirth.rank_new,New rank: {rank},,New rank: Goo Tycoon
+collection.rebirth.rank_next_income,{rank}: {income} income,,Jelly Magnate: +10% income
+collection.rebirth.rank_next_income_merges,"{rank}: {income} income, opens {rarities} merges",,"Goo Titan: +150% income, opens Celestial merges"
+collection.rebirth.rank_next_merges,{rank}: opens {rarities} merges,,Gelatinous Legend: opens Mythic merges
+collection.rebirth.rank_next_unlock,{rank}: unlocks the {upgrade} upgrade,,Blob Baron: unlocks the Lucky Charm upgrade
+collection.rebirth.rank_next_unlock_income,"{rank}: unlocks the {upgrade} upgrade, {income} income",,"Goo Tycoon: unlocks the Lucky Charm upgrade, +5% income"
+collection.rebirth.rank_next_unlock_income_merges,"{rank}: unlocks the {upgrade} upgrade, {income} income, opens {rarities} merges",,"Goo Titan: unlocks the Lucky Charm upgrade, +150% income, opens Celestial merges"
+collection.rebirth.rank_next_unlock_merges,"{rank}: unlocks the {upgrade} upgrade, opens {rarities} merges",,"Goo Getter: unlocks the Strong Arms upgrade, opens Uncommon merges"
+collection.rebirth.rank_up_grows,Grows the {fountain},,Grows the Frost & Sea Fountain
+collection.rebirth.rank_up_merges,Opens {rarities} merges,,Opens Rare merges
+collection.rebirth.rank_up_merges_grows,"Opens {rarities} merges, grows the {fountain}",,"Opens Epic merges, grows the Garden Fountain"
+collection.rebirth.rank_up_unlock,Unlocks the {upgrade} upgrade,,Unlocks the Strong Arms upgrade
+collection.rebirth.rank_up_unlock_grows,"Unlocks the {upgrade} upgrade, grows the {fountain}",,"Unlocks the Night Shift upgrade, grows the Garden Fountain"
+collection.rebirth.rank_up_unlock_merges,"Unlocks the {upgrade} upgrade, opens {rarities} merges",,"Unlocks the Strong Arms upgrade, opens Rare merges"
+collection.rebirth.rank_up_unlock_merges_grows,"Unlocks the {upgrade} upgrade, opens {rarities} merges, grows the {fountain}",,"Unlocks the Night Shift upgrade, opens Rare and Epic merges, grows the Garden Fountain"
+collection.rebirth.reset,Your cash and the slimes above,,
+collection.rebirth.reset_cash,Your cash,,
+collection.rebirth.reset_title,Resets,,
+collection.rebirth.stat_income,income,collection.rebirth.stat_income,
+collection.rebirth.stat_rank,rank bonus,,
+collection.rebirth.stat_rebirths,rebirths,,
+collection.rebirth.title,Rebirth,collection.rebirth.title,
+collection.rebirth.used_up,Used up on rebirth,,
+collection.seats.daily_line,Daily streak day {day}.,,Daily streak day 7.
+collection.seats.daily_more,Reach day {day} of your daily streak,,Reach day 7 of your daily streak
+collection.seats.dex_line,Complete {percent}% of the SlimeDex.,,Complete 80% of the SlimeDex.
+collection.seats.dex_more,{percent}% more of the SlimeDex,,28% more of the SlimeDex
+collection.seats.empty,Pet seats are not on this server.,,
+collection.seats.free_line,Every player has this cloud.,,
+collection.seats.merge_more.one,Merge {count} more slime,,Merge 1 more slime
+collection.seats.merge_more.other,Merge {count} more slimes,,Merge 64 more slimes
+collection.seats.merges_line.one,Merge {count} slime.,,Merge 1 slime.
+collection.seats.merges_line.other,Merge {count} slimes.,,Merge 200 slimes.
+collection.skins.empty,Plot skins are not on this server.,,
+collection.skins.find_line,Find {needed} of these {total} slimes,,Find 4 of these 5 slimes
+collection.skins.free_line,Every player has this skin,,
+collection.skins.owned_line,You own this skin.,,
+collection.skins.tab_base,Base,,
+collection.skins.tab_building,Building,,
+collection.skins.tab_cloud,Cloud,,
+collection.skins.tab_pet,Pet,,
+collection.skins.title,Skins,collection.skins.title,
+collection.unlocked,Unlocked,,
+collection.unlocked_summary,{unlocked}/{total} unlocked,,1/6 unlocked
+common.egg_name,{kind} Mystery Egg,,Speckled Mystery Egg
 common.slime,{rarity} {name},,Rare Bubbles
 common.slime_shine,{shine} {rarity} {name},,Gold Rare Bubbles
+data.adminEvent.luck.label,Luck Event,data.adminEvent.luck.label,
+data.adminEvent.rain.label,Slime Rain,data.adminEvent.rain.label,
+data.badge.Dex100.name,Dex Master,,
+data.badge.Dex25.name,Dex Explorer,,
+data.badge.Dex50.name,Dex Collector,,
+data.badge.FirstLegendary.name,Legend Spotted,,
+data.badge.FirstRebirth.name,Reborn,,
+data.badge.FirstSecret.name,Secret Keeper,,
+data.badge.FirstSlime.name,First Slime,,
+data.badge.FirstSteal.name,Sticky Fingers,,
+data.badge.Millionaire.name,Slime Millionaire,,
+data.badge.Rebirth5.name,Born Again x5,,
+data.batSkin.fish.name,Fish,,
+data.batSkin.foam_finger.name,Foam Finger,,
+data.batSkin.golden.name,Golden Bat,,
+data.batSkin.lollipop.name,Lollipop,,
+data.bossBadge.BossBrawler.description,Land a hit on a boss.,,
+data.bossBadge.BossBrawler.name,Boss Brawler,,
+data.bossBadge.BossGoomancer.description,Carry Goomancer home yourself.,,
+data.bossBadge.BossGoomancer.name,Spellbreaker,,
+data.bossBadge.BossGoozilla.description,Carry Goozilla home yourself.,,
+data.bossBadge.BossGoozilla.name,Goozilla Tamer,,
+data.bossBadge.BossHauler.description,Carry a boss home yourself.,,
+data.bossBadge.BossHauler.name,Heavy Lifter,,
+data.bossBadge.BossHunter10.description,Carry 10 bosses home.,,
+data.bossBadge.BossHunter10.name,Boss Hunter,,
+data.bossBadge.BossKlawdius.description,Carry Klawdius home yourself.,,
+data.bossBadge.BossKlawdius.name,Shell Shocked,,
+data.bossBadge.BossMechaGoo.description,Carry Mecha Goo home yourself.,,
+data.bossBadge.BossMechaGoo.name,Scrap Metal,,
+data.bossBadge.BossPumpking.description,Carry Pumpking home yourself.,,
+data.bossBadge.BossPumpking.name,Pumpkin Smasher,,
+data.bossBadge.BossQueenJelly.description,Carry Queen Jelly home yourself.,,
+data.bossBadge.BossQueenJelly.name,Dethroned,,
+data.carryTrail.goo_drip.name,Goo Drip,,
+data.carryTrail.hearts.name,Hearts,data.carryTrail.hearts.name,
+data.carryTrail.mint_fizz.name,Mint Fizz,,
+data.carryTrail.rainbow.name,Rainbow,data.carryTrail.rainbow.name,
+data.carryTrail.sparkle.name,Sparkle,data.carryTrail.sparkle.name,
+data.carryTrail.starfall.name,Starfall,data.carryTrail.starfall.name,
+data.carryTrail.sunbeam.name,Sunbeam,data.carryTrail.sunbeam.name,
+data.consumable.LuckPotion.name,Luck Potion,data.consumable.LuckPotion.name,
+data.consumable.LuckPotion.text,Better rarity odds for everyone's fountain drops.,data.consumable.LuckPotion.text,
+data.consumable.WeatherTotem.name,Weather Totem,data.consumable.WeatherTotem.name,
+data.consumable.WeatherTotem.text,Calls the weather shown here next.,data.consumable.WeatherTotem.text,
+data.dailyQuest.Catch.title.one,Catch {count} slime,data.dailyQuest.Catch.title.one,Catch 1 slime
+data.dailyQuest.Catch.title.other,Catch {count} slimes,data.dailyQuest.Catch.title.other,Catch 5 slimes
+data.dailyQuest.Earn.title.one,Earn {count} today,data.dailyQuest.Earn.title.one,Earn $1 today
+data.dailyQuest.Earn.title.other,Earn {count} today,data.dailyQuest.Earn.title.other,Earn $10K today
+data.dailyQuest.Lock.title.one,Lock your base {count} time,data.dailyQuest.Lock.title.one,Lock your base 1 time
+data.dailyQuest.Lock.title.other,Lock your base {count} times,data.dailyQuest.Lock.title.other,Lock your base 5 times
+data.dailyQuest.Merge.title.one,Merge {count} time,data.dailyQuest.Merge.title.one,Merge 1 time
+data.dailyQuest.Merge.title.other,Merge {count} times,data.dailyQuest.Merge.title.other,Merge 5 times
+data.dailyQuest.Rebirth.title.one,Rebirth {count} time,data.dailyQuest.Rebirth.title.one,Rebirth 1 time
+data.dailyQuest.Rebirth.title.other,Rebirth {count} times,data.dailyQuest.Rebirth.title.other,Rebirth 5 times
+data.dailyQuest.Steal.title.one,Steal {count} slime,data.dailyQuest.Steal.title.one,Steal 1 slime
+data.dailyQuest.Steal.title.other,Steal {count} slimes,data.dailyQuest.Steal.title.other,Steal 5 slimes
+data.dailyQuest.boost.reward,{mult}x income for {minutes}m,,2x income for 5m
+data.eggKind.cosmic.name,Cosmic,,
+data.eggKind.golden.name,Golden,data.eggKind.golden.name,
+data.eggKind.shiny.name,Shiny,,
+data.eggKind.speckled.name,Speckled,,
+data.fountainLook.n1.name,Meadow Fountain,,
+data.fountainLook.n2.name,Garden Fountain,,
+data.fountainLook.n3.name,Frost & Sea Fountain,,
+data.fountainLook.n4.name,Starlight Fountain,,
+data.fountainTier.classic.name,Meadow,,
+data.fountainTier.frost.name,Frost & Sea,data.fountainTier.frost.name,
+data.fountainTier.orchard.name,Garden,data.fountainTier.orchard.name,
+data.fountainTier.starlight.name,Starlight,data.fountainTier.starlight.name,
+data.goal.Catch.title.one,Catch {count} slime,data.goal.Catch.title.one,Catch 1 slime
+data.goal.Catch.title.other,Catch {count} slimes,data.goal.Catch.title.other,Catch 5 slimes
+data.goal.Earn.title.one,Earn {count} in total,data.goal.Earn.title.one,Earn $1 in total
+data.goal.Earn.title.other,Earn {count} in total,data.goal.Earn.title.other,Earn $10K in total
+data.goal.Lock.title.one,Lock your base {count} time,data.goal.Lock.title.one,Lock your base 1 time
+data.goal.Lock.title.other,Lock your base {count} times,data.goal.Lock.title.other,Lock your base 5 times
+data.goal.Merge.title.one,Merge {count} time,data.goal.Merge.title.one,Merge 1 time
+data.goal.Merge.title.other,Merge {count} times,data.goal.Merge.title.other,Merge 5 times
+data.goal.Pads.title.one,Unlock {count} pad,,Unlock 1 pad
+data.goal.Pads.title.other,Unlock {count} pads,,Unlock 5 pads
+data.goal.Rebirth.title.one,Rebirth {count} time,data.goal.Rebirth.title.one,Rebirth 1 time
+data.goal.Rebirth.title.other,Rebirth {count} times,data.goal.Rebirth.title.other,Rebirth 5 times
+data.goal.Steal.title.one,Steal {count} slime,data.goal.Steal.title.one,Steal 1 slime
+data.goal.Steal.title.other,Steal {count} slimes,data.goal.Steal.title.other,Steal 5 slimes
+data.leaderboards.Dex.title,Top SlimeDex,,
+data.leaderboards.Merges.title,Top Merges,,
+data.leaderboards.Steals.title,Top Steals,,
+data.leaderboards.TotalEarned.title,Top Earners,data.leaderboards.TotalEarned.title,
+data.leaderboards.WeeklyEarned.title,Weekly Top Earners,,
+data.lockStyle.candy.name,Candy Bar,,
+data.lockStyle.carousel.name,Carousel,,
+data.lockStyle.sleepy.name,Sleepy Guard,,
+data.modifier.GoldenHour.label,Golden Hour,,
+data.modifier.LuckSurge.label,Luck Surge,,
+data.modifier.None.label,None,,
+data.petSeat.bubble.name,Bubble,data.petSeat.bubble.name,
+data.petSeat.clam_shell.name,Clam Shell,,
+data.petSeat.cloud.name,Fluffy,data.petSeat.cloud.name,
+data.petSeat.crescent_moon.name,Crescent Moon,,
+data.petSeat.flame_cloud.name,Flame Cloud,,
+data.petSeat.golden_cloud.name,Golden Cloud,,
+data.petSeat.hoverboard.name,Hoverboard,data.petSeat.hoverboard.name,
+data.petSeat.ice_cloud.name,Ice Cloud,,
+data.petSeat.jelly.name,Jelly,data.petSeat.jelly.name,
+data.petSeat.leaf.name,Leaf,data.petSeat.leaf.name,
+data.petSeat.lily_pad.name,Lily Pad,,
+data.petSeat.magic_carpet.name,Magic Carpet,,
+data.petSeat.midnight_cloud.name,Midnight Cloud,,
+data.petSeat.mushroom.name,Mushroom,data.petSeat.mushroom.name,
+data.petSeat.pancakes.name,Pancakes,data.petSeat.pancakes.name,
+data.petSeat.pumpkin.name,Pumpkin,data.petSeat.pumpkin.name,
+data.petSeat.rainbow_cloud.name,Rainbow Cloud,,
+data.petSeat.royal_cushion.name,Royal Cushion,,
+data.petSeat.snowglobe.name,Snow Globe,data.petSeat.snowglobe.name,
+data.petSeat.star_cushion.name,Star Cushion,,
+data.petSeat.storm_cloud.name,Storm Cloud,,
+data.petSeat.sunset_cloud.name,Sunset Cloud,,
+data.petSeat.ufo.name,UFO,data.petSeat.ufo.name,
+data.playerSettings.buttonClicks.hint,The pop when you press a button,,
+data.playerSettings.buttonClicks.name,Button clicks,,
+data.playerSettings.cameraShake.hint,When you get hit or a Secret lands,,
+data.playerSettings.cameraShake.name,Camera shake,,
+data.playerSettings.dailyPopup.hint,Show it when you join,,
+data.playerSettings.dailyPopup.name,Daily reward popup,,
+data.playerSettings.effects.hint,"Sparkles, splashes, puffs",,
+data.playerSettings.effects.labels_1,Low,,
+data.playerSettings.effects.labels_2,Full,data.playerSettings.effects.labels_2,
+data.playerSettings.effects.name,Goo effects,,
+data.playerSettings.game.label,Game,,
+data.playerSettings.hidden.name,Hidden player,,
+data.playerSettings.holdToSell.hint,So you never sell by accident,,
+data.playerSettings.holdToSell.name,Hold to sell,,
+data.playerSettings.me.label,Me,,
+data.playerSettings.musicVolume.name,Music,,
+data.playerSettings.muted.hint,Turns every sound off,,
+data.playerSettings.muted.name,Mute all,,
+data.playerSettings.numberStyle.hint,"$1.2M or $1,234,567",,
+data.playerSettings.numberStyle.labels_1,Short,,
+data.playerSettings.numberStyle.labels_2,Full,data.playerSettings.numberStyle.labels_2,
+data.playerSettings.numberStyle.name,Number style,,
+data.playerSettings.othersEffects.hint,Their carry trails and hit effects,,
+data.playerSettings.othersEffects.name,Other players' effects,,
+data.playerSettings.reducedMotion.hint,"No bounces, puffs or tweens",,
+data.playerSettings.reducedMotion.name,Reduced motion,,
+data.playerSettings.sfxVolume.name,Effects,,
+data.playerSettings.showMemberTag.hint,Off: no VIP or Club tag on you,,
+data.playerSettings.showMemberTag.name,Show my VIP tag,,
+data.playerSettings.showOnBoards.hint,Off: you show as a hidden player,,
+data.playerSettings.showOnBoards.name,Show me on leaderboards,,
+data.playerSettings.sound.label,Sound,,
+data.playerSettings.stealAlarm.hint,The siren when a slime is stolen,,
+data.playerSettings.stealAlarm.name,Steal alarm,,
+data.playerSettings.tutorialHints.hint,The arrow and the next-step card,,
+data.playerSettings.tutorialHints.name,Tutorial hints,,
+data.playerSettings.visuals.label,Visuals,,
+data.plotBase.carousel.name,Carousel Tent,,
+data.plotBase.factory.name,Goo Factory,,
+data.plotBase.jar.name,Goo Jar Tower,,
+data.plotBase.lighthouse.name,Lighthouse,,
+data.plotBase.pagoda.name,Mushroom Pagoda,,
+data.plotBase.rocket.name,Space Rocket,,
+data.plotBase.snowglobe.name,Snow Globe,data.plotBase.snowglobe.name,
+data.plotBase.treehouse.name,Tree House,,
+data.plotSkin.beach.name,Beach Hut,,
+data.plotSkin.candy.name,Candy,,
+data.plotSkin.classic.name,Classic Ranch,,
+data.plotSkin.crystal.name,Frost & Sea,data.plotSkin.crystal.name,
+data.plotSkin.fairground.name,Fairground,,
+data.plotSkin.garden.name,Garden,data.plotSkin.garden.name,
+data.plotSkin.haunted.name,Haunted Ranch,,
+data.plotSkin.mushroom.name,Forest,,
+data.plotSkin.space.name,Space Station,,
+data.plotSkin.starlight.name,Starlight,data.plotSkin.starlight.name,
+data.plotSkin.winter.name,Winter Cabin,,
+data.pvpTool.FunBalloon.name,Goo Balloon,data.pvpTool.FunBalloon.name,
+data.pvpTool.FunBouncePad.name,Bounce Pad,data.pvpTool.FunBouncePad.name,
+data.pvpTool.FunBubbles.name,Bubble Wand,data.pvpTool.FunBubbles.name,
+data.pvpTool.FunConfetti.name,Confetti Popper,data.pvpTool.FunConfetti.name,
+data.pvpTool.FunDanceBomb.name,Dance Bomb,data.pvpTool.FunDanceBomb.name,
+data.pvpTool.FunFireworks.name,Goo Fireworks,data.pvpTool.FunFireworks.name,
+data.pvpTool.FunHatLauncher.name,Slime Hat Launcher,data.pvpTool.FunHatLauncher.name,
+data.pvpTool.FunSqueaky.name,Squeaky Hammer,data.pvpTool.FunSqueaky.name,
+data.pvpTool.GooBlaster1.name,Goo Squirter,data.pvpTool.GooBlaster1.name,
+data.pvpTool.GooBlaster2.name,Goo Blaster,data.pvpTool.GooBlaster2.name,
+data.pvpTool.GooBlaster3.name,Goo Cannon,data.pvpTool.GooBlaster3.name,
+data.pvpTool.GooTrap1.name,Goo Puddle,data.pvpTool.GooTrap1.name,
+data.pvpTool.GooTrap2.name,Sticky Trap,data.pvpTool.GooTrap2.name,
+data.pvpTool.GooTrap3.name,Mega Trap,data.pvpTool.GooTrap3.name,
+data.pvpTool.KnockGlove1.name,Bonk Glove,data.pvpTool.KnockGlove1.name,
+data.pvpTool.KnockGlove2.name,Bounce Glove,data.pvpTool.KnockGlove2.name,
+data.pvpTool.KnockGlove3.name,Boom Glove,data.pvpTool.KnockGlove3.name,
+data.pvpTool.KnockGlove4.name,Thunder Glove,data.pvpTool.KnockGlove4.name,
+data.pvpTool.KnockGlove5.name,Royal Glove,data.pvpTool.KnockGlove5.name,
+data.rarity.Celestial.name,Celestial,,
+data.rarity.Common.name,Common,,
+data.rarity.Divine.name,Divine,,
+data.rarity.Epic.name,Epic,,
+data.rarity.Legendary.name,Legendary,data.rarity.Legendary.name,
+data.rarity.Mythic.name,Mythic,data.rarity.Mythic.name,
+data.rarity.Rare.name,Rare,,
+data.rarity.Secret.name,Secret,,
+data.rarity.Uncommon.name,Uncommon,,
+data.rebirthTier.Blob_Baron.title,Blob Baron,,
+data.rebirthTier.Gel_Emperor.title,Gel Emperor,,
+data.rebirthTier.Gelatinous_Legend.title,Gelatinous Legend,,
+data.rebirthTier.Goo_Getter.title,Goo Getter,,
+data.rebirthTier.Goo_Titan.title,Goo Titan,,
+data.rebirthTier.Goo_Tycoon.title,Goo Tycoon,,
+data.rebirthTier.Jelly_Magnate.title,Jelly Magnate,,
+data.rebirthTier.Mythic_Monarch.title,Mythic Monarch,,
+data.rebirthTier.Ooze_Overlord.title,Ooze Overlord,,
+data.rebirthTier.Slime_Deity.title,Slime Deity,,
+data.rebirthTier.Slime_Rookie.title,Slime Rookie,,
+data.rebirthTier.Slime_Sovereign.title,Slime Sovereign,,
+data.rebirthTier.Slime_Wrangler.title,Slime Wrangler,,
+data.season.halloween.name,Halloween,,
+data.season.winter.name,Winter,,
+data.shine.Diamond.name,Diamond,,
+data.shine.Gold.name,Gold,,
+data.shine.Rainbow.name,Rainbow,data.shine.Rainbow.name,
+data.shopItem.CarrySpeed.name,Strong Arms,data.shopItem.CarrySpeed.name,
+data.shopItem.CarrySpeed.text,-15% carry slowdown,data.shopItem.CarrySpeed.text,
+data.shopItem.FunBalloon.name,Goo Balloon,data.shopItem.FunBalloon.name,
+data.shopItem.FunBalloon.text,Goo Balloon,data.shopItem.FunBalloon.text,
+data.shopItem.FunBouncePad.name,Bounce Pad,data.shopItem.FunBouncePad.name,
+data.shopItem.FunBouncePad.text,Bounce Pad,data.shopItem.FunBouncePad.text,
+data.shopItem.FunBubbles.name,Bubble Wand,data.shopItem.FunBubbles.name,
+data.shopItem.FunBubbles.text,Bubble Wand,data.shopItem.FunBubbles.text,
+data.shopItem.FunConfetti.name,Confetti Popper,data.shopItem.FunConfetti.name,
+data.shopItem.FunConfetti.text,Confetti Popper,data.shopItem.FunConfetti.text,
+data.shopItem.FunDanceBomb.name,Dance Bomb,data.shopItem.FunDanceBomb.name,
+data.shopItem.FunDanceBomb.text,Dance Bomb,data.shopItem.FunDanceBomb.text,
+data.shopItem.FunFireworks.name,Goo Fireworks,data.shopItem.FunFireworks.name,
+data.shopItem.FunFireworks.text,Goo Fireworks,data.shopItem.FunFireworks.text,
+data.shopItem.FunHatLauncher.name,Slime Hat Launcher,data.shopItem.FunHatLauncher.name,
+data.shopItem.FunHatLauncher.text,Slime Hat Launcher,data.shopItem.FunHatLauncher.text,
+data.shopItem.FunSqueaky.name,Squeaky Hammer,data.shopItem.FunSqueaky.name,
+data.shopItem.FunSqueaky.text,Squeaky Hammer,data.shopItem.FunSqueaky.text,
+data.shopItem.GooBlaster1.name,Goo Squirter,data.shopItem.GooBlaster1.name,
+data.shopItem.GooBlaster1.text,Goo Squirter,data.shopItem.GooBlaster1.text,
+data.shopItem.GooBlaster2.name,Goo Blaster,data.shopItem.GooBlaster2.name,
+data.shopItem.GooBlaster2.text,Goo Blaster,data.shopItem.GooBlaster2.text,
+data.shopItem.GooBlaster3.name,Goo Cannon,data.shopItem.GooBlaster3.name,
+data.shopItem.GooBlaster3.text,Goo Cannon,data.shopItem.GooBlaster3.text,
+data.shopItem.GooTrap1.name,Goo Puddle,data.shopItem.GooTrap1.name,
+data.shopItem.GooTrap1.text,Goo Puddle,data.shopItem.GooTrap1.text,
+data.shopItem.GooTrap2.name,Sticky Trap,data.shopItem.GooTrap2.name,
+data.shopItem.GooTrap2.text,Sticky Trap,data.shopItem.GooTrap2.text,
+data.shopItem.GooTrap3.name,Mega Trap,data.shopItem.GooTrap3.name,
+data.shopItem.GooTrap3.text,Mega Trap,data.shopItem.GooTrap3.text,
+data.shopItem.Income.name,Slime Snacks,data.shopItem.Income.name,
+data.shopItem.Income.text,+10% income,data.shopItem.Income.text,
+data.shopItem.KnockGlove1.name,Bonk Glove,data.shopItem.KnockGlove1.name,
+data.shopItem.KnockGlove1.text,Bonk Glove,data.shopItem.KnockGlove1.text,
+data.shopItem.KnockGlove2.name,Bounce Glove,data.shopItem.KnockGlove2.name,
+data.shopItem.KnockGlove2.text,Bounce Glove,data.shopItem.KnockGlove2.text,
+data.shopItem.KnockGlove3.name,Boom Glove,data.shopItem.KnockGlove3.name,
+data.shopItem.KnockGlove3.text,Boom Glove,data.shopItem.KnockGlove3.text,
+data.shopItem.KnockGlove4.name,Thunder Glove,data.shopItem.KnockGlove4.name,
+data.shopItem.KnockGlove4.text,Thunder Glove,data.shopItem.KnockGlove4.text,
+data.shopItem.KnockGlove5.name,Royal Glove,data.shopItem.KnockGlove5.name,
+data.shopItem.KnockGlove5.text,Royal Glove,data.shopItem.KnockGlove5.text,
+data.shopItem.Luck.name,Lucky Charm,data.shopItem.Luck.name,
+data.shopItem.Luck.text,+3% chance a slime you bring home is one rarity higher,data.shopItem.Luck.text,
+data.shopItem.LuckPotion.name,Luck Potion,data.shopItem.LuckPotion.name,
+data.shopItem.LuckPotion.text,Better rarity odds for everyone's fountain drops.,data.shopItem.LuckPotion.text,
+data.shopItem.OfflineCap.name,Night Shift,data.shopItem.OfflineCap.name,
+data.shopItem.OfflineCap.text,+1h offline income cap,data.shopItem.OfflineCap.text,
+data.shopItem.QuickBrew.name,Quick Brew,data.shopItem.QuickBrew.name,
+data.shopItem.QuickBrew.text,-15% merge vat brew time,data.shopItem.QuickBrew.text,
+data.shopItem.SpeedCoil.name,Speed Coil,data.shopItem.SpeedCoil.name,
+data.shopItem.SpeedCoil.text,Hold it to run faster,,
+data.shopItem.WeatherTotem.name,Weather Totem,data.shopItem.WeatherTotem.name,
+data.shopItem.WeatherTotem.text,Calls the weather shown here next.,data.shopItem.WeatherTotem.text,
+data.shops.ItemShop.name,Item Shop,data.shops.ItemShop.name,
+data.shops.UpgradeShop.name,Upgrade Shop,data.shops.UpgradeShop.name,
+data.slimeHat.bow.name,Big Bow,,
+data.slimeHat.chef.name,Chef Hat,,
+data.slimeHat.flower_crown.name,Flower Crown,,
+data.slimeHat.party.name,Party Hat,,
+data.slimeHat.top_hat.name,Top Hat,,
+data.slimeHat.witch.name,Witch Hat,,
+data.upgrade.CarrySpeed.name,Strong Arms,data.upgrade.CarrySpeed.name,
+data.upgrade.CarrySpeed.text,-15% carry slowdown,data.upgrade.CarrySpeed.text,
+data.upgrade.Income.name,Slime Snacks,data.upgrade.Income.name,
+data.upgrade.Income.text,+10% income,data.upgrade.Income.text,
+data.upgrade.Luck.name,Lucky Charm,data.upgrade.Luck.name,
+data.upgrade.Luck.text,+3% chance a slime you bring home is one rarity higher,data.upgrade.Luck.text,
+data.upgrade.OfflineCap.name,Night Shift,data.upgrade.OfflineCap.name,
+data.upgrade.OfflineCap.text,+1h offline income cap,data.upgrade.OfflineCap.text,
+data.upgrade.QuickBrew.name,Quick Brew,data.upgrade.QuickBrew.name,
+data.upgrade.QuickBrew.text,-15% merge vat brew time,data.upgrade.QuickBrew.text,
+data.weather.Clear.displayName,Clear,,
+data.weather.Rain.displayName,Rain,,
+data.weather.Snow.displayName,Snow,data.weather.Snow.displayName,
+data.weather.Starfall.displayName,Starfall,data.weather.Starfall.displayName,
+data.weeklyTrait.lucky.label,Lucky Saturday,,
+hud.alert.thief,Thief,,
+hud.alert.visitor,Visitor,,
+hud.boss.badges.one,{count} badge,,+1 badge
+hud.boss.badges.other,{count} badges,,+2 badges
+hud.boss.bonk,Bonk!,,
+hud.boss.brought_home,Brought home!,,
+hud.boss.carry_home,Carry it home,,
+hud.boss.dodge,Dodge!,,
+hud.boss.down,{name} is down!,,King Goo is down!
+hud.boss.got_away,{name} got away,,King Goo got away
+hud.boss.grab_it,Grab it!,,
+hud.boss.grabs_first,{name} grabs first,,Ann grabs first
+hud.boss.guards,Guards {left}/{total},,Guards 2/4
+hud.boss.has_it,{name} has it,,Ann has it
+hud.boss.hit_it,Hit it!,,
+hud.boss.hits,Hits {mult},,Hits x3
+hud.boss.incoming,BOSS INCOMING,,
+hud.boss.next_in,Next {time},,Next 9:30
+hud.boss.next_time,Next time!,,
+hud.boss.ouch,Ouch! {seconds}s,,Ouch! 3s
+hud.boss.shared_win,Shared win,,
+hud.boss.the_boss,The boss,,
+hud.boss.the_team,The team,,
+hud.boss.to_plaza,To the plaza,,
+hud.boss.winner_team,{name} + team,,Ann + team
+hud.boss.you_share,You {percent},,You 42%
+hud.carry.drop,Drop,,
+hud.carry.full,Your plot is full,,
+hud.carry.full_hint,Sell or merge a slime,,
+hud.carry.stolen,Bring the slime to your plot!,,
+hud.carry.wild,Wild slime - bring it to your plot,,
+hud.friends.income,Friends {percent} income,,Friends +20% income
+hud.fx.boing,BOING!,,
+hud.fx.bonk,BONK!,,
+hud.fx.chomp,CHOMP!,,
+hud.fx.mega_squeak,MEGA SQUEAK!,,
+hud.fx.pop,POP!,,
+hud.fx.squeak,SQUEAK!,,
+hud.fx.squeak_small,squeak,,
+hud.list.and,{list} and {item},,"$15.5M, a Flan and an Imp"
+hud.list.comma,"{list}, {item}",,"$15.5M, a Flan"
+hud.loading.ready,Ready!,hud.loading.ready,
+hud.loading.skip,Skip,,
+hud.loading.tip_lock,Lock your base to stop thieves,,
+hud.loading.tip_merge,Merge two slimes in the vat,,
+hud.loading.tip_obby,Run the obby for a cash boost,,
+hud.loading.tip_rarer,Rarer slimes earn more cash,,
+hud.loading.tip_steal,Steal slimes from other bases,,
+hud.member.club,CLUB,,
+hud.member.vip,VIP,hud.member.vip,
+hud.modifier.left,{name} - {time} left,,Golden Hour - 3:20 left
+hud.modifier.luck,{name} {luck} luck,,Luck Surge x2 luck
+hud.modifier.luck_left,{name} {luck} luck - {time} left,,Luck Surge x2 luck - 3:20 left
+hud.nav.codes,Codes,hud.nav.codes,
+hud.nav.dex,SlimeDex,hud.nav.dex,
+hud.nav.goals,Goals,hud.nav.goals,
+hud.nav.leaders,Leaders,,
+hud.nav.rebirth,Rebirth,hud.nav.rebirth,
+hud.nav.settings,Settings,hud.nav.settings,
+hud.nav.skins,Skins,hud.nav.skins,
+hud.obby.base_open,Base open,,
+hud.obby.best,Best {time},,Best 0:51.4
+hud.obby.boost_left,{income} income · {time} left,,x1.5 income · 3:12 left
+hud.obby.boost_ready_in,Boost ready in {time},,Boost ready in 1:40
+hud.obby.course_every,A new course every {minutes} min,,A new course every 15 min
+hud.obby.course_left,Course #{course} · {time} left,,"Course #1,204 · 12:34 left"
+hud.obby.finish,Finish,,
+hud.obby.income,{income} income,,x1.3 income
+hud.obby.new_course_in,New course in {time},,New course in 12:34
+hud.obby.per_section,{percent} a section,,+17% a section
+hud.obby.section,Section {at}/{of},,Section 3/6
+hud.obby.slower_locks,{percent} slower locks,,50% slower locks
+hud.obby.start,Start,,
+hud.obby.step_in,Step in to start!,,
+hud.obby.step_in_up_to,Step in: up to {income} income!,,Step in: up to x2 income!
+hud.obby.total,Total {time},,Total 2:14
+hud.obby.you,You,hud.obby.you,
+hud.obby.you_rank,You {rank},hud.obby.you_rank,You #23
+hud.progress.all_done,All rebirths done,hud.progress.all_done,
+hud.progress.dex_all,All SlimeDex rewards collected!,,
+hud.progress.dex_bonus,SlimeDex bonus: {percent} income,,SlimeDex bonus: +5% income
+hud.progress.dex_next,"Next: {count} species {cash}, {percent} income",,"Next: 15 species +$5K, +3% income"
+hud.progress.dex_short,SlimeDex {percent},,SlimeDex +5%
+hud.progress.max,Max rebirths,,
+hud.progress.max_reached,Max rebirths reached,,
+hud.progress.more,{amount} more,,$3.7K more
+hud.progress.more_needed,{amount} more needed ({percent}),,$3.7K more needed (42%)
+hud.progress.need,Need {items},,Need $15.5M and a Flan
+hud.progress.need_more,Need {amount} more,hud.progress.need_more,Need $178.8K more
+hud.progress.next_rank,Next: {title} at {rebirths} rebirths,,Next: Slime Wrangler at 3 rebirths
+hud.progress.next_rank_perk,Next: {title} at {rebirths} rebirths - {perk},,Next: Slime Wrangler at 3 rebirths - unlocks the OfflineCap upgrade
+hud.progress.not_ready,Not ready yet,hud.progress.not_ready,
+hud.progress.rank,Rank: {title},,Rank: Goo Getter
+hud.progress.ready,Ready!,hud.progress.ready,
+hud.progress.ready_now,READY! Rebirth now,,
+hud.progress.slime_a,a {name},,a Flan
+hud.progress.slime_an,an {name},,an Imp
+hud.progress.tier,Rebirth {rebirth}: {income} income · {seconds}s lock,,Rebirth 4: x3 income · 45s lock
+hud.progress.tier_now,Now · rebirth {rebirth}: {income} income · {seconds}s lock,,Now · rebirth 3: x2.5 income · 40s lock
+hud.progress.top_rank,Top rank reached!,,
+hud.progress.wait_vat,Wait for the vat: {name} is brewing,,Wait for the vat: Flan is brewing
+hud.rain.active,SLIME RAIN! Luck {luck},,SLIME RAIN! Luck x2
+hud.rain.active_left,SLIME RAIN! Luck {luck} - {time} left,,SLIME RAIN! Luck x2 - 1:05 left
+hud.rain.soon,Slime Rain in {time},,Slime Rain in 4:30
+hud.rare.rare,RARE,,
+hud.rare.secret,SECRET,,
+hud.rare.spilled,A {rarity} slime spilled from the fountain! Grab it!,,A LEGENDARY slime spilled from the fountain! Grab it!
+hud.status.blessed.effect,{percent} income from the Slime Ritual.,,+30% income from the Slime Ritual.
+hud.status.blessed.name,Blessed,hud.status.blessed.name,
+hud.status.boost.effect,{income} income from a code or quest reward.,,x2 income from a code or quest reward.
+hud.status.boost.name,Income boost,hud.status.boost.name,
+hud.status.event.effect,{luck} luck: rarer slimes show up more often.,,x2 luck: rarer slimes show up more often.
+hud.status.friend.effect,{percent} income while your friends play on this server.,,+20% income while your friends play on this server.
+hud.status.friend.name,Friend boost,,
+hud.status.lock_break.effect,You can walk through that base's locked door. It stays locked for everyone else.,,
+hud.status.lock_break.name,Lock break,,
+hud.status.mvp.effect,{income} income and {speed} speed for bringing a boss home.,,+25% income and +10% speed for bringing a boss home.
+hud.status.mvp.name,Boss Champion,hud.status.mvp.name,
+hud.status.now,Now,hud.status.now,
+hud.status.obby.cooldown_effect,"Run the obby again after this: every section adds income, up to {income}.",,"Run the obby again after this: every section adds income, up to x2."
+hud.status.obby.effect,{income} income from the obby sections you cleared.,,x1.3 income from the obby sections you cleared.
+hud.status.obby.name,Obby,hud.status.obby.name,
+hud.status.pet.income_effect,{percent} income from your favourite slime riding along with you.,,+3% income from your favourite slime riding along with you.
+hud.status.pet.luck_effect,{percent} luck from your favourite slime riding along with you: rarer slimes show up more often.,,+3% luck from your favourite slime riding along with you: rarer slimes show up more often.
+hud.status.pet.name,Pet bonus,hud.status.pet.name,
+hud.status.rain.effect,Slimes pour from the sky and rarer ones show up more often. Grab them!,,
+hud.status.rain.name,Slime Rain,hud.status.rain.name,
+hud.status.secret.effect,Can spawn as a Secret this week.,,
+hud.status.secret.name,Featured Secret: {name},,Featured Secret: Nebula
+hud.steal.bonked,You got bonked!,,
+hud.steal.bonked_hint,The slime bounced home,,
+hud.steal.home,Your slime is back home,,
+hud.steal.home_hint,It escaped from {name},,It escaped from Ann
+hud.steal.locked,This base is locked,,
+hud.steal.more,+{count} more,,+2 more
+hud.steal.opens_in,Opens in {time},,Opens in 1:42
+hud.steal.someone,someone,,
+hud.steal.stealing,{name} is stealing your slime!,,Ann is stealing your slime!
+hud.steal.stealing_hint,Chase them and hit them with your bat,,
+hud.steal.stealing_many,{first} and {others} others are stealing your slimes!,,Ann and 2 others are stealing your slimes!
+hud.steal.stealing_two,{first} and {second} are stealing your slimes!,,Ann and Bo are stealing your slimes!
+hud.steal.stolen,{name} has stolen one of your slimes,,Ann has stolen one of your slimes
+hud.steal.stolen_hint,Lock your base to keep the rest safe,,
+hud.steal.strip_bounced,It bounced home,,
+hud.steal.strip_chase,Chase them,,
+hud.steal.strip_lock,Lock your base,hud.steal.strip_lock,
+hud.tooltip.active_now,Active now,,
+hud.tooltip.ends_in,Ends in {time},,Ends in 4h 6m
+hud.tooltip.next_boost,Next boost ready in {time},,Next boost ready in 1:40
+hud.tooltip.starts_in,Starts in {time},,Starts in 1:40
+hud.tooltip.time_left,Time left: {time},,Time left: 1:37
+hud.tooltip.while_friends,Active while friends are here,,
+hud.tooltip.while_pet,Active while your pet follows you,,
+hud.weekend.left,{mult} Weekend - {time} left,,x2 Weekend - 1d 4h left
+hud.weekend.name,{mult} Weekend,,x2 Weekend
+menus.inventory.aim_ground,Aim at the ground,,
+menus.inventory.aim_somewhere,Aim somewhere,,
+menus.inventory.bag,Bag,,
+menus.inventory.bag_tip_key,Inventory ({key}),,Inventory (`)
+menus.inventory.cant_find_you,Can't find you,,
+menus.inventory.cant_use_here,Can't use that here,,
+menus.inventory.count.one,{count} item,,1 item
+menus.inventory.count.other,{count} items,,3 items
+menus.inventory.empty_body,Items you buy at the Item shop and rewards from goals show up here.,,
+menus.inventory.empty_title,Your bag is empty,,
+menus.inventory.footer_click,Drag an item onto a hotbar slot to put it there. Drag it off the bar to take it off. Click an item to equip it.,,
+menus.inventory.footer_tap,Drag an item onto a hotbar slot to put it there. Drag it off the bar to take it off. Tap an item to equip it.,,
+menus.inventory.hint,Drag items here,,
+menus.inventory.hotbar,Hotbar,,
+menus.inventory.no_one_in_reach,No one in reach,,
+menus.inventory.not_in_hand,Not in hand,,
+menus.inventory.order_blanked,That item can't go on the hotbar,,
+menus.inventory.order_refused,Couldn't save your hotbar,,
+menus.inventory.ready_in,Ready in {seconds}s,,Ready in 3s
+menus.inventory.title,Inventory,,
+menus.inventory.tool_bat,Bat,,
+menus.inventory.tool_speed_coil,Speed Coil,menus.inventory.tool_speed_coil,
+menus.key_card.hold,Hold,,
+menus.key_card.lock_pad_hint,or stand on the green ring,,
+menus.key_card.lock_timer,LOCKED {time},menus.key_card.lock_timer,LOCKED 1:42
+menus.key_card.locked,Locked,menus.key_card.locked,
+menus.key_card.pad_down,Dn,,
+menus.key_card.pad_left,Lt,,
+menus.key_card.pad_right,Rt,,
+menus.key_card.pad_up,Up,,
+menus.leaderboard.board_you,You,menus.leaderboard.board_you,
+menus.leaderboard.board_you_rank,You {rank},menus.leaderboard.board_you_rank,You #48
+menus.leaderboard.empty,No entries yet,menus.leaderboard.empty,
+menus.leaderboard.loading,Loading the board,,
+menus.leaderboard.tab_dex,SlimeDex,menus.leaderboard.tab_dex,
+menus.leaderboard.tab_earners,Earners,,
+menus.leaderboard.tab_merges,Merges,menus.leaderboard.tab_merges,
+menus.leaderboard.tab_steals,Steals,,
+menus.leaderboard.tab_weekly,Weekly,,
+menus.leaderboard.title,Leaderboards,,
+menus.leaderboard.you_none,You: no score yet,,
+menus.leaderboard.you_ranked,You: {rank}  {value},,You: #3  $1.5K
+menus.leaderboard.you_value,You: {value},,You: $90
+menus.move.cancel,Cancel,,
+menus.move.cant_move,Can't move: {reason},,Can't move: that pad is locked
+menus.move.move_failed,the move didn't go through,,
+menus.move.moving,Moving...,,
+menus.move.moving_name,Moving {name},,Moving Bubbles
+menus.move.own_pad,Pad {pad}: its own pad,,Pad 1: its own pad
+menus.move.pad,Pad {pad},,Pad 3
+menus.move.pad_locked,Pad {pad} is locked,,Pad 7 is locked
+menus.move.pick_slime,Pick one of your slimes,menus.move.pick_slime,
+menus.move.place,Place,,
+menus.move.point,Point at a pad,,
+menus.move.slime,slime,,
+menus.move.swap,Pad {pad}: swap with {name},,Pad 2: swap with Bubbles
+menus.move.swap_unknown,Pad {pad}: swap with that slime,,Pad 2: swap with that slime
+menus.move.vat,Merge vat ({count}/{size}),,Merge vat (2/3)
+menus.move.vat_cant,The vat can't take this slime,,
+menus.move.vat_failed,the vat didn't take it,,
+menus.move.vat_gated,Merge vat ({count}/{size}): {reason},,Merge vat (1/3): Epic merges open at Rebirth 2
+menus.settings.off,Off,,
+menus.settings.on,On,,
+menus.settings.player_id,Player ID {id},,Player ID 42
+menus.settings.replay,Replay tutorial,,
+menus.settings.replay_button,Replay,,
+menus.settings.replay_hint,Walk through the first steps,,
+menus.settings.replay_running,Running,,
+menus.settings.reset,Reset settings,,
+menus.settings.reset_button,Hold to reset,,
+menus.settings.reset_hint,Your slimes and cash stay,,
+menus.settings.studio,Studio,,
+menus.settings.title,Settings,menus.settings.title,
+menus.settings.version,Game version,,
+menus.slime_keys.favorite,Favorite,,
+menus.slime_keys.move,Move,,
+menus.slime_keys.sell,Sell,,
+menus.slime_keys.sell_price,Sell {price},,Sell $450
+menus.slime_keys.unfavorite,Unfavorite,,
+menus.slime_tag.buy,Buy {price},menus.slime_tag.buy,Buy $1.2K
+onboarding.daily.day,Day {day},,Day 3
+onboarding.goals.all_pads,Unlock every pad,,
+onboarding.goals.all_stages_done,All {stages} stages done,,All 5 stages done
+onboarding.goals.best_tier,Own a {rarity} slime,,Own a Rare slime
+onboarding.goals.best_tier_detail,Best now: tier {best}/{top},,Best now: tier 2/6
+onboarding.goals.claim,Claim,,
+onboarding.goals.claim_boost,Claim boost,,
+onboarding.goals.claim_cash,Claim {cash},,Claim $100
+onboarding.goals.claimed,Claimed,onboarding.goals.claimed,
+onboarding.goals.daily,Claim today's daily reward,,
+onboarding.goals.daily_claimed,Claimed · streak {streak},,Claimed · streak 4
+onboarding.goals.daily_open,Open,,
+onboarding.goals.daily_ready,Day {day}: {reward},,Day 3: $1K
+onboarding.goals.daily_ready_claim,Ready to claim {amount},,Ready to claim $1K
+onboarding.goals.daily_title,Daily reward,onboarding.goals.daily_title,
+onboarding.goals.dex,Discover {percent}% of the SlimeDex,,Discover 25% of the SlimeDex
+onboarding.goals.dex_detail,{found}/{need} species ({percent}%),,8/13 species (16%)
+onboarding.goals.done,Done,,
+onboarding.goals.fill_pads,Fill your pads,,
+onboarding.goals.fill_pads_detail,{used}/{pads} pads used,,3/6 pads used
+onboarding.goals.first_rebirth,Reach your first rebirth,,
+onboarding.goals.meta_last,{progress} · Last stage,,8/10 · Last stage
+onboarding.goals.meta_stage,{progress} · Stage {stage} of {stages},,8/10 · Stage 4 of 5
+onboarding.goals.milestones_heading,Milestones,,
+onboarding.goals.next,Next: {title},,Next: Catch 50 slimes
+onboarding.goals.next_rebirth,Reach rebirth {rebirth},,Reach rebirth 2
+onboarding.goals.next_short,Next: {target},,Next: $1M
+onboarding.goals.note_local,Just for fun,,
+onboarding.goals.note_server,Rewards pay out on their own,,
+onboarding.goals.owned,Owned,onboarding.goals.owned,
+onboarding.goals.pads_next_cost,{pads}/{max} · next {cost},,6/8 · next $500
+onboarding.goals.pads_next_rebirth,{pads}/{max} · next at Rebirth {rebirth},,6/8 · next at Rebirth 2
+onboarding.goals.quests_heading,Daily quests,,
+onboarding.goals.resets_in,Resets in {time},,Resets in 4:05:00
+onboarding.goals.speed_coil,Get the Speed Coil,,
+onboarding.goals.speed_coil_price,Shop · {price},,Shop · $2.5K
+onboarding.goals.stage_detail,{progress} · stage {stage}/{stages},,8/10 · stage 2/5
+onboarding.goals.stage_detail_reward,{progress} · reward {reward} · stage {stage}/{stages},,8/10 · reward $500 · stage 2/5
+onboarding.goals.summary,{done}/{total} done,,3/7 done
+onboarding.goals.tier,Tier {tier},,Tier 7
+onboarding.goals.title,Goals,onboarding.goals.title,
+onboarding.guide.all_done,Every goal done. Nice!,,
+onboarding.guide.goal.buy_pad,Buy another pad,,
+onboarding.guide.goal.deposit,Carry it home to your plot,,
+onboarding.guide.goal.grab,Grab a slime at the fountain,,
+onboarding.guide.goal.lock,Lock your base,onboarding.guide.goal.lock,
+onboarding.guide.goal.merge,Merge two slimes,,
+onboarding.guide.keep_collecting,Keep collecting slimes,,
+onboarding.guide.next_goal,Next goal,,
+onboarding.guide.show_tutorial,Show the tutorial again,,
+onboarding.guide.skip_tutorial,Hold to skip the tutorial,,
+onboarding.guide.tip.dex,New slimes fill your SlimeDex,,
+onboarding.guide.tip.fountain,Rare slimes spill from the fountain,,
+onboarding.guide.tip.lock,Your plot is open: lock it,,
+onboarding.guide.tip.merge_match,Three slimes match: Move them into the vat,,
+onboarding.guide.tip.pads,Free pad: bring home another slime,,
+onboarding.guide.tip.rebirth,Rebirth is ready,,
+onboarding.guide.tip.shop,You can afford a shop upgrade,,
+onboarding.guide.tip.slap,Bat thieves to get your slimes back,,
+onboarding.guide.tip.stolen,Thief has your slime: use your bat!,,
+onboarding.guide.tip.vat_done,Your merge vat is done: collect it,,
+onboarding.guide.title,Guide,onboarding.guide.title,
+onboarding.hint.goals,Tap {icon} Goals in the left menu,,Tap 🎯 Goals in the left menu
+onboarding.tutorial.buy_item.body,Buy anything at a shop,,
+onboarding.tutorial.buy_item.done,Item bought,,
+onboarding.tutorial.buy_item.title,Buy an item,,
+onboarding.tutorial.buy_pad.body_key,Hold {key} at the glowing pad,,Hold E at the glowing pad
+onboarding.tutorial.buy_pad.body_touch,Hold the prompt at the glowing pad,,
+onboarding.tutorial.buy_pad.done,Pad bought,,
+onboarding.tutorial.buy_pad.title,Buy a pad,,
+onboarding.tutorial.deposit.body,Walk into your plot while you carry it,,
+onboarding.tutorial.deposit.done,Slime home,,
+onboarding.tutorial.deposit.title,Bring it home,,
+onboarding.tutorial.finished,Tutorial done,,
+onboarding.tutorial.finished_sub,Next things to do are in Goals,,
+onboarding.tutorial.grab.body_key,Go to a free slime and press {key},,Go to a free slime and press E
+onboarding.tutorial.grab.body_touch,Go to a free slime and tap the prompt,,
+onboarding.tutorial.grab.done,Slime grabbed,,
+onboarding.tutorial.grab.title,Grab a slime,,
+onboarding.tutorial.guide.body_key,Press {key} at the Guide to talk,,Press E at the Guide to talk
+onboarding.tutorial.guide.body_touch,Tap the prompt at the Guide to talk,,
+onboarding.tutorial.guide.done,Guide met,,
+onboarding.tutorial.guide.title,Meet the Guide,,
+onboarding.tutorial.hide,Hide,,
+onboarding.tutorial.leaderboard.body,Walk to the Top Earners board,,
+onboarding.tutorial.leaderboard.done,Leaderboard found,,
+onboarding.tutorial.leaderboard.title,Check the leaderboard,,
+onboarding.tutorial.lock.body,Stand on your lock pad,,
+onboarding.tutorial.lock.done,Base locked,,
+onboarding.tutorial.lock.title,Lock your base,onboarding.tutorial.lock.title,
+onboarding.tutorial.merge.body,Brew 3 alike in your merge vat,,
+onboarding.tutorial.merge.done,First merge,,
+onboarding.tutorial.merge.title,Merge slimes,,
+onboarding.welcome.away,Away {time},,Away 5h 20m
+onboarding.welcome.cash_and_growth,{cash}. {growth}.,,"Earned in 5h 20m, added to your cash. 3 slimes grew."
+onboarding.welcome.claim,Claim {amount},,Claim $1K
+onboarding.welcome.claimed,Claimed,onboarding.welcome.claimed,
+onboarding.welcome.claimed_today,Claimed today,,
+onboarding.welcome.come_back,Come back tomorrow,,
+onboarding.welcome.daily_claimed,Daily reward claimed,,
+onboarding.welcome.earned_cash,"Earned in {time}, added to your cash",,"Earned in 5h 20m, added to your cash"
+onboarding.welcome.earned_pads,"Earned in {time}, waiting on your cash pads",,"Earned in 5h 20m, waiting on your cash pads"
+onboarding.welcome.got_it,Got it,,
+onboarding.welcome.grown.one,{count} slime grew,,1 slime grew
+onboarding.welcome.grown.other,{count} slimes grew,,3 slimes grew
+onboarding.welcome.grown_desc,on your pads while you were gone,,
+onboarding.welcome.next_skin,Next skin: {skin} on day {day},,Next skin: Mint Fizz on day 7
+onboarding.welcome.no_cash,No cash earned while you were away,,
+onboarding.welcome.streak_broke,Your streak broke,,
+onboarding.welcome.streak_broke_days,Your {days}-day streak broke,,Your 5-day streak broke
+onboarding.welcome.streak_day,Day {day} of {cap},,Day 3 of 30
+onboarding.welcome.title_daily,Daily reward,onboarding.welcome.title_daily,
+onboarding.welcome.title_join,Welcome back,,
+shop.button.buy,Buy,,
+shop.button.buy_price,Buy {price},shop.button.buy_price,Buy $1.5K
+shop.button.coming_soon,Coming soon,shop.button.coming_soon,
+shop.button.full,Full,shop.button.full,
+shop.button.max,Max,,
+shop.button.need_more,Need {amount} more,shop.button.need_more,Need $10.8K more
+shop.button.owned,Owned,shop.button.owned,
+shop.button.rebirth,Rebirth {rebirths},,Rebirth 5
+shop.button.sold_out,Sold out,,
+shop.button.to_unlock,to unlock,,
+shop.codes.boost,{mult} income · {time} left,,x2 income · 4m 05s left
+shop.codes.no_boost,No boost active,,
+shop.codes.note,Each code works once and gives cash or a boost.,,
+shop.codes.placeholder,Type a code,,
+shop.codes.redeem,Redeem,,
+shop.codes.refused,That code doesn't work.,,
+shop.codes.title,Codes,shop.codes.title,
+shop.consumable_short.luck_potion,Better fountain rarity odds,,
+shop.consumable_short.weather_totem,Calls the next weather,,
+shop.deny.bad_shop,That shop doesn't exist,,
+shop.deny.bad_target,Pick one of your slimes,shop.deny.bad_target,
+shop.deny.busy,Slow down a little,,
+shop.deny.dead,You can't shop right now,,
+shop.deny.locked,Rebirth to unlock,,
+shop.deny.maxed,Already maxed,,
+shop.deny.no_cash,Not enough cash,,
+shop.deny.not_in_shop,Not sold here,,
+shop.deny.not_open,Open the shop first,,
+shop.deny.out_of_range,Walk closer to the shop,,
+shop.deny.owned,You already own this,,
+shop.deny.sold_out,Sold out - restocks soon,,
+shop.deny.unavailable,Can't buy that right now,,
+shop.exclusive.auto_collect.text,"Your slimes' cash goes straight into your wallet, wherever you are. No more walking over the cash pads.",,
+shop.exclusive.auto_collect.title,Auto collect,,
+shop.exclusive.back,Back,,
+shop.exclusive.base_text,"A new building for your plot, with the same pads, floors and door. Any base skin fits. Pick it in Skins, Base tab.",,
+shop.exclusive.bat_text,A new look for your Bat. It hits exactly like the default Bat.,,
+shop.exclusive.bought,Bought,,
+shop.exclusive.bought_seat,"It is in Skins, Cloud tab. Equip it here or there.",,
+shop.exclusive.boutique_bundle.text,"The Magic Carpet cloud and the Fairground base skin, for less than the two.",,
+shop.exclusive.boutique_bundle.title,Boutique bundle,,
+shop.exclusive.buy_price,Buy · {price},,Buy · R$99
+shop.exclusive.default_bat,Use default Bat,,
+shop.exclusive.details,Details,,
+shop.exclusive.double_offline.tag,On return,,
+shop.exclusive.double_offline.text,"Doubles the cash you earned while you were away, once per return.",,
+shop.exclusive.double_offline.title,Double it,shop.exclusive.double_offline.title,
+shop.exclusive.double_offline.where,Buy it on Welcome back,,
+shop.exclusive.empty,The Exclusive shop is closed on this server.,,
+shop.exclusive.empty_tab,Nothing here right now. Look again next week.,,
+shop.exclusive.equip,Equip,shop.exclusive.equip,
+shop.exclusive.equipped,Equipped,shop.exclusive.equipped,
+shop.exclusive.exclusive,Exclusive,shop.exclusive.exclusive,
+shop.exclusive.fast_brew.text,"Every merge brews in half the time, for good. Stacks with the Quick Brew upgrade.",,
+shop.exclusive.fast_brew.title,Fast brew,,
+shop.exclusive.finish_brew.tag,Merge vat,shop.exclusive.finish_brew.tag,
+shop.exclusive.finish_brew.text,Ends a brewing merge right away. The slime it makes is set when the brew starts.,,
+shop.exclusive.finish_brew.title,Finish now,shop.exclusive.finish_brew.title,
+shop.exclusive.finish_brew.where,Buy it at the Merge vat,,
+shop.exclusive.friend,Friend,,
+shop.exclusive.gift,Gift,shop.exclusive.gift,
+shop.exclusive.gift_empty,Nobody else is on this server right now.,,
+shop.exclusive.gift_hint,Pick a player on this server. Friends are first.,,
+shop.exclusive.gift_off_sale,Gift not on sale,,
+shop.exclusive.gift_price,Gift · {price},,Gift · R$99
+shop.exclusive.gift_refused,They can't get this gift.,,
+shop.exclusive.gift_title,Gift: {item},,Gift: Storm cloud
+shop.exclusive.growth_snack.tag,On slime,,
+shop.exclusive.growth_snack.text,One slime of yours grows 3 hours at once. Pick the slime on its pad.,,
+shop.exclusive.growth_snack.title,Growth snack,shop.exclusive.growth_snack.title,
+shop.exclusive.growth_snack.where,Buy it on a slime's card,,
+shop.exclusive.hat_text,Every slime on your pads wears it. A slime that leaves your pads takes it off.,,
+shop.exclusive.hatch_now.tag,Your egg,,
+shop.exclusive.hatch_now.text,Makes an incubating Mystery Egg ready to hatch. What is inside is set when it starts.,,
+shop.exclusive.hatch_now.title,Hatch now,shop.exclusive.hatch_now.title,
+shop.exclusive.hatch_now.where,Buy it at your egg,,
+shop.exclusive.hide_details,Hide details,,
+shop.exclusive.income2x.text,"Every slime on your pads earns twice as much, for good.",,
+shop.exclusive.income2x.title,x2 income,,
+shop.exclusive.income_boost15.text,"Doubles your income for 15 minutes. Adds to a running boost, up to the boost cap.",,
+shop.exclusive.income_boost15.title,"x2 income, 15 min",,
+shop.exclusive.income_boost60.text,"Doubles your income for an hour. Adds to a running boost, up to the boost cap.",,
+shop.exclusive.income_boost60.title,"x2 income, 1 hour",,
+shop.exclusive.keep_streak.tag,Daily,,
+shop.exclusive.keep_streak.text,Missed a day? Your daily streak carries on as if you had not.,,
+shop.exclusive.keep_streak.title,Keep my streak,shop.exclusive.keep_streak.title,
+shop.exclusive.keep_streak.where,Buy it on the Daily reward,,
+shop.exclusive.lock_break_refused,This door can't be opened right now.,,
+shop.exclusive.lock_text,A new look for the plug that closes your base when you lock it. It locks exactly the same.,,
+shop.exclusive.luck_note,Only for wild slimes you bring home. Stolen slimes never get the Lucky Charm.,,
+shop.exclusive.luck_now,Your chance now: {chance},,Your chance now: 9%
+shop.exclusive.luck_with,With Lucky Charm+: {chance},,With Lucky Charm+: 14%
+shop.exclusive.lucky_charm_plus.text,+5% chance that a wild slime you bring home turns one rarity higher.,,
+shop.exclusive.lucky_charm_plus.title,Lucky Charm+,,
+shop.exclusive.odds_note,Fountain drops before rain and events. Each potion adds time; the boost never stacks.,,
+shop.exclusive.odds_now,Now,shop.exclusive.odds_now,
+shop.exclusive.odds_potion,Potion,,
+shop.exclusive.odds_rarity,Rarity,,
+shop.exclusive.off_sale,Not on sale yet,,
+shop.exclusive.offline2x.text,"Earn half your income while you are away instead of a quarter, for good.",,
+shop.exclusive.offline2x.title,x2 offline cash,,
+shop.exclusive.open_locked_door,Open locked door,,
+shop.exclusive.owned,Owned,shop.exclusive.owned,
+shop.exclusive.owned_summary,{owned}/{count} owned,,3/16 owned
+shop.exclusive.per_month,{price}/mo,,R$199/mo
+shop.exclusive.potion_queue,Up to {minutes} min queued,,Up to 15 min queued
+shop.exclusive.potion_rarer,{rarity} and rarer: x{mult} chance,,Rare and rarer: x2.5 chance
+shop.exclusive.potion_time,+{minutes} min for everyone on the server,,+5 min for everyone on the server
+shop.exclusive.seat_text,"Your follow pet rides on it, everywhere you go.",,
+shop.exclusive.send_gift,Send gift,,
+shop.exclusive.send_gift_title,Send gift: {item},,Send gift: Storm cloud
+shop.exclusive.server_luck_potion.text,Gives everyone on this server a Luck Potion: rarer slimes from the fountain.,,
+shop.exclusive.server_luck_potion.title,Server Luck Potion,,
+shop.exclusive.skin_text,"Dresses your whole goo jar tower. Pick it in Skins, Base tab.",,
+shop.exclusive.sky_bundle.text,"Storm, Sunset, Ice and Flame clouds together, for less than the four.",,
+shop.exclusive.sky_bundle.title,Sky bundle,,
+shop.exclusive.slime_club.text,"Monthly: a CLUB tag, and a free Finish now and Hatch now credit every day while you are a member.",,
+shop.exclusive.slime_club.title,Slime Club,,
+shop.exclusive.slime_rain.text,"Starts a Slime Rain for the whole server right now: more slimes and rarer ones. At most one paid rain per server every 20 minutes, never during a boss. If it can't start, you keep it as a credit.",,
+shop.exclusive.slime_rain.title,Slime Rain,shop.exclusive.slime_rain.title,
+shop.exclusive.starter_bundle.text,The Leaf cloud for your pet and x2 income for 15 minutes. Once per player.,,
+shop.exclusive.starter_bundle.title,Starter bundle,,
+shop.exclusive.subscribed,Member,,
+shop.exclusive.summon_boss.text,"The boss comes to this server after its usual warning. Once per server every 20 minutes. If it can't come now, you keep it as a credit.",,
+shop.exclusive.summon_boss.title,Summon the boss,,
+shop.exclusive.tab.boosts,Boosts,,
+shop.exclusive.tab.clouds,Clouds,,
+shop.exclusive.tab.featured,Featured,,
+shop.exclusive.tab.perks,Perks,,
+shop.exclusive.tab.style,Style,,
+shop.exclusive.thief_radar.text,"Tells you when someone walks into your base while you are away, and points you to them. Information only.",,
+shop.exclusive.thief_radar.title,Thief radar,,
+shop.exclusive.title,Exclusive shop,shop.exclusive.title,
+shop.exclusive.trail_text,Streams behind you while you carry a slime. Everyone can see it.,,
+shop.exclusive.unequip_style,Take off,,
+shop.exclusive.unequip_trail,Unequip,,
+shop.exclusive.use_credit,Use credit,,
+shop.exclusive.use_lock_break,Use lock break,,
+shop.exclusive.vip.text,"A gold VIP tag over your name and in chat, +10% income, and one free Luck Potion for the whole server every day.",,
+shop.exclusive.vip.title,VIP,shop.exclusive.vip.title,
+shop.exclusive.vip_potion,Give the server a potion,,
+shop.exclusive.vip_potion_used,Potion given today,,
+shop.exclusive.waiting,Waiting for Roblox,,
+shop.exclusive.warm_nest.text,Mystery Eggs on your pads incubate at the warm speed even while you are away from home.,,
+shop.exclusive.warm_nest.title,Warm nest,,
+shop.exclusive.weather_totem.text,"Makes the Item shop totem's weather the next one, for everyone on the server. If the weather can't change now, you keep it as a credit.",,
+shop.exclusive.weather_totem.title,Weather Totem,shop.exclusive.weather_totem.title,
+shop.group.earn_more,Earn more,,
+shop.group.faster,Faster,,
+shop.group.luck,Luck,shop.group.luck,
+shop.icon.boost_blessed,Blessed,shop.icon.boost_blessed,
+shop.icon.boost_code,Income boost,shop.icon.boost_code,
+shop.icon.boost_friend,Friend bonus,,
+shop.icon.boost_mvp,Boss Champion,shop.icon.boost_mvp,
+shop.icon.boost_obby,Obby,shop.icon.boost_obby,
+shop.icon.boost_weekend,Weekend x2,,
+shop.icon.cash,Cash,,
+shop.icon.code,Code {code},,Code WELCOME
+shop.icon.daily,Daily reward,shop.icon.daily,
+shop.icon.dex,Dex {count} species,,Dex 25 species
+shop.icon.event_luck,Luck Event,shop.icon.event_luck,
+shop.icon.event_rain,Slime Rain,shop.icon.event_rain,
+shop.icon.gift,Gift,shop.icon.gift,
+shop.icon.income,Income per second,,
+shop.icon.lock,Lock base,shop.icon.lock,
+shop.icon.mystery_egg,Mystery Egg,shop.icon.mystery_egg,
+shop.icon.perk_income,Pet income perk,,
+shop.icon.perk_luck,Pet luck perk,,
+shop.icon.pet,Pet bonus,shop.icon.pet,
+shop.icon.quest,Quest,,
+shop.icon.rebirth,Rebirth,shop.icon.rebirth,
+shop.icon.settings,Settings,shop.icon.settings,
+shop.icon.slap,Slap,,
+shop.icon.unknown,Item,shop.icon.unknown,
+shop.label.consumables,Potions and totems,,
+shop.label.fun,Fun items,,
+shop.label.gear,Gear,,
+shop.label.ladders,Tap a number to see that tier,,
+shop.label.more,More,,
+shop.label.owned,Owned,shop.label.owned,
+shop.ladder.blasters,Blasters,,
+shop.ladder.blasters_maxed,Blasters: every tier owned,,
+shop.ladder.gloves,Gloves,,
+shop.ladder.gloves_maxed,Gloves: every tier owned,,
+shop.ladder.line_maxed,{line}: every tier owned,,Gloves: every tier owned
+shop.ladder.line_others,Other {line} held: {count},,Other traps held: 3
+shop.ladder.tier_of,Tier {tier} of {count},,Tier 2 of 3
+shop.ladder.traps,Traps,,
+shop.ladder.traps_maxed,Traps: every tier owned,,
+shop.ladder.traps_others,Other traps held: {count},,Other traps held: 3
+shop.ladder.yours,Yours: {name},,Yours: Bounce glove
+shop.ladder.yours_none,Yours: none yet,,
+shop.level,Lv {level},,Lv 3
+shop.level_of,Lv {level}/{max},,Lv 3/10
+shop.pvp.blaster_tier,"Blaster tool, tier {tier}",,"Blaster tool, tier 2"
+shop.pvp.fun_item,Fun item,,
+shop.pvp.held,{held}/{max} held,,2/5 held
+shop.pvp.knockback_tier,"Knockback tool, tier {tier}",,"Knockback tool, tier 2"
+shop.pvp.line_tier,"{line} tool, tier {tier}",,"Knockback tool, tier 2"
+shop.pvp.trap_tier,"Trap tool, tier {tier}",,"Trap tool, tier 2"
+shop.pvp_short.goo_blaster1,Quick slowing shots,,
+shop.pvp_short.goo_blaster2,Three-blob spread,,
+shop.pvp_short.goo_blaster3,Splash and puddle,,
+shop.pvp_short.goo_trap1,Slows a thief,,
+shop.pvp_short.goo_trap2,Sticks a thief,,
+shop.pvp_short.goo_trap3,Pulls in and sticks,,
+shop.pvp_short.knock_glove1,A plain bonk,,
+shop.pvp_short.knock_glove2,Bonks bounce you up,,
+shop.pvp_short.knock_glove3,Blast pushes a crowd,,
+shop.pvp_short.knock_glove4,Chains to 2 more,,
+shop.pvp_short.knock_glove5,Sweeps a wide arc,,
+shop.quick.buy_for_server,Buy for the server,,
+shop.quick.double_it,Double it,shop.quick.double_it,
+shop.quick.finish_now,Finish now,shop.quick.finish_now,
+shop.quick.growth_snack,Growth snack,shop.quick.growth_snack,
+shop.quick.hatch_now,Hatch now,shop.quick.hatch_now,
+shop.quick.keep_streak,Keep my streak,shop.quick.keep_streak,
+shop.restocks_in,Restocks in {time},,Restocks in 3:07
+shop.speed_coil.speed,Hold it: speed {base} → {coil},,Hold it: speed 16 → 22
+shop.stock_left,{left}/{max} left,,2/3 left
+shop.tab.fun,Fun,,
+shop.tab.items,Items,,
+shop.tab.pvp,PvP,,
+shop.upgrade.amount,{amount} {effect},,+120% income
+shop.upgrade.change,{from} → {to} {effect},,+120% → +130% income
+shop.upgrade.effect.carry_speed,carry slowdown,,
+shop.upgrade.effect.income,income,shop.upgrade.effect.income,
+shop.upgrade.effect.luck,rarity-up chance,,
+shop.upgrade.effect.offline_cap,offline income cap,,
+shop.upgrade.effect.quick_brew,merge vat brew time,,
+shop.upgrade.next,Next: {amount} {effect},,Next: +10% income
+shop.upgrade.unlocks_at,Unlocks at Rebirth {rebirths},,Unlocks at Rebirth 3
+shop.world.bought,{name} bought,,Speed coil bought
+shop.world.bought_level,"{name} bought, Lv {level}",,"Slime snacks bought, Lv 3"
+shop.world.item,Item,shop.world.item,
+shop.world.title,Shop,,
+world.board.no_entries,No entries yet,world.board.no_entries,
+world.board.top_earners,Top Earners,world.board.top_earners,
+world.cash_pad.collect,COLLECT,,
+world.claw.gifted,{buyer} gifted {item}!,,Merijn gifted the Sparkle trail!
+world.claw.got,{buyer} got {item}!,,Merijn got the Sparkle trail!
+world.claw.prize,{buyer} got a prize!,,Merijn got a prize!
+world.daily.boost,{mult}x income {minutes}m,,2x income 15m
+world.daily.consumables,{count} {name}s,,2 Luck Potions
+world.daily.egg,Mystery Egg,world.daily.egg,
+world.daily.egg_short,Egg,,
+world.daily.seat,{name} seat,,Golden Cloud seat
+world.daily.trail,{name} trail,,Sparkle trail
+world.daily_short.consumable.LuckPotion,Luck,world.daily_short.consumable.LuckPotion,
+world.daily_short.consumable.WeatherTotem,Weather,,
+world.daily_short.seat.bubble,Bubble,world.daily_short.seat.bubble,
+world.daily_short.seat.clam_shell,Clam,,
+world.daily_short.seat.cloud,Fluffy,world.daily_short.seat.cloud,
+world.daily_short.seat.crescent_moon,Crescent,,
+world.daily_short.seat.flame_cloud,Flame,,
+world.daily_short.seat.golden_cloud,Golden,world.daily_short.seat.golden_cloud,
+world.daily_short.seat.hoverboard,Hoverboard,world.daily_short.seat.hoverboard,
+world.daily_short.seat.ice_cloud,Ice,,
+world.daily_short.seat.jelly,Jelly,world.daily_short.seat.jelly,
+world.daily_short.seat.leaf,Leaf,world.daily_short.seat.leaf,
+world.daily_short.seat.lily_pad,Lily,,
+world.daily_short.seat.magic_carpet,Magic,,
+world.daily_short.seat.midnight_cloud,Midnight,,
+world.daily_short.seat.mushroom,Mushroom,world.daily_short.seat.mushroom,
+world.daily_short.seat.pancakes,Pancakes,world.daily_short.seat.pancakes,
+world.daily_short.seat.pumpkin,Pumpkin,world.daily_short.seat.pumpkin,
+world.daily_short.seat.rainbow_cloud,Rainbow,world.daily_short.seat.rainbow_cloud,
+world.daily_short.seat.royal_cushion,Royal,,
+world.daily_short.seat.snowglobe,Snow,world.daily_short.seat.snowglobe,
+world.daily_short.seat.star_cushion,Star,,
+world.daily_short.seat.storm_cloud,Storm,,
+world.daily_short.seat.sunset_cloud,Sunset,,
+world.daily_short.seat.ufo,UFO,world.daily_short.seat.ufo,
+world.daily_short.trail.goo_drip,Goo,,
+world.daily_short.trail.hearts,Hearts,world.daily_short.trail.hearts,
+world.daily_short.trail.mint_fizz,Mint,,
+world.daily_short.trail.rainbow,Rainbow,world.daily_short.trail.rainbow,
+world.daily_short.trail.sparkle,Sparkle,world.daily_short.trail.sparkle,
+world.daily_short.trail.starfall,Starfall,world.daily_short.trail.starfall,
+world.daily_short.trail.sunbeam,Sunbeam,world.daily_short.trail.sunbeam,
+world.dex.boss_hint,Defeat the boss event,world.dex.boss_hint,
+world.dex.featured_week,Featured Secret: week of {date},,Featured Secret: week of 19 Oct
+world.egg.hatch_object,{egg} · {meter},,Golden Mystery Egg · Lucky 3/12
+world.egg.lucky_meter,Lucky {count}/{max},,Lucky 3/12
+world.events.boss,Boss,,
+world.events.boss_arrives,arrives at the fountain,,
+world.events.boss_fight,Boss Fight,,
+world.events.boss_here,{name} is here!,,King Goo is here!
+world.events.event_running,event running,,
+world.events.guaranteed,guaranteed from the fountain,,
+world.events.left,{time} left,world.events.left,2:05 left
+world.events.legendary,Legendary,world.events.legendary,
+world.events.mythic,Mythic,world.events.mythic,
+world.events.now,NOW,,
+world.events.rain_now,rarer slimes fall now!,,
+world.events.rain_soon,slimes pour from the sky,,
+world.events.slime_rain,Slime Rain,world.events.slime_rain,
+world.events.title,UPCOMING EVENTS,,
+world.fx.lucky,🍀 LUCKY!,,
+world.fx.lucky_hatch,LUCKY! {rarity},,LUCKY! MYTHIC!
+world.fx.rarity_step,"<font color=""{fromColor}"">{from}</font> → <font color=""{toColor}"">{to}</font>",,"<font color=""#FFC428"">Legendary</font> → <font color=""#EC5AFF"">Mythic</font>"
+world.fx.shout.Celestial,CELESTIAL!,,
+world.fx.shout.Common,COMMON!,,
+world.fx.shout.Divine,DIVINE!,,
+world.fx.shout.Epic,EPIC!,,
+world.fx.shout.Legendary,LEGENDARY!,,
+world.fx.shout.Mythic,MYTHIC!,,
+world.fx.shout.Rare,RARE!,,
+world.fx.shout.Secret,SECRET!,,
+world.fx.shout.Uncommon,UNCOMMON!,,
+world.grab.carrying,Already carrying a slime,,
+world.grab.money,Not enough money,,
+world.grab.need_more,Need {price} more,,Need $1.2K more
+world.grab.plot_full,"Plot is full, buy more pads",,
+world.grab.wait,Grab in {seconds}s,,Grab in 1.5s
+world.item.base,the {name} base,,the Goo Factory base
+world.item.base_skin,the {name} base skin,,the Candy base skin
+world.item.bat,the {name} Bat,,the Candy Bat
+world.item.lockStyle,the {name} lock,,the Heart lock
+world.item.the,the {name},,the Golden Bat
+world.item.trail,the {name} trail,,the Sparkle trail
+world.label.brewed,Brewed {name},,Brewed Bubbles
+world.label.hatches_in,Hatches in {time},,Hatches in 4:05
+world.label.hatches_on_pad,Hatches in {time} on a pad,,Hatches in 5:00 on a pad
+world.label.ready_to_hatch,Ready to hatch!,,
+world.marker.next_pad,Next pad {price},,Next pad $1.2K
+world.marker.your_plot,Your plot,,
+world.obby.back_to_base,BACK TO BASE,,
+world.obby.board_course,{course} · new course in {time},,"Course #1,204 · new course in 4:05"
+world.obby.board_offline,Board offline,,
+world.obby.course,Course #{number},,"Course #1,204"
+world.obby.fastest_runs,FASTEST RUNS,,
+world.obby.last_course,Last course: {name} {time},,Last course: Merijn 0:36.8
+world.obby.lock_rule,Base locks run {percent}% slower in a run,,Base locks run 50% slower in a run
+world.obby.no_times,No times yet,,
+world.obby.vine_hint,Jump to let go,,
+world.pet_perk.income,+{percent}% income,world.pet_perk.income,+3% income
+world.pet_perk.luck,+{percent}% luck,,+3% luck
+world.prompt.all_pads_unlocked,All pads unlocked,,
+world.prompt.allow_friends,Allow friends,,
+world.prompt.base_status,{name}'s base: {status},,Merijn's base: OPEN
+world.prompt.block_friends,Block friends,,
+world.prompt.boss_slime,BOSS {name},,BOSS Legendary King Goo
+world.prompt.browse_exclusives,Browse exclusives,,
+world.prompt.browse_items,Browse items,,
+world.prompt.browse_upgrades,Browse upgrades,,
+world.prompt.build_floor_price,Build floor {floor} {price},,Build floor 2 $1.2K
+world.prompt.buy_pad,Buy pad,,
+world.prompt.buy_pad_price,Buy pad {price},,Buy pad $1.2K
+world.prompt.buy_price,Buy {price},world.prompt.buy_price,Buy $1.5K
+world.prompt.drop_down,Drop down,,
+world.prompt.exclusive_shop,Exclusive Shop,,
+world.prompt.free_plot,Free plot,,
+world.prompt.friends_blocked,Friends: blocked,,
+world.prompt.friends_can_enter,Friends can enter,,
+world.prompt.goo_tube,Goo tube,,
+world.prompt.grab,Grab,,
+world.prompt.guide,Guide,world.prompt.guide,
+world.prompt.hatch,Hatch!,,
+world.prompt.item_shop,Item Shop,world.prompt.item_shop,
+world.prompt.lock_base,Lock base,world.prompt.lock_base,
+world.prompt.manage_vat,Manage vat,,
+world.prompt.merge_vat,Merge vat,world.prompt.merge_vat,
+world.prompt.pad_of,Pad {pad} of {max},,Pad 9 of 24
+world.prompt.pad_rebirth,Rebirth {count} to unlock,world.prompt.pad_rebirth,Rebirth 3 to unlock
+world.prompt.professor_goo,Professor Goo,world.prompt.professor_goo,
+world.prompt.status_locked,LOCKED {time},world.prompt.status_locked,LOCKED 1:42
+world.prompt.status_open,OPEN,,
+world.prompt.steal,Steal,,
+world.prompt.talk,Talk,,
+world.prompt.upgrade_shop,Upgrade Shop,world.prompt.upgrade_shop,
+world.prompt.view_leaderboards,View leaderboards,,
+world.rank.income,+{percent}% income,world.rank.income,+25% income
+world.rank.income_merges,"+{percent}% income, opens {rarities} merges",,"+25% income, opens Rare merges"
+world.rank.merges,opens {rarities} merges,,opens Rare merges
+world.rank.unlock,unlocks the {upgrade} upgrade,,unlocks the Strong Arms upgrade
+world.rank.unlock_income,"unlocks the {upgrade} upgrade, +{percent}% income",,"unlocks the Strong Arms upgrade, +25% income"
+world.rank.unlock_income_merges,"unlocks the {upgrade} upgrade, +{percent}% income, opens {rarities} merges",,"unlocks the Strong Arms upgrade, +25% income, opens Rare merges"
+world.rank.unlock_merges,"unlocks the {upgrade} upgrade, opens {rarities} merges",,"unlocks the Strong Arms upgrade, opens Rare merges"
+world.reason.a_new_course_is_on_its_way,A new course is on its way. Back in a moment!,,
+world.reason.a_slime_rain_is_already_falling,a Slime Rain is already falling,,
+world.reason.a_slime_the_rebirth_needs_is_brewing,A slime the rebirth needs is brewing in the vat,,
+world.reason.all_pads_unlocked,all pads unlocked,,
+world.reason.already_brewing,already brewing,,
+world.reason.already_carrying_a_slime,already carrying a slime,,
+world.reason.already_claimed,already claimed,,
+world.reason.already_claimed_today,already claimed today,,
+world.reason.already_in_the_vat,Already in the vat,,
+world.reason.already_maxed,already maxed,,
+world.reason.already_owned,already owned,,
+world.reason.bad_aim,bad aim,,
+world.reason.bad_argument,bad argument,,
+world.reason.base_is_locked,base is locked,,
+world.reason.boss_summon_again,the boss can be summoned again in {minutes} min,,the boss can be summoned again in 12 min
+world.reason.cancel_the_brew_first,Cancel the brew first,,
+world.reason.cannot_merge,cannot merge,,
+world.reason.cant_be_saved,can't be saved,,
+world.reason.cant_find_you,can't find you,,
+world.reason.cant_fire_right_now,can't fire right now,,
+world.reason.cant_push_right_now,can't push right now,,
+world.reason.cant_slap_yourself,can't slap yourself,,
+world.reason.cant_target_yourself,can't target yourself,,
+world.reason.coming_soon,Coming soon,world.reason.coming_soon,
+world.reason.egg_is_being_stolen,egg is being stolen,,
+world.reason.egg_is_not_ready,egg is not ready,,
+world.reason.egg_rank_one,Reach {rank} ({count} rebirth) to pick up {kind} Mystery Eggs,,Reach Goo Getter (1 rebirth) to pick up Shiny Mystery Eggs
+world.reason.egg_rank_other,Reach {rank} ({count} rebirths) to pick up {kind} Mystery Eggs,,Reach Slime Boss (5 rebirths) to pick up Cosmic Mystery Eggs
+world.reason.eggs_cant_be_merged,eggs can't be merged,,
+world.reason.eggs_cant_be_sold,eggs can't be sold,,
+world.reason.eggs_cant_go_in_the_vat,Eggs can't go in the vat,,
+world.reason.failed,failed,,
+world.reason.go_inside_their_base_to_steal,Go inside their base to steal,,
+world.reason.grab_rebirth,Rebirth {count} to grab this,,Rebirth 12 to grab this
+world.reason.hold_max,you can only hold {count},,you can only hold 5
+world.reason.its_out_of_reach,it's out of reach,,
+world.reason.its_still_shrinking,it's still shrinking,,
+world.reason.jackpot_slimes_cant_be_merged,jackpot slimes can't be merged,,
+world.reason.locked,Locked,world.reason.locked,
+world.reason.max_rebirths_reached,max rebirths reached,,
+world.reason.missing_slime,missing slime,,
+world.reason.moving_slimes_is_off,moving slimes is off,,
+world.reason.need_cash,need {price},,need $80
+world.reason.need_slime,need a {name},,need a Bubbles
+world.reason.need_three_different_slimes,need three different slimes,,
+world.reason.need_three_slimes,need three slimes,,
+world.reason.needs_rebirths,needs {count} rebirths,,needs 5 rebirths
+world.reason.next_paid_rain,the next paid rain is possible in {minutes} min,,the next paid rain is possible in 12 min
+world.reason.no_aim,no aim,,
+world.reason.no_bat,no bat,,
+world.reason.no_boss,no boss,,
+world.reason.no_brew_credits,no brew credits,,
+world.reason.no_brew_to_finish,no brew to finish,,
+world.reason.no_credit_of_that,no credit of that,,
+world.reason.no_drop,no drop,,
+world.reason.no_egg_to_hatch,no egg to hatch,,
+world.reason.no_hatch_credits,no hatch credits,,
+world.reason.no_lock_break_credits,no lock break credits,,
+world.reason.no_slime_can_grow_right_now,no slime can grow right now,,
+world.reason.no_snack_credits,no snack credits,,
+world.reason.no_such_player,no such player,,
+world.reason.no_such_quest,no such quest,,
+world.reason.no_such_shop,no such shop,,
+world.reason.no_target,no target,,
+world.reason.no_target_needed,no target needed,,
+world.reason.no_traps_left,no traps left,,
+world.reason.no_weather_here,no weather here,,
+world.reason.nobody_owns_that_base,nobody owns that base,,
+world.reason.not_a_trap,not a trap,,
+world.reason.not_a_vine,not a vine,,
+world.reason.not_available_in_your_region,not available in your region,,
+world.reason.not_available_right_now,not available right now,,
+world.reason.not_brewing,not brewing,,
+world.reason.not_carrying,not carrying,,
+world.reason.not_during_a_boss,not during a boss,,
+world.reason.not_during_a_slime_rain,not during a Slime Rain,,
+world.reason.not_enough_cash,not enough cash,,
+world.reason.not_equipped,not equipped,,
+world.reason.not_finished_yet,not finished yet,,
+world.reason.not_in_the_obby,not in the obby,,
+world.reason.not_in_the_vat,not in the vat,,
+world.reason.not_loaded,not loaded,,
+world.reason.not_on_a_run,not on a run,,
+world.reason.not_owned,not owned,,
+world.reason.not_ready,not ready,,
+world.reason.not_your_egg,not your egg,,
+world.reason.not_your_slime,not your slime,,
+world.reason.nothing_in_reach,nothing in reach,,
+world.reason.only_a_recipe_merges_these,only a recipe merges these,,
+world.reason.open_shop,open the {shop} first,,open the Item Shop first
+world.reason.open_the_shop_first,open the shop first,,
+world.reason.pad_is_locked,pad is locked,,
+world.reason.pad_rebirth,Rebirth {count} to unlock this pad,,Rebirth 2 to unlock this pad
+world.reason.pad_taken,pad taken,,
+world.reason.pet_seat_is_locked,pet seat is locked,,
+world.reason.pick_a_locked_base,pick a locked base,,
+world.reason.plot_base_is_locked,plot base is locked,,
+world.reason.plot_bases_are_off,plot bases are off,,
+world.reason.plot_full,plot full,,
+world.reason.plot_skin_is_locked,plot skin is locked,,
+world.reason.plot_skins_are_off,plot skins are off,,
+world.reason.put_your_slime_down_first,Put your slime down first,,
+world.reason.pvp_is_not_open_yet,PvP is not open yet,,
+world.reason.rebirth_to_unlock,Rebirth {count} to unlock,world.reason.rebirth_to_unlock,Rebirth 3 to unlock
+world.reason.server_error,server error,,
+world.reason.server_is_full,server is full,,
+world.reason.session_lost,session lost,,
+world.reason.slap_on_cooldown,slap on cooldown,,
+world.reason.slime_is_busy,slime is busy,,
+world.reason.slime_is_gone,slime is gone,,
+world.reason.slime_not_found_yet,slime not found yet,,
+world.reason.slimes_must_be_the_same_rarity,slimes must be the same rarity,,
+world.reason.sold_out_until_the_restock,sold out until the restock,,
+world.reason.someone_is_already_carrying_it,someone is already carrying it,,
+world.reason.stealing_is_paused_for_a_moment,stealing is paused for a moment,,
+world.reason.still_brewing,still brewing,,
+world.reason.still_loading,still loading,,
+world.reason.stunned,stunned,,
+world.reason.target_is_immune,target is immune,,
+world.reason.target_isnt_carrying_a_slime,target isn't carrying a slime,,
+world.reason.target_isnt_carrying_the_boss,target isn't carrying the boss,,
+world.reason.that_base_isnt_locked,that base isn't locked,,
+world.reason.that_base_just_lost_a_slime_its,that base just lost a slime: its short lock can't be opened,,
+world.reason.that_cant_be_gifted,that can't be gifted,,
+world.reason.that_code_doesnt_exist,That code doesn't exist,,
+world.reason.that_code_doesnt_work,That code doesn't work,,
+world.reason.that_code_has_expired,That code has expired,,
+world.reason.that_is_a_vip_perk,that is a VIP perk,,
+world.reason.that_is_not_a_base,that is not a base,,
+world.reason.that_is_not_an_incubating_egg_on,that is not an incubating egg on your pads,,
+world.reason.that_isnt_sold_here,that isn't sold here,,
+world.reason.that_player_isnt_in_this_server,that player isn't in this server,,
+world.reason.that_slime_cant_grow_any_more,that slime can't grow any more,,
+world.reason.that_slime_is_brewing_in_the_vat,That slime is brewing in the vat,,
+world.reason.thats_your_own_base,that's your own base,,
+world.reason.thats_your_own_slime,that's your own slime,,
+world.reason.the_boss_is_already_here,the boss is already here,,
+world.reason.the_boss_is_on_its_way_already,the boss is on its way already,,
+world.reason.the_boss_isnt_down_yet,the boss isn't down yet,,
+world.reason.the_boss_isnt_fighting,the boss isn't fighting,,
+world.reason.the_egg_smashed,the egg smashed,,
+world.reason.the_gift_couldnt_be_delivered_try_again,"the gift couldn't be delivered, try again",,
+world.reason.the_luck_potion_is_already_at_its,the luck potion is already at its longest,,
+world.reason.the_obby_isnt_open_yet,The Obby isn't open yet,,
+world.reason.the_shop_is_closed,the shop is closed,,
+world.reason.the_top_helper_grabs_first,the top helper grabs first,,
+world.reason.the_tutorial_is_already_done,the tutorial is already done,,
+world.reason.the_tutorial_is_already_running,the tutorial is already running,,
+world.reason.the_vat_is_brewing,The vat is brewing,,
+world.reason.the_vat_is_full,The vat is full,,
+world.reason.the_weather_cant_change_that_way_right,the weather can't change that way right now,,
+world.reason.their_slimes_cant_be_saved_on_this,their slimes can't be saved on this server,,
+world.reason.they_already_have_it,they already have it,,
+world.reason.too_far_away,too far away,,
+world.reason.too_far_from_the_shop,too far from the shop,,
+world.reason.too_fast,too fast,,
+world.reason.too_many_lock_break_credits,too many lock break credits,,
+world.reason.too_many_unsent_gifts,too many unsent gifts,,
+world.reason.unknown_credit,unknown credit,,
+world.reason.unknown_item,unknown item,,
+world.reason.unknown_perk,unknown perk,,
+world.reason.unknown_pet_seat,unknown pet seat,,
+world.reason.unknown_plot_base,unknown plot base,,
+world.reason.unknown_plot_skin,unknown plot skin,,
+world.reason.unknown_product,unknown product,,
+world.reason.unknown_slime,unknown slime,,
+world.reason.unknown_style,unknown style,,
+world.reason.unknown_upgrade,unknown upgrade,,
+world.reason.upgrade_locked,locked: reach {count} rebirths,,locked: reach 3 rebirths
+world.reason.vat_add_any,Add {count} slimes of one rarity,,Add 3 slimes of one rarity
+world.reason.vat_add_more,Add {count} more {rarity},world.reason.vat_add_more,Add 1 more Rare
+world.reason.vat_takes,The vat takes {rarity} slimes,,The vat takes Common slimes
+world.reason.walk_closer_to_your_lock_pad,walk closer to your lock pad,,
+world.reason.you_already_own_the_speed_coil,you already own the Speed Coil,,
+world.reason.you_already_used_that_code,You already used that code,,
+world.reason.you_can_already_walk_in_they_let,you can already walk in: they let their friends in,,
+world.reason.you_cant_do_that_right_now,you can't do that right now,,
+world.reason.you_cant_gift_yourself,you can't gift yourself,,
+world.reason.you_cant_hold_more_of_these,you can't hold more of these,,
+world.reason.you_cant_shop_right_now,you can't shop right now,,
+world.reason.you_dont_have_any,you don't have any,,
+world.reason.you_dont_own_that,you don't own that,,
+world.reason.you_dont_own_that_bat_skin,you don't own that Bat skin,,
+world.reason.you_dont_own_that_trail,you don't own that trail,,
+world.reason.you_gave_todays_potion_already_back_tomorrow,you gave today's potion already: back tomorrow,,
+world.reason.you_have_no_unsent_gift_of_that,you have no unsent gift of that,,
+world.reason.you_just_dropped_a_slime,you just dropped a slime,,
+world.reason.your_base_is_already_locked,your base is already locked,,
+world.reason.your_lock_break_is_still_running,your lock break is still running,,
+world.reason.your_progress_cant_be_saved_on_this,your progress can't be saved on this server,,
+world.recipe.bloom,"A bee, a mushroom and a cactus flower.",,
+world.recipe.catfish,"A cat, a shark and the penguin that brought them together.",,
+world.recipe.constellation,"Earth, sea and wings, joined by starlight.",,
+world.recipe.cyber_ninja,Two shadows and a machine.,,
+world.recipe.dragon_king,Three crowns make a dragon.,,
+world.recipe.honey_toad,Something sticky landed on a frog.,,
+world.recipe.hydra,"Three sirens, one tail.",,
+world.recipe.kraken,Two octopuses in a thunderstorm.,,
+world.recipe.moo_shroom,Two cows and a bunny went into the woods.,,
+world.recipe.nightwing,Two angels fell into the stars.,,
+world.recipe.rocky_road,"A scoop of rock, cheese and rice cake.",,
+world.recipe.ryujin,"Moon, sun and a bursting star: a dragon wakes.",,
+world.recipe.snow_bunny,Two bunnies and a friend from the cold.,,
+world.recipe.soda,"Fizzy, chewy and soft: three Commons walk into a vat.",,
+world.recipe.steam,"Fire, ice and a storm.",,
+world.recipe.sushi,"A penguin's favourite dinner, twice.",,
+world.recipe.thunderbee,Double lightning and a little devil.,,
+world.recipe.truffle,Double caramel on a mushroom.,,
+world.ritual.charging,{count}/{max} - {seconds}s,,2/2 - 3s
+world.ritual.hold_still,Hold still!,,
+world.ritual.minutes,{count} min,,5 min
+world.ritual.players,{count}/{max} players,,1/2 players
+world.ritual.resting,Ritual resting,,
+world.ritual.seconds,{count}s,,90s
+world.ritual.sign,Slime Ritual: {players} players stand here {hold}s = +{percent}% income for {duration},,Slime Ritual: 2 players stand here 5s = +10% income for 5 min
+world.ritual.title,Slime Ritual,,
+world.sign.empty_plot,Empty plot,,
+world.sign.exclusive,EXCLUSIVE,,
+world.sign.guide,Guide,world.sign.guide,
+world.sign.hall_of_fame,HALL OF FAME,,
+world.sign.item_shop,Item shop,,
+world.sign.obby,OBBY,,
+world.sign.owner_plot,{name}'s plot,,Merijn's plot
+world.sign.plot_number,Plot {number},,Plot 3
+world.sign.plot_stats,"{income}, {rebirths}, {steals}",,"+$1.25K/s, 2 rebirths, 1 steal"
+world.sign.professor_goo,Professor Goo,world.sign.professor_goo,
+world.sign.rebirths.one,{count} rebirth,,1 rebirth
+world.sign.rebirths.other,{count} rebirths,,2 rebirths
+world.sign.steals.one,{count} steal,,1 steal
+world.sign.steals.other,{count} steals,,12 steals
+world.sign.upgrade_shop,Upgrade shop,,
+world.vat.brewing,Brewing {time},,Brewing 0:12
+world.vat.cant_merge,Can't merge,,
+world.vat.in_vat,In vat,,
+world.vat.in_vat_brewing,IN VAT,,
+world.vat.load,{count}/{max} {rarity},,2/3 Rare
+world.vat.merges_locked,{rarity} merges are locked,world.vat.merges_locked,Secret merges are locked
+world.vat.merges_open,{rarity} merges open at Rebirth {count},,Epic merges open at Rebirth 3
+world.vat.move_in,Move slimes in,,
+world.vat.ready,Ready,world.vat.ready,
+world.vat.rebirth_to_merge,Rebirth {count} to merge,,Rebirth 3 to merge
+world.vat.up_to,Up to {rarity},,Up to Rare

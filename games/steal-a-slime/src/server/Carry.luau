@@ -40,6 +40,7 @@ local StealAlert = if Shared then require(Shared.StealAlert) else require("../sh
 local SlimeGuard = if script then require(script.Parent.SlimeGuard) else require("./SlimeGuard")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
+local WorldText = if script then require(script.Parent.WorldText) else require("./WorldText")
 
 type World = World.World
 type Session = World.Session
@@ -49,15 +50,20 @@ local Carry = {}
 -- Bringing home a wild slime of this tier or higher tells every player (Mythic and Secret).
 Carry.CATCH_ANNOUNCE_TIER = Config.SECRET_TIER - 1
 
--- Prompt ActionText for a slime as seen by a non-owner.
-function Carry.actionText(price: number?): string
+-- Prompt ActionText for a slime as seen by a non-owner, as a Localize message (WorldText).
+function Carry.actionMessage(price: number?): any
 	if price == nil then
-		return "Steal"
+		return WorldText.msg("world.prompt.steal")
 	end
 	if price <= 0 then
-		return "Grab"
+		return WorldText.msg("world.prompt.grab")
 	end
-	return `Buy ${Economy.formatNumber(price)}`
+	return WorldText.msg("world.prompt.buy_price", { price = `${Economy.formatNumber(price)}` })
+end
+
+-- The English of Carry.actionMessage.
+function Carry.actionText(price: number?): string
+	return WorldText.english(Carry.actionMessage(price))
 end
 
 -- Hold needed on a slime prompt: only a free grab of a wild slime is instant

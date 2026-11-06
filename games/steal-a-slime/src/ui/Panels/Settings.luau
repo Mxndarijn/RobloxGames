@@ -16,6 +16,7 @@ local UI = script.Parent.Parent
 local AudioLogic = require(UI.AudioLogic)
 local Icons = require(UI.Icons)
 local Layout = require(UI.Layout)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -53,23 +54,26 @@ Settings.STYLE = table.freeze({
 	holdW = 150,
 })
 
+-- Catalog keys of the card's own texts (Text.t when drawn).
 Settings.COPY = table.freeze({
-	on = "On",
-	off = "Off",
-	replay = "Replay tutorial",
-	replayHint = "Walk through the first steps",
-	replayButton = "Replay",
-	replayRunning = "Running",
-	version = "Game version",
-	reset = "Reset settings",
-	resetHint = "Your slimes and cash stay",
-	resetButton = "Hold to reset",
+	on = "menus.settings.on",
+	off = "menus.settings.off",
+	replay = "menus.settings.replay",
+	replayHint = "menus.settings.replay_hint",
+	replayButton = "menus.settings.replay_button",
+	replayRunning = "menus.settings.replay_running",
+	version = "menus.settings.version",
+	reset = "menus.settings.reset",
+	resetHint = "menus.settings.reset_hint",
+	resetButton = "menus.settings.reset_button",
 })
 
 -- The version row's text: the place version and the player's id, so a bug report says which build it was.
 function Settings.versionText(placeVersion: number?, userId: number?): (string, string)
-	local version = if type(placeVersion) == "number" and placeVersion > 0 then `v{placeVersion}` else "Studio"
-	return version, `Player ID {userId or 0}`
+	local version = if type(placeVersion) == "number" and placeVersion > 0
+		then `v{placeVersion}`
+		else Text.t("menus.settings.studio")
+	return version, Text.t("menus.settings.player_id", { id = userId or 0 })
 end
 
 local function isPress(input: InputObject): boolean
@@ -80,7 +84,7 @@ function Settings.new(parent: Instance, ctx: any)
 	local S = Settings.STYLE
 	local PlayerSettings = ctx.PlayerSettings
 	local controller = ctx.settings
-	local panel = Widgets.panel(parent, "SettingsPanel", "Settings", Icons.SETTINGS)
+	local panel = Widgets.panel(parent, "SettingsPanel", Text.t("menus.settings.title"), Icons.SETTINGS)
 	-- The tabs and the lists; its height (set once the rows are built) is what init.client measures
 	-- (Widgets.contentHeight) to size the card.
 	local content = create("Frame", {
@@ -144,6 +148,14 @@ function Settings.new(parent: Instance, ctx: any)
 		end
 	end
 
+	-- A setting's name and hint line in the player's language (PlayerSettings TABS entries).
+	local function entryName(entry: any): string
+		return Text.data("playerSettings", entry.id, "name", entry.name)
+	end
+	local function entryHint(entry: any): string?
+		return if entry.hint then Text.data("playerSettings", entry.id, "hint", entry.hint) else nil
+	end
+
 	local function control(props: { [string]: any }, color: Color3, onClick: () -> ()): any
 		local base = {
 			TextSize = S.btnSize,
@@ -158,14 +170,14 @@ function Settings.new(parent: Instance, ctx: any)
 
 	local function toggleRow(list: Instance, entry: any, order: number)
 		local frame = rowFrame(list, entry.id, order, S.rowH)
-		texts(frame, entry.icon, entry.name, entry.hint, S.rowPad + S.toggleW + S.btnGap)
+		texts(frame, entry.icon, entryName(entry), entryHint(entry), S.rowPad + S.toggleW + S.btnGap)
 		local button = control({ Name = "Toggle", Position = UDim2.new(1, -S.rowPad, 0.5, 0) }, Theme.Row, function()
 			controller.set(entry.id, not controller.get(entry.id))
 		end)
 		button.instance.Parent = frame
 		table.insert(refreshers, function()
 			local on = controller.get(entry.id) == true
-			button.setText(if on then Settings.COPY.on else Settings.COPY.off)
+			button.setText(Text.t(if on then Settings.COPY.on else Settings.COPY.off))
 			button.setColor(if on then Theme.Accent else Theme.Row)
 		end)
 	end
@@ -176,14 +188,16 @@ function Settings.new(parent: Instance, ctx: any)
 		local labels: { string } = entry.labels or choices
 		local width = #choices * S.choiceW + (#choices - 1) * S.btnGap
 		local frame = rowFrame(list, entry.id, order, S.rowH)
-		texts(frame, entry.icon, entry.name, entry.hint, S.rowPad + width + S.btnGap)
+		texts(frame, entry.icon, entryName(entry), entryHint(entry), S.rowPad + width + S.btnGap)
 		local buttons: { any } = {}
 		for i, choice in choices do
 			local right = S.rowPad + (#choices - i) * (S.choiceW + S.btnGap)
 			local button = control(
 				{
 					Name = `Choice_{choice}`,
-					Text = labels[i] or choice,
+					Text = if entry.labels and labels[i]
+						then Text.data("playerSettings", entry.id, `labels_{i}`, labels[i])
+						else choice,
 					Position = UDim2.new(1, -right, 0.5, 0),
 					Size = UDim2.fromOffset(S.choiceW, S.btnH),
 				},
@@ -205,7 +219,7 @@ function Settings.new(parent: Instance, ctx: any)
 
 	local function sliderRow(list: Instance, entry: any, order: number)
 		local frame = rowFrame(list, entry.id, order, S.sliderH)
-		texts(frame, entry.icon, entry.name, nil, S.rowPad + S.percentW)
+		texts(frame, entry.icon, entryName(entry), nil, S.rowPad + S.percentW)
 		-- The name sits on the top line of a slider row, the track under it.
 		local name = frame:FindFirstChild("Name") :: TextLabel
 		name.Position = UDim2.fromOffset(name.Position.X.Offset, S.nameY)
@@ -291,14 +305,14 @@ function Settings.new(parent: Instance, ctx: any)
 				"replayTutorial",
 				order,
 				"🎓",
-				Settings.COPY.replay,
-				Settings.COPY.replayHint,
+				Text.t(Settings.COPY.replay),
+				Text.t(Settings.COPY.replayHint),
 				S.actionW
 			)
 			replayButton = control(
 				{
 					Name = "Replay",
-					Text = Settings.COPY.replayButton,
+					Text = Text.t(Settings.COPY.replayButton),
 					Position = UDim2.new(1, -S.rowPad, 0.5, 0),
 					Size = UDim2.fromOffset(S.actionW, S.btnH),
 				},
@@ -312,7 +326,7 @@ function Settings.new(parent: Instance, ctx: any)
 			replayButton.instance.Parent = frame
 		elseif key == "me" then
 			local version, id = Settings.versionText(ctx.placeVersion, ctx.userId)
-			local frame = actionRow(list, "version", order, "📦", Settings.COPY.version, id, S.actionW)
+			local frame = actionRow(list, "version", order, "📦", Text.t(Settings.COPY.version), id, S.actionW)
 			Widgets.status({
 				Name = "Version",
 				Text = version,
@@ -322,12 +336,19 @@ function Settings.new(parent: Instance, ctx: any)
 				Size = UDim2.fromOffset(S.actionW, S.btnH),
 				Parent = frame,
 			})
-			local resetFrame =
-				actionRow(list, "reset", order + 1, "🔄", Settings.COPY.reset, Settings.COPY.resetHint, S.holdW)
+			local resetFrame = actionRow(
+				list,
+				"reset",
+				order + 1,
+				"🔄",
+				Text.t(Settings.COPY.reset),
+				Text.t(Settings.COPY.resetHint),
+				S.holdW
+			)
 			local reset = Widgets.holdButton(
 				{
 					Name = "Reset",
-					Text = Settings.COPY.resetButton,
+					Text = Text.t(Settings.COPY.resetButton),
 					TextSize = S.btnSize,
 					AnchorPoint = Vector2.new(1, 0.5),
 					Position = UDim2.new(1, -S.rowPad, 0.5, 0),
@@ -409,7 +430,7 @@ function Settings.new(parent: Instance, ctx: any)
 		local btn = Widgets.button(
 			{
 				Name = `Tab_{def.key}`,
-				Text = `{def.icon} {def.label}`,
+				Text = `{def.icon} {Text.data("playerSettings", def.key, "label", def.label)}`,
 				TextSize = S.tabSize,
 			},
 			Theme.Row,
@@ -417,6 +438,7 @@ function Settings.new(parent: Instance, ctx: any)
 				selectTab(def.key)
 			end
 		)
+		Widgets.fitText(btn.instance)
 		btn.instance.Parent = content
 		tabButtons[def.key] = btn
 	end
@@ -435,7 +457,9 @@ function Settings.new(parent: Instance, ctx: any)
 		tutorialRunning = type(state) == "table" and type(state.tutorialStepId) == "string"
 		if replayButton then
 			replayButton.setEnabled(not tutorialRunning)
-			replayButton.setText(if tutorialRunning then Settings.COPY.replayRunning else Settings.COPY.replayButton)
+			replayButton.setText(
+				Text.t(if tutorialRunning then Settings.COPY.replayRunning else Settings.COPY.replayButton)
+			)
 		end
 	end
 

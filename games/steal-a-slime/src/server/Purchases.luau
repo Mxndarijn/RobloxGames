@@ -50,6 +50,9 @@ local BossEvent = if script then require(script.Parent.BossEvent) else require("
 local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
+local WorldText = if script then require(script.Parent.WorldText) else require("./WorldText")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Localize = if Lib then require(Lib.locale.Localize) else require("../../../../shared/luau/src/locale/Localize")
 
 type World = World.World
 type Session = World.Session
@@ -276,32 +279,48 @@ local function seatName(seatId: string): string
 	return if seat then seat.name else seatId
 end
 
--- The player-facing name of a cosmetic product key.
-function Purchases.itemName(itemKey: string): string
+-- The player-facing name of a cosmetic product key as a Localize message: data names translated inside the phrase
+-- ("the Sparkle trail"). An unknown key comes back as itself.
+function Purchases.itemMessage(itemKey: string): Localize.Text
+	local m, data = WorldText.msg, WorldText.data
 	local def = Purchases.product(itemKey)
 	local grant = def and def.grant
 	if grant and grant.kind == "seat" then
-		return seatName(grant.seat)
+		local seat = PetSeats.get(grant.seat)
+		return if seat then data("petSeat", seat.id, "name", seat.name) else grant.seat
 	elseif grant and grant.kind == "trail" then
 		local trail = findDef(SHOP.trails, grant.trail)
-		return if trail then `the {trail.name} trail` else grant.trail
+		return if trail
+			then m("world.item.trail", { name = data("carryTrail", trail.id, "name", trail.name) })
+			else grant.trail
 	elseif grant and grant.kind == "batSkin" then
 		local skin = findDef(SHOP.batSkins, grant.skin)
 		local name = if skin then skin.name else grant.skin
-		return if string.find(name, "Bat", 1, true) then `the {name}` else `the {name} Bat`
+		local shown = if skin then data("batSkin", skin.id, "name", name) else name
+		return m(if string.find(name, "Bat", 1, true) then "world.item.the" else "world.item.bat", { name = shown })
 	elseif grant and grant.kind == "plotSkin" then
 		local skin = PlotSkins.get(grant.style)
-		return `the {if skin then skin.name else grant.style} base skin`
+		return m("world.item.base_skin", {
+			name = if skin then data("plotSkin", skin.id, "name", skin.name) else grant.style,
+		})
 	elseif grant and grant.kind == "plotBase" then
 		local base = PlotBases.get(grant.style)
-		return `the {if base then base.name else grant.style} base`
+		return m("world.item.base", {
+			name = if base then data("plotBase", base.id, "name", base.name) else grant.style,
+		})
 	elseif grant and STYLE_KINDS[grant.kind] then
 		local style = STYLE_KINDS[grant.kind]
 		local d = findDef(style.list or {}, grant.style)
-		local name = if d then d.name else grant.style
-		return if style.noun == "" then `the {name}` else `the {name} {style.noun}`
+		local kind = if grant.kind == "hat" then "slimeHat" else grant.kind
+		local name = if d then data(kind, d.id, "name", d.name) else grant.style
+		return m(if style.noun == "" then "world.item.the" else `world.item.{grant.kind}`, { name = name })
 	end
 	return itemKey
+end
+
+-- The English of Purchases.itemMessage (toasts, logs).
+function Purchases.itemName(itemKey: string): string
+	return WorldText.english(Purchases.itemMessage(itemKey))
 end
 
 -- Why `from` can't gift `itemKey` to `targetId` now; nil = they can.

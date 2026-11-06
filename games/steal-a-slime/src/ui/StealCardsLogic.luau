@@ -13,6 +13,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local NoticeCards = if Shared then require(Shared.NoticeCards) else require("../shared/NoticeCards")
+local Text = if script then require(script.Parent.Text) else require("./Text")
 
 local StealCardsLogic = {}
 
@@ -136,43 +137,43 @@ end
 -- The thieves' line: `first` and `second` are the first two names (rich-text safe), `count` how many there are.
 function StealCardsLogic.thievesText(first: string, second: string?, count: number): string
 	if count <= 1 then
-		return `{first} is stealing your slime!`
+		return Text.t("hud.steal.stealing", { name = first })
 	elseif count == 2 then
-		return `{first} and {second or "someone"} are stealing your slimes!`
+		return Text.t("hud.steal.stealing_two", { first = first, second = second or Text.t("hud.steal.someone") })
 	end
-	return `{first} and {count - 1} others are stealing your slimes!`
+	return Text.t("hud.steal.stealing_many", { first = first, others = count - 1 })
 end
 
 -- The card's title. `name` is the thief's display name (rich-text safe) for "stealing" / "stolen" / "home".
 function StealCardsLogic.title(card: Card, name: string): string
 	if card.kind == "stealing" then
-		return `{name} is stealing your slime!`
+		return Text.t("hud.steal.stealing", { name = name })
 	elseif card.kind == "stolen" then
-		return `{name} has stolen one of your slimes`
+		return Text.t("hud.steal.stolen", { name = name })
 	elseif card.kind == "bonked" then
-		return "You got bonked!"
+		return Text.t("hud.steal.bonked")
 	elseif card.kind == "home" then
-		return "Your slime is back home"
+		return Text.t("hud.steal.home")
 	end
-	return "This base is locked"
+	return Text.t("hud.steal.locked")
 end
 
 -- The small line under the title at `now`, nil for none.
 function StealCardsLogic.subtitle(card: Card, name: string, now: number): string?
 	if card.kind == "stealing" then
-		return "Chase them and hit them with your bat"
+		return Text.t("hud.steal.stealing_hint")
 	elseif card.kind == "stolen" then
-		return "Lock your base to keep the rest safe"
+		return Text.t("hud.steal.stolen_hint")
 	elseif card.kind == "bonked" then
-		return "The slime bounced home"
+		return Text.t("hud.steal.bonked_hint")
 	elseif card.kind == "home" then
-		return `It escaped from {name}`
+		return Text.t("hud.steal.home_hint", { name = name })
 	end
 	if card.opensAt == nil then
 		return nil
 	end
 	local left = math.max(math.ceil(card.opensAt - now), 0)
-	return string.format("Opens in %d:%02d", left // 60, left % 60)
+	return Text.t("hud.steal.opens_in", { time = string.format("%d:%02d", left // 60, left % 60) })
 end
 
 -- One line for the alarm strip on the boss card (Panels/BossMeter): during a boss the stack's cards fold into it.
@@ -180,10 +181,11 @@ end
 -- `nameOf` turns a UserId into a display name (plain text: the strip is not rich text).
 export type Strip = { kind: Kind, text: string, hint: string? }
 
+-- Strings keys of the strip's short hints.
 local STRIP_HINT: { [Kind]: string } = {
-	stealing = "Chase them",
-	stolen = "Lock your base",
-	bonked = "It bounced home",
+	stealing = "hud.steal.strip_chase",
+	stolen = "hud.steal.strip_lock",
+	bonked = "hud.steal.strip_bounced",
 }
 
 function StealCardsLogic.strip(memory: Memory, now: number, nameOf: (userId: number) -> string): Strip?
@@ -196,10 +198,11 @@ function StealCardsLogic.strip(memory: Memory, now: number, nameOf: (userId: num
 		local thieves = first.thieves or { first.thief :: number }
 		local second = if thieves[2] then nameOf(thieves[2]) else nil
 		local text = StealCardsLogic.thievesText(nameOf(thieves[1]), second, #thieves)
-		return { kind = "stealing", text = text, hint = STRIP_HINT.stealing }
+		return { kind = "stealing", text = text, hint = Text.t(STRIP_HINT.stealing) }
 	end
-	local who = if first.thief then nameOf(first.thief) else first.name or "someone"
-	local hint = STRIP_HINT[first.kind]
+	local who = if first.thief then nameOf(first.thief) else first.name or Text.t("hud.steal.someone")
+	local hintKey = STRIP_HINT[first.kind]
+	local hint = if hintKey then Text.t(hintKey) else nil
 	if first.kind == "locked" then
 		hint = StealCardsLogic.subtitle(first, who, now)
 	end
@@ -211,7 +214,7 @@ function StealCardsLogic.moreText(hidden: number): string?
 	if hidden <= 0 then
 		return nil
 	end
-	return `+{hidden} more`
+	return Text.t("hud.steal.more", { count = hidden })
 end
 
 return StealCardsLogic

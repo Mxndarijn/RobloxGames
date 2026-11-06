@@ -61,6 +61,7 @@ local PvpBlaster = require(script.PvpBlaster)
 local PvpFun = require(script.PvpFun)
 local PvpKnockback = require(script.PvpKnockback)
 local PvpTrap = require(script.PvpTrap)
+local RequestText = require(script.RequestText)
 local RitualView = require(script.RitualView)
 local SafeCall = require(ReplicatedStorage.Lib.core.SafeCall)
 local ServerContext = require(script.ServerContext)
@@ -279,7 +280,7 @@ local function refreshAfter(changed: boolean)
 	end
 end
 
-request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.RequestResult
+local function handleRequest(player: Player, action: any, ...: any): Types.RequestResult
 	Profiler.count(profiler, "Request")
 	local args = table.pack(...)
 	local ok, res, ran = pcall(Actions.handle, world, player.UserId, action, args, now(), ctx)
@@ -313,6 +314,12 @@ request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.
 		flushStates(t)
 	end)
 	return res
+end
+-- A refusal's reason goes out as a Localize message (RequestText), so each client shows it in its own language. The
+-- admin menu's replies stay as they are.
+request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.RequestResult
+	local res = handleRequest(player, action, ...)
+	return if action == "Admin" then res else RequestText.result(res)
 end
 
 -- Owner-only plot prompts (CONTRACT.md §8.5): LockPrompt, BuyPadPrompt, MergePrompt.

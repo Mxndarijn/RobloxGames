@@ -267,13 +267,19 @@ local function csvField(value: string): string
 	return value
 end
 
--- The catalog as a LocalizationTable CSV in key order: Key, Source, Context (empty: Roblox uses Context
--- for instance-path matching), Example (the source filled with the entry's example args).
+-- The catalog as a LocalizationTable CSV in key order: Key, Source, Context, Example (the source filled with the
+-- entry's example args). Roblox allows one entry per Source + Context, so an English text used under several
+-- keys gets its key as Context; every other Context stays empty (Roblox uses it to match instance paths).
 function Localize.csv(catalog: Catalog): string
+	local uses: { [string]: number } = {}
+	for _, entry in catalog.entries do
+		uses[entry.source] = (uses[entry.source] or 0) + 1
+	end
 	local lines = { "Key,Source,Context,Example" }
 	for _, entry in catalog.entries do
 		local example = if entry.example then Localize.format(entry.source, entry.example) else ""
-		table.insert(lines, `{csvField(entry.key)},{csvField(entry.source)},,{csvField(example)}`)
+		local context = if uses[entry.source] > 1 then entry.key else ""
+		table.insert(lines, `{csvField(entry.key)},{csvField(entry.source)},{csvField(context)},{csvField(example)}`)
 	end
 	return table.concat(lines, "\n") .. "\n"
 end

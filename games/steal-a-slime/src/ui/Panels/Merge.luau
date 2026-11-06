@@ -23,6 +23,7 @@ local ExclusiveShopView = require(UI.ExclusiveShopView)
 local Format = require(UI.Format)
 local Layout = require(UI.Layout)
 local SlimePreview = require(UI.SlimePreview)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -106,14 +107,36 @@ function Merge.brewText(seconds: number): string
 	return if m == 0 then `{h}h` else `{h}h {m}m`
 end
 
--- "a Rare", "an Epic".
-function Merge.withArticle(word: string): string
-	return if string.match(string.lower(word), "^[aeiou]") then `an {word}` else `a {word}`
+-- A rarity's name in the player's language (`english`: the Config.RARITIES name).
+local function rarityText(english: string): string
+	return Text.data("rarity", english, "name", english)
 end
 
--- "20% chance of an Epic".
+-- `key` for an English rarity name that takes "a" ("Rare"), `key .. "_an"` for one that takes "an" ("Epic"):
+-- the pattern carries the article, so a translator writes the whole sentence.
+local function articleKey(key: string, english: string): string
+	return if string.match(string.lower(english), "^[aeiou]") then key .. "_an" else key
+end
+
+-- "20% chance of an Epic" (`rarity`: the English rarity name).
 function Merge.jumpText(chance: number, rarity: string): string
-	return `{math.floor(chance * 100 + 0.5)}% chance of {Merge.withArticle(rarity)}`
+	return Text.t(
+		articleKey("collection.merge.jump", rarity),
+		{ percent = `{math.floor(chance * 100 + 0.5)}%`, rarity = rarityText(rarity) }
+	)
+end
+
+-- The chip, result line and well for a load of `tier` the rank can't merge yet: "Rebirth 3", "Epic merges open
+-- at Rebirth 3", "Rebirth 3 to unlock" (MergeGate.rebirthsFor; "Locked" when no rank opens it).
+local function gateTexts(tier: number, rarity: string): (string, string, string)
+	local need = MergeGate.rebirthsFor(tier)
+	if need == nil then
+		local locked = Text.t("collection.merge.locked")
+		return locked, Text.t("collection.merge.gate_line_locked", { rarity = rarityText(rarity) }), locked
+	end
+	return Text.t("collection.merge.gate_chip", { need = need }),
+		Text.t("collection.merge.gate_line", { rarity = rarityText(rarity), need = need }),
+		Text.t("collection.merge.gate_well", { need = need })
 end
 
 local function findSlime(state: any, id: string): any?
@@ -151,7 +174,7 @@ function Merge.describe(state: any, now: number, rarityOf: (number) -> any, name
 				id = slime.id,
 				slime = slime,
 				name = nameOf(slime),
-				rarity = rarity and rarity.name,
+				rarity = if rarity then rarityText(rarity.name) else nil,
 				color = rarity and rarity.color,
 				canRemove = not brewing,
 				locked = brewing,
@@ -160,7 +183,12 @@ function Merge.describe(state: any, now: number, rarityOf: (number) -> any, name
 			slots[i] = {
 				id = nil,
 				slime = nil,
-				name = if rarity then `Move {Merge.withArticle(rarity.name)} here` else "Move a slime here",
+				name = if rarity
+					then Text.t(
+						articleKey("collection.merge.move_here", rarity.name),
+						{ rarity = rarityText(rarity.name) }
+					)
+					else Text.t("collection.merge.move_any"),
 				rarity = nil,
 				color = nil,
 				canRemove = false,
@@ -173,9 +201,14 @@ function Merge.describe(state: any, now: number, rarityOf: (number) -> any, name
 	local missing = SLOTS - #slimes
 	local view: View = {
 		tier = tier,
-		rarityName = rarity and rarity.name,
-		countText = if ready then "Ready" elseif brewing then "Brewing" else `{#slimes}/{SLOTS} in`,
-		brewText = if seconds and not brewing then `Brew time {Merge.brewText(seconds)}` else nil,
+		rarityName = if rarity then rarityText(rarity.name) else nil,
+		countText = if ready
+			then Text.t("collection.merge.ready")
+			elseif brewing then Text.t("collection.merge.brewing")
+			else Text.t("collection.merge.count_in", { count = #slimes, slots = SLOTS }),
+		brewText = if seconds and not brewing
+			then Text.t("collection.merge.brew_time", { time = Merge.brewText(seconds) })
+			else nil,
 		slots = slots,
 		preview = if #slimes > 0 then MergePreview.forSlimes(slimes, state) else nil,
 		reason = "",
@@ -185,33 +218,39 @@ function Merge.describe(state: any, now: number, rarityOf: (number) -> any, name
 		progress = nil,
 	}
 	if ready then
-		view.reason = "Done. Collect puts it on a pad."
-		view.main = { kind = "collect", text = "Collect" }
+		view.reason = Text.t("collection.merge.done_reason")
+		view.main = { kind = "collect", text = Text.t("collection.merge.collect") }
 	elseif brewing then
 		local startedAt = if type(vat.startedAt) == "number" then vat.startedAt else endsAt
 		view.timeLeft = math.max(0, (endsAt :: number) - now)
 		view.progress = Format.progress(startedAt :: number, endsAt :: number, now)
-		view.reason = "Safe while it brews: no stealing, and no income until you collect."
-		view.main = { kind = "cancel", text = "Hold to cancel" }
+		view.reason = Text.t("collection.merge.brewing_reason")
+		view.main = { kind = "cancel", text = Text.t("collection.merge.hold_cancel") }
 	elseif tier and not MergeGate.allows(tier, rebirths) then
 		local need = MergeGate.rebirthsFor(tier)
 		local more = if need then need - rebirths else 0
-		view.gate = { chip = if need then `Rebirth {need}` else "Locked", line = MergeGate.opensText(tier) }
-		view.main = { kind = "well", text = MergeGate.lockText(tier) }
+		local chip, line, lock = gateTexts(tier, (rarity :: any).name)
+		view.gate = { chip = chip, line = line }
+		view.main = { kind = "well", text = lock }
 		view.reason = if missing > 0
-			then `You can fill the vat now and start it once you reach Rebirth {need or "?"}.`
-			else `Rebirth {more} more time{if more == 1 then "" else "s"} to merge {(rarity :: any).name}s. Until you start, these still earn on their pads.`
+			then Text.t("collection.merge.gate_fill", { need = need or "?" })
+			else Text.count("collection.merge.gate_full", more, { rarity = rarityText((rarity :: any).name) })
 	elseif #slimes == 0 then
-		view.reason = "Use Move on one of your pad slimes and place it in the vat."
-		view.main = { kind = "well", text = "Add 3 slimes of one rarity" }
+		view.reason = Text.t("collection.merge.empty_reason")
+		view.main = { kind = "well", text = Text.t("collection.merge.empty_well") }
 	elseif missing > 0 then
-		view.reason = "Until you start, these still earn and can be stolen from their pads."
-		view.main = { kind = "well", text = `Add {missing} more {(rarity :: any).name}` }
+		view.reason = Text.t("collection.merge.partial_reason")
+		view.main = {
+			kind = "well",
+			text = Text.count("collection.merge.add_more", missing, { rarity = rarityText((rarity :: any).name) }),
+		}
 	else
-		view.reason = "You can take slimes out until you start."
+		view.reason = Text.t("collection.merge.full_reason")
 		view.main = {
 			kind = "start",
-			text = if seconds then `Start merge · {Merge.brewText(seconds)}` else "Start merge",
+			text = if seconds
+				then Text.t("collection.merge.start_time", { time = Merge.brewText(seconds) })
+				else Text.t("collection.merge.start"),
 		}
 	end
 	return view
@@ -224,7 +263,7 @@ end
 function Merge.new(parent: Instance, ctx: any)
 	local Config = ctx.Config
 	local Genome = ctx.Genome
-	local panel = Widgets.panel(parent, "MergePanel", "Merge vat", "🧪")
+	local panel = Widgets.panel(parent, "MergePanel", Text.t("collection.merge.title"), "🧪")
 	local body = panel.body
 	-- Everything above the main button; place() sets its canvas.
 	local content = Widgets.scroll({
@@ -413,16 +452,18 @@ function Merge.new(parent: Instance, ctx: any)
 		Size = UDim2.fromScale(1, 1),
 		Parent = orb,
 	})
-	local resultTitle = Widgets.label({ Name = "Title", Font = Theme.Font, TextSize = SIZE.textTitle, Parent = result })
+	local resultTitle = Widgets.fitText(
+		Widgets.label({ Name = "Title", Font = Theme.Font, TextSize = SIZE.textTitle, Parent = result })
+	)
 	local resultChip = Widgets.chip({ Name = "RarityPill", Parent = result })
-	local resultOdds = Widgets.label({
+	local resultOdds = Widgets.fitText(Widgets.label({
 		Name = "Odds",
 		TextSize = SIZE.textSmall,
 		TextColor3 = Theme.Muted,
 		TextWrapped = true,
 		TextTruncate = Enum.TextTruncate.None,
 		Parent = result,
-	})
+	}))
 
 	---------------------------------------------------------------- reason, timer, button
 	local reason = Widgets.label({
@@ -438,7 +479,7 @@ function Merge.new(parent: Instance, ctx: any)
 	local timer = Widgets.rowFrame({ Name = "Timer", Visible = false, Parent = content })
 	Widgets.label({
 		Name = "Label",
-		Text = "Brewing",
+		Text = Text.t("collection.merge.brewing"),
 		Font = Theme.Font,
 		TextSize = SIZE.text,
 		Position = UDim2.fromOffset(12, 4),
@@ -485,14 +526,14 @@ function Merge.new(parent: Instance, ctx: any)
 
 	local well = Widgets.status({ Name = "Missing", Text = "", TextSize = SIZE.textTitle, Parent = body })
 	local startBtn = Widgets.button(
-		{ Name = "StartButton", Text = "Start merge", TextSize = SIZE.textTitle, Parent = body },
+		{ Name = "StartButton", Text = Text.t("collection.merge.start"), TextSize = SIZE.textTitle, Parent = body },
 		Theme.Accent,
 		function()
 			ctx.send("VatStart")
 		end
 	)
 	local collectBtn = Widgets.button(
-		{ Name = "CollectButton", Text = "Collect", TextSize = SIZE.textTitle, Parent = body },
+		{ Name = "CollectButton", Text = Text.t("collection.merge.collect"), TextSize = SIZE.textTitle, Parent = body },
 		Theme.Gold,
 		function()
 			local known = {}
@@ -504,7 +545,12 @@ function Merge.new(parent: Instance, ctx: any)
 		end
 	)
 	local cancelBtn = Widgets.holdButton(
-		{ Name = "CancelButton", Text = "Hold to cancel", TextSize = SIZE.textTitle, Parent = body },
+		{
+			Name = "CancelButton",
+			Text = Text.t("collection.merge.hold_cancel"),
+			TextSize = SIZE.textTitle,
+			Parent = body,
+		},
 		Theme.Bad,
 		function()
 			ctx.send("VatCancel")
@@ -596,10 +642,10 @@ function Merge.new(parent: Instance, ctx: any)
 		local v = Merge.describe(state, now, rarityOf, slimeName)
 		view = v
 		rarityChip.Visible = v.rarityName ~= nil
-		rarityChip.Text = if v.rarityName then `{v.rarityName} vat` else ""
+		rarityChip.Text = if v.rarityName then Text.t("collection.merge.vat_chip", { rarity = v.rarityName }) else ""
 		rarityChip.TextColor3 = if v.tier then rgb(rarityOf(v.tier).color) else Theme.Text
 		countChip.Text = v.countText
-		countChip.TextColor3 = if v.countText == "Ready" then Theme.Gold else Theme.Text
+		countChip.TextColor3 = if v.main.kind == "collect" then Theme.Gold else Theme.Text
 		timeChip.Visible = v.brewText ~= nil
 		timeChip.Text = v.brewText or ""
 		gateChip.Visible = v.gate ~= nil
@@ -624,7 +670,7 @@ function Merge.new(parent: Instance, ctx: any)
 		if r and os.clock() < r.untilAt then
 			resultTitle.Text = r.title
 			resultChip.Visible = true
-			resultChip.Text = Genome.rarity(r.tier).name
+			resultChip.Text = rarityText(Genome.rarity(r.tier).name)
 			resultChip.TextColor3 = rgb(rarityOf(r.tier).color)
 			resultOdds.Text = r.sub
 			resultOdds.TextColor3 = Theme.Muted
@@ -639,24 +685,25 @@ function Merge.new(parent: Instance, ctx: any)
 			orbRing.Color = if v.gate then Theme.Warn else Theme.Gold
 			resultOdds.TextColor3 = if v.gate then Theme.Warn else Theme.Muted
 			if p then
-				resultTitle.Text = p.title
+				resultTitle.Text = if p.kind == "recipe" then p.title else Text.t("collection.merge.random_slime")
 				resultChip.Visible = true
-				resultChip.Text = p.rarity
+				resultChip.Text = rarityText(p.rarity)
 				resultChip.TextColor3 = rgb(p.color)
 				resultOdds.Text = if v.gate
 					then v.gate.line
-					elseif p.kind == "recipe" then "Always this slime"
+					elseif p.kind == "recipe" then Text.t("collection.merge.always")
 					elseif p.jumpRarity then Merge.jumpText(p.jumpChance, p.jumpRarity)
-					elseif
-						p.jumpOpensAt
-					then `No jump: {Genome.rarity(p.tier + 1).name} opens at Rebirth {p.jumpOpensAt}`
-					else "No jump past this rarity"
+					elseif p.jumpOpensAt then Text.t(
+						"collection.merge.no_jump_opens",
+						{ rarity = rarityText(Genome.rarity(p.tier + 1).name), need = p.jumpOpensAt }
+					)
+					else Text.t("collection.merge.no_jump")
 				orbMark.Visible = v.gate ~= nil or p.kind ~= "recipe"
 				orbMark.Text = if v.gate then "🔒" else "?"
 			else
-				resultTitle.Text = "Three of one rarity"
+				resultTitle.Text = Text.t("collection.merge.three_title")
 				resultChip.Visible = false
-				resultOdds.Text = "make one rarer slime"
+				resultOdds.Text = Text.t("collection.merge.three_line")
 				orbMark.Visible = true
 			end
 		end
@@ -665,7 +712,7 @@ function Merge.new(parent: Instance, ctx: any)
 		local wasTimer = timer.Visible
 		timer.Visible = v.timeLeft ~= nil
 		if v.timeLeft then
-			timeLeft.Text = `{Format.formatDuration(v.timeLeft)} left`
+			timeLeft.Text = Text.t("collection.merge.time_left", { time = Format.formatDuration(v.timeLeft) })
 			setBar(v.progress or 0)
 		end
 		local q =
@@ -702,7 +749,9 @@ function Merge.new(parent: Instance, ctx: any)
 				local slime = v.slime
 				reveal = {
 					title = slimeName(slime),
-					sub = if type(slime.pad) == "number" then `On pad {slime.pad}` else "Fresh from the vat",
+					sub = if type(slime.pad) == "number"
+						then Text.t("collection.merge.on_pad", { pad = slime.pad })
+						else Text.t("collection.merge.fresh"),
 					slime = slime,
 					tier = slime.tier,
 					untilAt = os.clock() + SIZE.revealSeconds,

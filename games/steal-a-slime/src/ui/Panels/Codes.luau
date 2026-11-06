@@ -13,6 +13,7 @@ local Format = require(UI.Format)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
+local Text = require(UI.Text)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -31,21 +32,23 @@ Codes.ROWS = table.freeze({
 Codes.CONTENT_H = 190 -- note.y + note.h
 Codes.BOOST_ICON = 22 -- potion icon at the left end of the boost chip
 Codes.CHIP_PAD = 10 -- Widgets.chip's side padding
-Codes.NO_BOOST = "No boost active"
-Codes.NOTE = "Each code works once and gives cash or a boost."
+Codes.NO_BOOST = "shop.codes.no_boost" -- Strings keys
+Codes.NOTE = "shop.codes.note"
 Codes.ERROR_SHIFT = 26 -- how far the rows under the box move down while the error line shows
 
--- The pink line under the box for a refused code: the server's reason as a sentence.
+-- The pink line under the box for a refused code: the server's reason (a string or a Localize message) as a
+-- sentence in the player's language. Text that ends in a Latin letter or digit gets its full stop.
 function Codes.errorText(result: any): string
-	local message = if type(result) == "table" and type(result.message) == "string" then result.message else ""
-	if message == "" then
-		return "That code doesn't work."
+	local message = if type(result) == "table" then result.message else nil
+	local text = if type(message) == "table" then Text.text(message) else message
+	if type(text) ~= "string" or text == "" then
+		return Text.t("shop.codes.refused")
 	end
-	return if string.match(message, "[%.!?]$") then message else message .. "."
+	return if string.match(text, "[%w]$") then text .. "." else text
 end
 
 function Codes.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "CodesPanel", "Codes", "🎁")
+	local panel = Widgets.panel(parent, "CodesPanel", Text.t("shop.codes.title"), "🎁")
 	local rows = Codes.ROWS
 	-- Scrolls only when the card is shorter than the content (landscape
 	-- phones); a fixed canvas, nothing in it moves. The scroll area also reaches
@@ -66,7 +69,7 @@ function Codes.new(parent: Instance, ctx: any)
 	local box = create("TextBox", {
 		Name = "CodeBox",
 		Text = "",
-		PlaceholderText = "Type a code",
+		PlaceholderText = Text.t("shop.codes.placeholder"),
 		PlaceholderColor3 = Theme.Muted,
 		ClearTextOnFocus = false,
 		Font = Theme.Font,
@@ -150,7 +153,7 @@ function Codes.new(parent: Instance, ctx: any)
 
 	local redeem = Widgets.button({
 		Name = "RedeemButton",
-		Text = "Redeem",
+		Text = Text.t("shop.codes.redeem"),
 		TextSize = rows.button.size,
 		Position = UDim2.fromOffset(0, rows.button.y),
 		Size = UDim2.new(1, 0, 0, rows.button.h),
@@ -159,7 +162,7 @@ function Codes.new(parent: Instance, ctx: any)
 
 	local boost = Widgets.chip({
 		Name = "Boost",
-		Text = Codes.NO_BOOST,
+		Text = Text.t(Codes.NO_BOOST),
 		TextSize = rows.boost.size,
 		TextColor3 = Theme.Muted,
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -181,7 +184,7 @@ function Codes.new(parent: Instance, ctx: any)
 
 	local note = Widgets.label({
 		Name = "Note",
-		Text = Codes.NOTE,
+		Text = Text.t(Codes.NOTE),
 		TextSize = rows.note.size,
 		TextColor3 = Theme.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -204,9 +207,12 @@ function Codes.new(parent: Instance, ctx: any)
 		local left = if info and info.boostMult > 1 then Format.remainingSeconds(info.boostEndsAt, now) else 0
 		local active = left > 0
 		if active then
-			boost.Text = `{Format.formatMultiplier(info.boostMult)} income · {Format.formatDuration(left)} left`
+			boost.Text = Text.t("shop.codes.boost", {
+				mult = Format.formatMultiplier(info.boostMult),
+				time = Format.formatDuration(left),
+			})
 		else
-			boost.Text = Codes.NO_BOOST
+			boost.Text = Text.t(Codes.NO_BOOST)
 		end
 		boost.TextColor3 = if active then Theme.Gold else Theme.Muted
 		boostIcon.instance.Visible = active
