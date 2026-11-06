@@ -41,19 +41,23 @@
   .no { color: var(--warn); border-color: var(--warn); }
   .warn { background: var(--warn-bg); border: 1px solid var(--warn); border-radius: 12px; padding: 12px 16px; }
   ul { padding-left: 20px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+  figure { margin: 0; } figcaption { color: var(--muted); font-size: 14px; margin-top: 4px; }
   img { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); }
   .scroll { overflow-x: auto; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Store-page video: draft 1</h1>
+  <h1>Store-page video: draft 2</h1>
   <p class="lead">Steal a Slime gameplay video for Creator Hub → Game details. 17.9 s, 1920×1080, 30 fps, no audio. Not uploaded: it needs your pick and OK first.</p>
 
   <div class="card">
     <div class="tabs" role="group" aria-label="Version">
-      <button type="button" data-v="a" aria-pressed="true">A · with captions</button>
-      <button type="button" data-v="b" aria-pressed="false">B · no captions</button>
+      <button type="button" data-v="a" aria-pressed="true">A · captions</button>
+      <button type="button" data-v="b" aria-pressed="false">B · captions + drips + sparkles</button>
+      <button type="button" data-v="c" aria-pressed="false">C · no captions</button>
     </div>
     <video id="vid" controls playsinline muted loop preload="metadata">
       <source src="steal-a-slime-store-video-draft.mp4" type="video/mp4">
@@ -64,8 +68,9 @@
 
   <h2>Pick one</h2>
   <ul>
-    <li><b>A</b>: captions (≥ 84 px) for viewers who watch muted, and a "STEAL A SLIME" title on the last shot.</li>
-    <li><b>B</b>: the same footage, clean.</li>
+    <li><b>A</b>: captions in the thumbnail style (two-tone gradient, thick outline, pop-in), for viewers who watch muted, and a "STEAL A SLIME!" title on the last shot.</li>
+    <li><b>B</b>: A plus the thumbnails' slime-drip border on top and a few twinkling sparkles. The sparkles stay at fixed spots, so on moving shots they don't follow the slime.</li>
+    <li><b>C</b>: the same footage, clean.</li>
     <li>Or ask for changes: a shot to drop, swap or add (see "Not in this cut" below), other caption words, a different avatar as the thief.</li>
   </ul>
 
@@ -74,20 +79,30 @@
     <table>
       <thead><tr><th>Time</th><th>Planned beat</th><th>In this cut</th><th>Caption</th></tr></thead>
       <tbody>
-        <tr><td class="t">0.0–3.6 s</td><td>Hook: sneak into another base, grab a rare slime</td><td><span class="tag ok">yes</span> Real steal of a neighbour's Rainbow Celestial, run out with it overhead</td><td>STEAL rare slimes</td></tr>
-        <tr><td class="t">3.6–6.5 s</td><td>Catch a wild slime</td><td><span class="tag ok">yes</span> Grab a wild Legendary on the lane by the fountain</td><td>Catch wild slimes</td></tr>
+        <tr><td class="t">0.0–3.6 s</td><td>Hook: sneak into another base, grab a rare slime</td><td><span class="tag ok">yes</span> Real steal of a neighbour's Rainbow Celestial, run out with it overhead</td><td>STEAL / RARE SLIMES!</td></tr>
+        <tr><td class="t">3.6–6.5 s</td><td>Catch a wild slime</td><td><span class="tag ok">yes</span> Grab a wild Legendary on the lane by the fountain</td><td>CATCH / WILD SLIMES!</td></tr>
         <tr><td class="t">–</td><td>It lands in your base and earns cash</td><td><span class="tag no">dropped</span> The game deposits at the base edge before the camera saw it; earning shows as +$/s labels in the next shot</td><td>–</td></tr>
-        <tr><td class="t">6.5–10.1 s</td><td>Rare slimes, Mythic to Divine, Gold/Diamond/Rainbow shines</td><td><span class="tag ok">yes</span> Orbit past Rainbow Celestial, Gold Secret, Divine "Goo God" (+$215K/s), Diamond Celestial, Gold Divine</td><td>Collect Divine and Rainbow slimes</td></tr>
-        <tr><td class="t">10.1–13.7 s</td><td>Merge vat brews a hybrid</td><td><span class="tag ok">yes</span> Three Mythics finish brewing, the result pops onto the pad (small on screen)</td><td>Merge for rarer slimes</td></tr>
+        <tr><td class="t">6.5–10.1 s</td><td>Rare slimes, Mythic to Divine, Gold/Diamond/Rainbow shines</td><td><span class="tag ok">yes</span> Orbit past Rainbow Celestial, Gold Secret, Divine "Goo God" (+$215K/s), Diamond Celestial, Gold Divine</td><td>SHINY / DIVINE SLIMES!</td></tr>
+        <tr><td class="t">10.1–13.7 s</td><td>Merge vat brews a hybrid</td><td><span class="tag ok">yes</span> Three Mythics finish brewing, the result pops onto the pad (small on screen)</td><td>MERGE 3 / = RARER!</td></tr>
         <tr><td class="t">–</td><td>PvP bat bonk sends a stolen slime home</td><td><span class="tag no">not shot</span> Needs a second real player; a hidden Studio can't add one, and I did not want a faked puppet</td><td>–</td></tr>
         <tr><td class="t">–</td><td>Rebirth, Top Earners podium or boss</td><td><span class="tag no">not shot</span> Ran out of time; the boss can be staged with the same tools</td><td>–</td></tr>
-        <tr><td class="t">13.7–17.9 s</td><td>End shot of the whole map with bases</td><td><span class="tag ok">yes</span> Crane up from the fountain over all eight jar bases</td><td>STEAL A SLIME</td></tr>
+        <tr><td class="t">13.7–17.9 s</td><td>End shot of the whole map with bases</td><td><span class="tag ok">yes</span> Crane up from the fountain over all eight jar bases</td><td>STEAL / A SLIME!</td></tr>
       </tbody>
     </table>
   </div>
 
+  <h2>Caption style next to a thumbnail</h2>
+  <div class="pair">
+    <figure><img src="reference-thumbnail.jpg" alt="The game's STEAL A SLIME thumbnail: two-tone gradient caption, slime-drip border, sparkles"><figcaption>Thumbnail (reference)</figcaption></figure>
+    <figure><img src="caption-compare.jpg" alt="A frame of version B: the steal shot with the STEAL RARE SLIMES caption, drip border and sparkles"><figcaption>Video, version B (font: Lilita One)</figcaption></figure>
+  </div>
+
   <h2>Key frames</h2>
-  <img src="contact-sheet.jpg" alt="Twelve frames from the captioned cut: the steal, the wild catch, the rare slimes, the merge vat and the map crane">
+  <div class="tabs" role="group" aria-label="Key frames">
+    <button type="button" data-s="contact-sheet.jpg" aria-pressed="true">A</button>
+    <button type="button" data-s="contact-sheet-deco.jpg" aria-pressed="false">B</button>
+  </div>
+  <img id="sheet" src="contact-sheet.jpg" alt="Twelve frames from the cut: the steal, the wild catch, the rare slimes, the merge vat and the map crane">
 
   <h2>Good to know</h2>
   <div class="warn">
@@ -100,21 +115,30 @@
   </div>
 </main>
 <script>
-  const files = { a: "steal-a-slime-store-video-draft.mp4", b: "steal-a-slime-store-video-draft-nocaptions.mp4" };
+  const files = {
+    a: ["steal-a-slime-store-video-draft.mp4", "preview-720p.mp4"],
+    b: ["steal-a-slime-store-video-draft-deco.mp4", "preview-720p-deco.mp4"],
+    c: ["steal-a-slime-store-video-draft-nocaptions.mp4"],
+  };
   const vid = document.getElementById("vid");
   const meta = document.getElementById("vmeta");
-  document.querySelectorAll(".tabs button").forEach((btn) => {
+  document.querySelectorAll(".tabs button[data-v]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
-      const v = btn.dataset.v;
+      document.querySelectorAll(".tabs button[data-v]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
       vid.innerHTML = "";
-      const s1 = document.createElement("source"); s1.src = files[v]; s1.type = "video/mp4"; vid.appendChild(s1);
-      if (v === "a") { const s2 = document.createElement("source"); s2.src = "preview-720p.mp4"; s2.type = "video/mp4"; vid.appendChild(s2); }
+      for (const f of files[btn.dataset.v]) { const s = document.createElement("source"); s.src = f; s.type = "video/mp4"; vid.appendChild(s); }
+      meta.textContent = "Plays the full 1080p file when it is next to this page, else the 720p preview from git.";
       vid.load();
       vid.play().catch(() => {});
     });
   });
-  vid.addEventListener("error", () => { meta.textContent = "Version B is only in the full-quality file on the PC that rendered it (not in git)."; }, true);
+  vid.addEventListener("error", () => { meta.textContent = "Version C is only in the full-quality file on the PC that rendered it (not in git)."; }, true);
+  document.querySelectorAll(".tabs button[data-s]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tabs button[data-s]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+      document.getElementById("sheet").src = btn.dataset.s;
+    });
+  });
 </script>
 </body>
 </html>
