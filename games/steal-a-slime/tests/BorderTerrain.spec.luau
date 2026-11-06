@@ -293,6 +293,18 @@ describe("BorderTerrain hills", function()
 		expect(grassHigh).toBe(0)
 		expect(lows >= 100 and rockLow <= lows * 0.2).toBe(true)
 	end)
+	it("keeps bare rock off the low land, so the hills read green from above", function()
+		local grid = BorderTerrain.sample(field, 8)
+		local rockHigh = 0
+		for i, m in grid.materials do
+			local h = grid.heights[i]
+			if m == "Rock" or m == "Slate" then
+				expect(h >= BorderTerrain.ROCK_MIN_HEIGHT).toBe(true)
+				rockHigh += 1
+			end
+		end
+		expect(rockHigh > 0).toBe(true) -- the mountains keep their rock
+	end)
 	it("closes the horizon: every bearing has a crest, none the same height", function()
 		local crests = {}
 		for a = 0, 359, 3 do
