@@ -21,8 +21,8 @@ GAME_DIR="$(cd "$CHECKOUT/${GAME_SUBDIR:-games/steal-a-slime}" && pwd)" || exit 
 # sha older than tools/pipeline can still be tested.
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-UNIVERSE_ID="${UNIVERSE_ID:-10770917350}"
-PLACE_ID="${PLACE_ID:-135787188192378}"
+UNIVERSE_ID="${UNIVERSE_ID:-10774962286}"
+PLACE_ID="${PLACE_ID:-105898249206841}"
 STATUS_DIR="${STATUS_DIR:-/workspace/roblox/pipeline/status}"
 STUDIO_REPORTS="${STUDIO_REPORTS:-/workspace/roblox/pipeline/studio-reports}"
 AUTO_PUBLISH="${AUTO_PUBLISH:-0}" # 1 = publish.sh may publish (see docs/release-pipeline.md)

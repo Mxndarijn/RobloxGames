@@ -1,12 +1,11 @@
-"""Create the Exclusive Shop Game Passes for Steal a Slime (universe 10770917350), OFF SALE, once each.
+"""Create the Exclusive Shop Game Passes for Steal a Slime (apikey.UNIVERSE), OFF SALE, once each.
 
 Ids go to created_ids.json next to this script (key -> id); a key already there is skipped. The key is never printed.
 """
 import json, os, sys, time, requests
 sys.path.insert(0, os.path.dirname(__file__))
-from apikey import key
+from apikey import key, UNIVERSE as U
 
-U = "10770917350"
 OUT = os.path.join(os.path.dirname(__file__), "created_ids.json")
 PASSES = [
     ("VIP", "VIP", "A gold VIP tag over your name and in chat, +10% income, and one free Luck Potion for the whole server every day.", 599),

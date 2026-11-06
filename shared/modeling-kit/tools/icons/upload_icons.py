@@ -21,7 +21,7 @@ import upload as U  # noqa: E402
 
 ICONS = os.path.join(KIT, "out", "icons")
 RECORD = os.path.join(KIT, "icons_uploaded.json")
-UNIVERSE, PLACE = "10770917350", "135787188192378"  # Luau Execution target (probe_meshids.py)
+UNIVERSE, PLACE = "10774962286", "105898249206841"  # Luau Execution target (probe_meshids.py)
 
 
 def sha_of(path):

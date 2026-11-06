@@ -1,0 +1,1207 @@
+[
+ {
+  "key": "AutoCollect",
+  "kind": "pass",
+  "id": 2060807163,
+  "name": "Auto Collect",
+  "robux": 299,
+  "icon": "Store_AutoCollect",
+  "gift": false
+ },
+ {
+  "key": "FastBrew",
+  "kind": "pass",
+  "id": 2061832467,
+  "name": "Fast Brew",
+  "robux": 249,
+  "icon": "Store_FastBrew",
+  "gift": false
+ },
+ {
+  "key": "Income2x",
+  "kind": "pass",
+  "id": 2060651077,
+  "name": "x2 Income",
+  "robux": 449,
+  "icon": "Store_Income2x",
+  "gift": false
+ },
+ {
+  "key": "LuckyCharmPlus",
+  "kind": "pass",
+  "id": 2061094586,
+  "name": "Lucky Charm+",
+  "robux": 249,
+  "icon": "Store_LuckyCharmPlus",
+  "gift": false
+ },
+ {
+  "key": "Offline2x",
+  "kind": "pass",
+  "id": 2057351938,
+  "name": "x2 Offline Cash",
+  "robux": 199,
+  "icon": "Store_Offline2x",
+  "gift": false
+ },
+ {
+  "key": "ThiefRadar",
+  "kind": "pass",
+  "id": 2058767855,
+  "name": "Thief Radar",
+  "robux": 149,
+  "icon": "Store_ThiefRadar",
+  "gift": false
+ },
+ {
+  "key": "VIP",
+  "kind": "pass",
+  "id": 2057345943,
+  "name": "VIP",
+  "robux": 599,
+  "icon": "Store_VIP",
+  "gift": false
+ },
+ {
+  "key": "WarmNest",
+  "kind": "pass",
+  "id": 2061664509,
+  "name": "Warm Nest",
+  "robux": 129,
+  "icon": "Store_WarmNest",
+  "gift": false
+ },
+ {
+  "key": "Base_carousel",
+  "kind": "product",
+  "id": 3723566739,
+  "name": "Carousel Tent base",
+  "robux": 599,
+  "icon": "PlotBase_carousel",
+  "gift": false
+ },
+ {
+  "key": "Base_factory",
+  "kind": "product",
+  "id": 3723593690,
+  "name": "Goo Factory base",
+  "robux": 399,
+  "icon": "PlotBase_factory",
+  "gift": false
+ },
+ {
+  "key": "Base_lighthouse",
+  "kind": "product",
+  "id": 3723566745,
+  "name": "Lighthouse base",
+  "robux": 399,
+  "icon": "PlotBase_lighthouse",
+  "gift": false
+ },
+ {
+  "key": "Base_pagoda",
+  "kind": "product",
+  "id": 3723593692,
+  "name": "Mushroom Pagoda base",
+  "robux": 399,
+  "icon": "PlotBase_pagoda",
+  "gift": false
+ },
+ {
+  "key": "Base_rocket",
+  "kind": "product",
+  "id": 3723566749,
+  "name": "Space Rocket base",
+  "robux": 499,
+  "icon": "PlotBase_rocket",
+  "gift": false
+ },
+ {
+  "key": "Base_snowglobe",
+  "kind": "product",
+  "id": 3723566752,
+  "name": "Snow Globe base",
+  "robux": 399,
+  "icon": "PlotBase_snowglobe",
+  "gift": false
+ },
+ {
+  "key": "Base_treehouse",
+  "kind": "product",
+  "id": 3723566754,
+  "name": "Tree House base",
+  "robux": 499,
+  "icon": "PlotBase_treehouse",
+  "gift": false
+ },
+ {
+  "key": "BatSkin_fish",
+  "kind": "product",
+  "id": 3723566760,
+  "name": "Fish Bat skin",
+  "robux": 99,
+  "icon": "BatSkin_fish",
+  "gift": false
+ },
+ {
+  "key": "BatSkin_foam_finger",
+  "kind": "product",
+  "id": 3723566768,
+  "name": "Foam Finger Bat skin",
+  "robux": 149,
+  "icon": "BatSkin_foam_finger",
+  "gift": false
+ },
+ {
+  "key": "BatSkin_golden",
+  "kind": "product",
+  "id": 3723566770,
+  "name": "Golden Bat skin",
+  "robux": 249,
+  "icon": "BatSkin_golden",
+  "gift": false
+ },
+ {
+  "key": "BatSkin_lollipop",
+  "kind": "product",
+  "id": 3723566775,
+  "name": "Lollipop Bat skin",
+  "robux": 99,
+  "icon": "BatSkin_lollipop",
+  "gift": false
+ },
+ {
+  "key": "BoutiqueBundle",
+  "kind": "product",
+  "id": 3723566777,
+  "name": "Boutique bundle",
+  "robux": 549,
+  "icon": "Bundle_boutique",
+  "gift": false
+ },
+ {
+  "key": "DoubleOffline",
+  "kind": "product",
+  "id": 3723566782,
+  "name": "Double offline cash",
+  "robux": 49,
+  "icon": "Store_DoubleOffline",
+  "gift": false
+ },
+ {
+  "key": "FinishBrew_1",
+  "kind": "product",
+  "id": 3723566813,
+  "name": "Finish brew (up to 5 min)",
+  "robux": 15,
+  "icon": "Store_FinishBrew_1",
+  "gift": false
+ },
+ {
+  "key": "FinishBrew_2",
+  "kind": "product",
+  "id": 3723566817,
+  "name": "Finish brew (up to 30 min)",
+  "robux": 35,
+  "icon": "Store_FinishBrew_2",
+  "gift": false
+ },
+ {
+  "key": "FinishBrew_3",
+  "kind": "product",
+  "id": 3723566819,
+  "name": "Finish brew (up to 1 hour)",
+  "robux": 59,
+  "icon": "Store_FinishBrew_3",
+  "gift": false
+ },
+ {
+  "key": "FinishBrew_4",
+  "kind": "product",
+  "id": 3723566825,
+  "name": "Finish brew (over 1 hour)",
+  "robux": 99,
+  "icon": "Store_FinishBrew_4",
+  "gift": false
+ },
+ {
+  "key": "Gift_Base_carousel",
+  "kind": "product",
+  "id": 3723566829,
+  "name": "Gift: Carousel Tent base",
+  "robux": 599,
+  "icon": "PlotBase_carousel",
+  "gift": true
+ },
+ {
+  "key": "Gift_Base_factory",
+  "kind": "product",
+  "id": 3723593695,
+  "name": "Gift: Goo Factory base",
+  "robux": 399,
+  "icon": "PlotBase_factory",
+  "gift": true
+ },
+ {
+  "key": "Gift_Base_lighthouse",
+  "kind": "product",
+  "id": 3723566833,
+  "name": "Gift: Lighthouse base",
+  "robux": 399,
+  "icon": "PlotBase_lighthouse",
+  "gift": true
+ },
+ {
+  "key": "Gift_Base_pagoda",
+  "kind": "product",
+  "id": 3723593698,
+  "name": "Gift: Mushroom Pagoda base",
+  "robux": 399,
+  "icon": "PlotBase_pagoda",
+  "gift": true
+ },
+ {
+  "key": "Gift_Base_rocket",
+  "kind": "product",
+  "id": 3723566838,
+  "name": "Gift: Space Rocket base",
+  "robux": 499,
+  "icon": "PlotBase_rocket",
+  "gift": true
+ },
+ {
+  "key": "Gift_Base_snowglobe",
+  "kind": "product",
+  "id": 3723566842,
+  "name": "Gift: Snow Globe base",
+  "robux": 399,
+  "icon": "PlotBase_snowglobe",
+  "gift": true
+ },
+ {
+  "key": "Gift_Base_treehouse",
+  "kind": "product",
+  "id": 3723566847,
+  "name": "Gift: Tree House base",
+  "robux": 499,
+  "icon": "PlotBase_treehouse",
+  "gift": true
+ },
+ {
+  "key": "Gift_BatSkin_fish",
+  "kind": "product",
+  "id": 3723566850,
+  "name": "Gift: Fish Bat skin",
+  "robux": 99,
+  "icon": "BatSkin_fish",
+  "gift": true
+ },
+ {
+  "key": "Gift_BatSkin_foam_finger",
+  "kind": "product",
+  "id": 3723566854,
+  "name": "Gift: Foam Finger Bat skin",
+  "robux": 149,
+  "icon": "BatSkin_foam_finger",
+  "gift": true
+ },
+ {
+  "key": "Gift_BatSkin_golden",
+  "kind": "product",
+  "id": 3723566859,
+  "name": "Gift: Golden Bat skin",
+  "robux": 249,
+  "icon": "BatSkin_golden",
+  "gift": true
+ },
+ {
+  "key": "Gift_BatSkin_lollipop",
+  "kind": "product",
+  "id": 3723566863,
+  "name": "Gift: Lollipop Bat skin",
+  "robux": 99,
+  "icon": "BatSkin_lollipop",
+  "gift": true
+ },
+ {
+  "key": "Gift_Hat_bow",
+  "kind": "product",
+  "id": 3723566888,
+  "name": "Gift: Big Bow",
+  "robux": 49,
+  "icon": "Hat_bow",
+  "gift": true
+ },
+ {
+  "key": "Gift_Hat_chef",
+  "kind": "product",
+  "id": 3723566895,
+  "name": "Gift: Chef Hat",
+  "robux": 79,
+  "icon": "Hat_chef",
+  "gift": true
+ },
+ {
+  "key": "Gift_Hat_flower_crown",
+  "kind": "product",
+  "id": 3723566898,
+  "name": "Gift: Flower Crown",
+  "robux": 79,
+  "icon": "Hat_flower_crown",
+  "gift": true
+ },
+ {
+  "key": "Gift_Hat_party",
+  "kind": "product",
+  "id": 3723566901,
+  "name": "Gift: Party Hat",
+  "robux": 49,
+  "icon": "Hat_party",
+  "gift": true
+ },
+ {
+  "key": "Gift_Hat_top_hat",
+  "kind": "product",
+  "id": 3723566904,
+  "name": "Gift: Top Hat",
+  "robux": 99,
+  "icon": "Hat_top_hat",
+  "gift": true
+ },
+ {
+  "key": "Gift_Hat_witch",
+  "kind": "product",
+  "id": 3723566908,
+  "name": "Gift: Witch Hat",
+  "robux": 99,
+  "icon": "Hat_witch",
+  "gift": true
+ },
+ {
+  "key": "Gift_LockStyle_candy",
+  "kind": "product",
+  "id": 3723566909,
+  "name": "Gift: Candy Bar lock",
+  "robux": 79,
+  "icon": "LockStyle_candy",
+  "gift": true
+ },
+ {
+  "key": "Gift_LockStyle_carousel",
+  "kind": "product",
+  "id": 3723566913,
+  "name": "Gift: Carousel lock",
+  "robux": 99,
+  "icon": "LockStyle_carousel",
+  "gift": true
+ },
+ {
+  "key": "Gift_LockStyle_sleepy",
+  "kind": "product",
+  "id": 3723566917,
+  "name": "Gift: Sleepy Guard lock",
+  "robux": 99,
+  "icon": "LockStyle_sleepy",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_bubble",
+  "kind": "product",
+  "id": 3723566925,
+  "name": "Gift: Bubble cloud",
+  "robux": 99,
+  "icon": "PetSeat_bubble",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_clam_shell",
+  "kind": "product",
+  "id": 3723566930,
+  "name": "Gift: Clam Shell cloud",
+  "robux": 199,
+  "icon": "PetSeat_clam_shell",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_crescent_moon",
+  "kind": "product",
+  "id": 3723566938,
+  "name": "Gift: Crescent Moon cloud",
+  "robux": 199,
+  "icon": "PetSeat_crescent_moon",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_flame_cloud",
+  "kind": "product",
+  "id": 3723566940,
+  "name": "Gift: Flame Cloud",
+  "robux": 199,
+  "icon": "PetSeat_flame_cloud",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_hoverboard",
+  "kind": "product",
+  "id": 3723566946,
+  "name": "Gift: Hoverboard cloud",
+  "robux": 399,
+  "icon": "PetSeat_hoverboard",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_ice_cloud",
+  "kind": "product",
+  "id": 3723566948,
+  "name": "Gift: Ice Cloud",
+  "robux": 199,
+  "icon": "PetSeat_ice_cloud",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_leaf",
+  "kind": "product",
+  "id": 3723566949,
+  "name": "Gift: Leaf cloud",
+  "robux": 99,
+  "icon": "PetSeat_leaf",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_lily_pad",
+  "kind": "product",
+  "id": 3723566957,
+  "name": "Gift: Lily Pad cloud",
+  "robux": 99,
+  "icon": "PetSeat_lily_pad",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_magic_carpet",
+  "kind": "product",
+  "id": 3723566961,
+  "name": "Gift: Magic Carpet cloud",
+  "robux": 399,
+  "icon": "PetSeat_magic_carpet",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_mushroom",
+  "kind": "product",
+  "id": 3723566962,
+  "name": "Gift: Mushroom cloud",
+  "robux": 99,
+  "icon": "PetSeat_mushroom",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_pancakes",
+  "kind": "product",
+  "id": 3723566968,
+  "name": "Gift: Pancakes cloud",
+  "robux": 99,
+  "icon": "PetSeat_pancakes",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_pumpkin",
+  "kind": "product",
+  "id": 3723566972,
+  "name": "Gift: Pumpkin cloud",
+  "robux": 249,
+  "icon": "PetSeat_pumpkin",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_royal_cushion",
+  "kind": "product",
+  "id": 3723566974,
+  "name": "Gift: Royal Cushion cloud",
+  "robux": 399,
+  "icon": "PetSeat_royal_cushion",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_snowglobe",
+  "kind": "product",
+  "id": 3723566979,
+  "name": "Gift: Snow Globe cloud",
+  "robux": 249,
+  "icon": "PetSeat_snowglobe",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_star_cushion",
+  "kind": "product",
+  "id": 3723566985,
+  "name": "Gift: Star Cushion cloud",
+  "robux": 199,
+  "icon": "PetSeat_star_cushion",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_storm_cloud",
+  "kind": "product",
+  "id": 3723566989,
+  "name": "Gift: Storm Cloud",
+  "robux": 199,
+  "icon": "PetSeat_storm_cloud",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_sunset_cloud",
+  "kind": "product",
+  "id": 3723566991,
+  "name": "Gift: Sunset Cloud",
+  "robux": 199,
+  "icon": "PetSeat_sunset_cloud",
+  "gift": true
+ },
+ {
+  "key": "Gift_Seat_ufo",
+  "kind": "product",
+  "id": 3723566994,
+  "name": "Gift: UFO cloud",
+  "robux": 399,
+  "icon": "PetSeat_ufo",
+  "gift": true
+ },
+ {
+  "key": "Gift_Skin_beach",
+  "kind": "product",
+  "id": 3723566995,
+  "name": "Gift: Beach Hut base skin",
+  "robux": 249,
+  "icon": "PlotSkin_beach",
+  "gift": true
+ },
+ {
+  "key": "Gift_Skin_fairground",
+  "kind": "product",
+  "id": 3723566997,
+  "name": "Gift: Fairground base skin",
+  "robux": 299,
+  "icon": "PlotSkin_fairground",
+  "gift": true
+ },
+ {
+  "key": "Gift_Skin_haunted",
+  "kind": "product",
+  "id": 3723567003,
+  "name": "Gift: Haunted Ranch base skin",
+  "robux": 299,
+  "icon": "PlotSkin_haunted",
+  "gift": true
+ },
+ {
+  "key": "Gift_Skin_space",
+  "kind": "product",
+  "id": 3723567006,
+  "name": "Gift: Space Station base skin",
+  "robux": 399,
+  "icon": "PlotSkin_space",
+  "gift": true
+ },
+ {
+  "key": "Gift_Skin_winter",
+  "kind": "product",
+  "id": 3723567009,
+  "name": "Gift: Winter Cabin base skin",
+  "robux": 249,
+  "icon": "PlotSkin_winter",
+  "gift": true
+ },
+ {
+  "key": "Gift_Trail_goo_drip",
+  "kind": "product",
+  "id": 3723567012,
+  "name": "Gift: Goo Drip trail",
+  "robux": 79,
+  "icon": "Store_Trail_goo_drip",
+  "gift": true
+ },
+ {
+  "key": "Gift_Trail_hearts",
+  "kind": "product",
+  "id": 3723567017,
+  "name": "Gift: Hearts trail",
+  "robux": 79,
+  "icon": "Store_Trail_hearts",
+  "gift": true
+ },
+ {
+  "key": "Gift_Trail_rainbow",
+  "kind": "product",
+  "id": 3723567019,
+  "name": "Gift: Rainbow trail",
+  "robux": 149,
+  "icon": "Store_Trail_rainbow",
+  "gift": true
+ },
+ {
+  "key": "Gift_Trail_sparkle",
+  "kind": "product",
+  "id": 3723567021,
+  "name": "Gift: Sparkle trail",
+  "robux": 49,
+  "icon": "Store_Trail_sparkle",
+  "gift": true
+ },
+ {
+  "key": "Gift_Trail_starfall",
+  "kind": "product",
+  "id": 3723567024,
+  "name": "Gift: Starfall trail",
+  "robux": 99,
+  "icon": "Store_Trail_starfall",
+  "gift": true
+ },
+ {
+  "key": "GrowthSnack",
+  "kind": "product",
+  "id": 3723567028,
+  "name": "Growth snack",
+  "robux": 19,
+  "icon": "Store_GrowthSnack",
+  "gift": false
+ },
+ {
+  "key": "Hat_bow",
+  "kind": "product",
+  "id": 3723567030,
+  "name": "Big Bow",
+  "robux": 49,
+  "icon": "Hat_bow",
+  "gift": false
+ },
+ {
+  "key": "Hat_chef",
+  "kind": "product",
+  "id": 3723567032,
+  "name": "Chef Hat",
+  "robux": 79,
+  "icon": "Hat_chef",
+  "gift": false
+ },
+ {
+  "key": "Hat_flower_crown",
+  "kind": "product",
+  "id": 3723567038,
+  "name": "Flower Crown",
+  "robux": 79,
+  "icon": "Hat_flower_crown",
+  "gift": false
+ },
+ {
+  "key": "Hat_party",
+  "kind": "product",
+  "id": 3723567042,
+  "name": "Party Hat",
+  "robux": 49,
+  "icon": "Hat_party",
+  "gift": false
+ },
+ {
+  "key": "Hat_top_hat",
+  "kind": "product",
+  "id": 3723567046,
+  "name": "Top Hat",
+  "robux": 99,
+  "icon": "Hat_top_hat",
+  "gift": false
+ },
+ {
+  "key": "Hat_witch",
+  "kind": "product",
+  "id": 3723567049,
+  "name": "Witch Hat",
+  "robux": 99,
+  "icon": "Hat_witch",
+  "gift": false
+ },
+ {
+  "key": "HatchNow_cosmic",
+  "kind": "product",
+  "id": 3723567052,
+  "name": "Hatch now: Cosmic egg",
+  "robux": 49,
+  "icon": "Store_HatchNow_cosmic",
+  "gift": false
+ },
+ {
+  "key": "HatchNow_golden",
+  "kind": "product",
+  "id": 3723567056,
+  "name": "Hatch now: Golden egg",
+  "robux": 45,
+  "icon": "Store_HatchNow_golden",
+  "gift": false
+ },
+ {
+  "key": "HatchNow_shiny",
+  "kind": "product",
+  "id": 3723567060,
+  "name": "Hatch now: Shiny egg",
+  "robux": 35,
+  "icon": "Store_HatchNow_shiny",
+  "gift": false
+ },
+ {
+  "key": "HatchNow_speckled",
+  "kind": "product",
+  "id": 3723567062,
+  "name": "Hatch now: Speckled egg",
+  "robux": 25,
+  "icon": "Store_HatchNow_speckled",
+  "gift": false
+ },
+ {
+  "key": "IncomeBoost15",
+  "kind": "product",
+  "id": 3723567066,
+  "name": "x2 income, 15 min",
+  "robux": 49,
+  "icon": "Store_IncomeBoost15",
+  "gift": false
+ },
+ {
+  "key": "IncomeBoost60",
+  "kind": "product",
+  "id": 3723567069,
+  "name": "x2 income, 1 hour",
+  "robux": 129,
+  "icon": "Store_IncomeBoost60",
+  "gift": false
+ },
+ {
+  "key": "KeepStreak",
+  "kind": "product",
+  "id": 3723567072,
+  "name": "Keep my streak",
+  "robux": 25,
+  "icon": "Store_KeepStreak",
+  "gift": false
+ },
+ {
+  "key": "LockBreak",
+  "kind": "product",
+  "id": 3723567075,
+  "name": "Open locked door",
+  "robux": 499,
+  "icon": "Store_LockBreak",
+  "gift": false
+ },
+ {
+  "key": "LockStyle_candy",
+  "kind": "product",
+  "id": 3723567078,
+  "name": "Candy Bar lock",
+  "robux": 79,
+  "icon": "LockStyle_candy",
+  "gift": false
+ },
+ {
+  "key": "LockStyle_carousel",
+  "kind": "product",
+  "id": 3723567081,
+  "name": "Carousel lock",
+  "robux": 99,
+  "icon": "LockStyle_carousel",
+  "gift": false
+ },
+ {
+  "key": "LockStyle_sleepy",
+  "kind": "product",
+  "id": 3723567084,
+  "name": "Sleepy Guard lock",
+  "robux": 99,
+  "icon": "LockStyle_sleepy",
+  "gift": false
+ },
+ {
+  "key": "Seat_bubble",
+  "kind": "product",
+  "id": 3723567087,
+  "name": "Bubble cloud",
+  "robux": 99,
+  "icon": "PetSeat_bubble",
+  "gift": false
+ },
+ {
+  "key": "Seat_clam_shell",
+  "kind": "product",
+  "id": 3723567089,
+  "name": "Clam Shell cloud",
+  "robux": 199,
+  "icon": "PetSeat_clam_shell",
+  "gift": false
+ },
+ {
+  "key": "Seat_crescent_moon",
+  "kind": "product",
+  "id": 3723567095,
+  "name": "Crescent Moon cloud",
+  "robux": 199,
+  "icon": "PetSeat_crescent_moon",
+  "gift": false
+ },
+ {
+  "key": "Seat_flame_cloud",
+  "kind": "product",
+  "id": 3723567098,
+  "name": "Flame Cloud",
+  "robux": 199,
+  "icon": "PetSeat_flame_cloud",
+  "gift": false
+ },
+ {
+  "key": "Seat_hoverboard",
+  "kind": "product",
+  "id": 3723567101,
+  "name": "Hoverboard cloud",
+  "robux": 399,
+  "icon": "PetSeat_hoverboard",
+  "gift": false
+ },
+ {
+  "key": "Seat_ice_cloud",
+  "kind": "product",
+  "id": 3723567103,
+  "name": "Ice Cloud",
+  "robux": 199,
+  "icon": "PetSeat_ice_cloud",
+  "gift": false
+ },
+ {
+  "key": "Seat_leaf",
+  "kind": "product",
+  "id": 3723567108,
+  "name": "Leaf cloud",
+  "robux": 99,
+  "icon": "PetSeat_leaf",
+  "gift": false
+ },
+ {
+  "key": "Seat_lily_pad",
+  "kind": "product",
+  "id": 3723567110,
+  "name": "Lily Pad cloud",
+  "robux": 99,
+  "icon": "PetSeat_lily_pad",
+  "gift": false
+ },
+ {
+  "key": "Seat_magic_carpet",
+  "kind": "product",
+  "id": 3723567115,
+  "name": "Magic Carpet cloud",
+  "robux": 399,
+  "icon": "PetSeat_magic_carpet",
+  "gift": false
+ },
+ {
+  "key": "Seat_mushroom",
+  "kind": "product",
+  "id": 3723567118,
+  "name": "Mushroom cloud",
+  "robux": 99,
+  "icon": "PetSeat_mushroom",
+  "gift": false
+ },
+ {
+  "key": "Seat_pancakes",
+  "kind": "product",
+  "id": 3723567119,
+  "name": "Pancakes cloud",
+  "robux": 99,
+  "icon": "PetSeat_pancakes",
+  "gift": false
+ },
+ {
+  "key": "Seat_pumpkin",
+  "kind": "product",
+  "id": 3723567124,
+  "name": "Pumpkin cloud",
+  "robux": 249,
+  "icon": "PetSeat_pumpkin",
+  "gift": false
+ },
+ {
+  "key": "Seat_royal_cushion",
+  "kind": "product",
+  "id": 3723567128,
+  "name": "Royal Cushion cloud",
+  "robux": 399,
+  "icon": "PetSeat_royal_cushion",
+  "gift": false
+ },
+ {
+  "key": "Seat_snowglobe",
+  "kind": "product",
+  "id": 3723567133,
+  "name": "Snow Globe cloud",
+  "robux": 249,
+  "icon": "PetSeat_snowglobe",
+  "gift": false
+ },
+ {
+  "key": "Seat_star_cushion",
+  "kind": "product",
+  "id": 3723567136,
+  "name": "Star Cushion cloud",
+  "robux": 199,
+  "icon": "PetSeat_star_cushion",
+  "gift": false
+ },
+ {
+  "key": "Seat_storm_cloud",
+  "kind": "product",
+  "id": 3723567141,
+  "name": "Storm Cloud",
+  "robux": 199,
+  "icon": "PetSeat_storm_cloud",
+  "gift": false
+ },
+ {
+  "key": "Seat_sunset_cloud",
+  "kind": "product",
+  "id": 3723567143,
+  "name": "Sunset Cloud",
+  "robux": 199,
+  "icon": "PetSeat_sunset_cloud",
+  "gift": false
+ },
+ {
+  "key": "Seat_ufo",
+  "kind": "product",
+  "id": 3723567146,
+  "name": "UFO cloud",
+  "robux": 399,
+  "icon": "PetSeat_ufo",
+  "gift": false
+ },
+ {
+  "key": "ServerLuckPotion",
+  "kind": "product",
+  "id": 3723567152,
+  "name": "Server Luck Potion",
+  "robux": 79,
+  "icon": "Store_ServerLuckPotion",
+  "gift": false
+ },
+ {
+  "key": "Skin_beach",
+  "kind": "product",
+  "id": 3723567159,
+  "name": "Beach Hut base skin",
+  "robux": 249,
+  "icon": "PlotSkin_beach",
+  "gift": false
+ },
+ {
+  "key": "Skin_fairground",
+  "kind": "product",
+  "id": 3723567164,
+  "name": "Fairground base skin",
+  "robux": 299,
+  "icon": "PlotSkin_fairground",
+  "gift": false
+ },
+ {
+  "key": "Skin_haunted",
+  "kind": "product",
+  "id": 3723567165,
+  "name": "Haunted Ranch base skin",
+  "robux": 299,
+  "icon": "PlotSkin_haunted",
+  "gift": false
+ },
+ {
+  "key": "Skin_space",
+  "kind": "product",
+  "id": 3723567173,
+  "name": "Space Station base skin",
+  "robux": 399,
+  "icon": "PlotSkin_space",
+  "gift": false
+ },
+ {
+  "key": "Skin_winter",
+  "kind": "product",
+  "id": 3723567175,
+  "name": "Winter Cabin base skin",
+  "robux": 249,
+  "icon": "PlotSkin_winter",
+  "gift": false
+ },
+ {
+  "key": "SkyBundle",
+  "kind": "product",
+  "id": 3723567180,
+  "name": "Sky bundle",
+  "robux": 599,
+  "icon": "Bundle_sky",
+  "gift": false
+ },
+ {
+  "key": "SlimeRain",
+  "kind": "product",
+  "id": 3723567186,
+  "name": "Slime Rain now",
+  "robux": 179,
+  "icon": "Event_rain",
+  "gift": false
+ },
+ {
+  "key": "StarterBundle",
+  "kind": "product",
+  "id": 3723567192,
+  "name": "Starter bundle",
+  "robux": 149,
+  "icon": "Bundle_starter",
+  "gift": false
+ },
+ {
+  "key": "SummonBoss",
+  "kind": "product",
+  "id": 3723567194,
+  "name": "Summon the boss",
+  "robux": 199,
+  "icon": "Store_SummonBoss",
+  "gift": false
+ },
+ {
+  "key": "Trail_goo_drip",
+  "kind": "product",
+  "id": 3723567197,
+  "name": "Goo Drip trail",
+  "robux": 79,
+  "icon": "Store_Trail_goo_drip",
+  "gift": false
+ },
+ {
+  "key": "Trail_hearts",
+  "kind": "product",
+  "id": 3723567200,
+  "name": "Hearts trail",
+  "robux": 79,
+  "icon": "Store_Trail_hearts",
+  "gift": false
+ },
+ {
+  "key": "Trail_rainbow",
+  "kind": "product",
+  "id": 3723567204,
+  "name": "Rainbow trail",
+  "robux": 149,
+  "icon": "Store_Trail_rainbow",
+  "gift": false
+ },
+ {
+  "key": "Trail_sparkle",
+  "kind": "product",
+  "id": 3723567209,
+  "name": "Sparkle trail",
+  "robux": 49,
+  "icon": "Store_Trail_sparkle",
+  "gift": false
+ },
+ {
+  "key": "Trail_starfall",
+  "kind": "product",
+  "id": 3723567216,
+  "name": "Starfall trail",
+  "robux": 99,
+  "icon": "Store_Trail_starfall",
+  "gift": false
+ },
+ {
+  "key": "WeatherTotem",
+  "kind": "product",
+  "id": 3723567221,
+  "name": "Weather Totem",
+  "robux": 59,
+  "icon": "Consumable_WeatherTotem",
+  "gift": false
+ },
+ {
+  "key": "Fanfare_confetti",
+  "kind": "product",
+  "id": 3723566787,
+  "robux": 49,
+  "gift": false,
+  "name": "Confetti fanfare",
+  "icon": "Store_Fanfare_confetti",
+  "retired": true
+ },
+ {
+  "key": "Gift_Fanfare_confetti",
+  "kind": "product",
+  "id": 3723566870,
+  "robux": 49,
+  "gift": true,
+  "name": "Gift: Confetti fanfare",
+  "icon": "Store_Fanfare_confetti",
+  "retired": true
+ },
+ {
+  "key": "Fanfare_goo_splash",
+  "kind": "product",
+  "id": 3723566794,
+  "robux": 49,
+  "gift": false,
+  "name": "Goo Splash fanfare",
+  "icon": "Store_Fanfare_goo_splash",
+  "retired": true
+ },
+ {
+  "key": "Gift_Fanfare_goo_splash",
+  "kind": "product",
+  "id": 3723566877,
+  "robux": 49,
+  "gift": true,
+  "name": "Gift: Goo Splash fanfare",
+  "icon": "Store_Fanfare_goo_splash",
+  "retired": true
+ },
+ {
+  "key": "Fanfare_heart_pop",
+  "kind": "product",
+  "id": 3723566800,
+  "robux": 79,
+  "gift": false,
+  "name": "Heart Pop fanfare",
+  "icon": "Store_Fanfare_heart_pop",
+  "retired": true
+ },
+ {
+  "key": "Gift_Fanfare_heart_pop",
+  "kind": "product",
+  "id": 3723566879,
+  "robux": 79,
+  "gift": true,
+  "name": "Gift: Heart Pop fanfare",
+  "icon": "Store_Fanfare_heart_pop",
+  "retired": true
+ },
+ {
+  "key": "Fanfare_starburst",
+  "kind": "product",
+  "id": 3723566805,
+  "robux": 79,
+  "gift": false,
+  "name": "Starburst fanfare",
+  "icon": "Store_Fanfare_starburst",
+  "retired": true
+ },
+ {
+  "key": "Gift_Fanfare_starburst",
+  "kind": "product",
+  "id": 3723566884,
+  "robux": 79,
+  "gift": true,
+  "name": "Gift: Starburst fanfare",
+  "icon": "Store_Fanfare_starburst",
+  "retired": true
+ }
+]

@@ -1,6 +1,7 @@
 # Exclusive Shop products on Roblox
 
-Creates the Exclusive Shop's Developer Products and Game Passes for Steal a Slime (universe 10770917350) with the
+Creates the Exclusive Shop's Developer Products and Game Passes for Steal a Slime (universe 10774962286, `UNIVERSE` in
+`apikey.py`) with the
 Open Cloud APIs, once each, and writes their ids into `src/shared/ExclusiveIds.luau` (which `Config` reads).
 The key comes from `ROBLOX_OPEN_CLOUD_API_KEY` or `~/.config/roblox-ci.env` and needs `developer-product` and
 `game-pass` read + write for the universe. Subscriptions have no API: create them on the Creator Dashboard and add
@@ -17,3 +18,8 @@ python tools/monetization/write_ids.py                # -> src/shared/ExclusiveI
 
 `created_ids.json` is the record of what exists on Roblox (key -> id). Developer products can't be deleted, only
 taken off sale, so never delete a line from it.
+
+`created_ids.old-10770917350.json` is the same record for the old experience the game left on 2026-11-06
+(`docs/release-pipeline.md`). Its 8 retired `Fanfare_*` / `Gift_Fanfare_*` products were not recreated in the new
+universe: the game no longer sells them. `verify_products.py` also checks the passes and that every item has its own
+icon (`docs/shop-icons/upload.py` sets them).
