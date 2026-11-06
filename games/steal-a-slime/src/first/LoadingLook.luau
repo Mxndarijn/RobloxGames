@@ -12,21 +12,25 @@ return table.freeze({
 	text = Color3.fromRGB(241, 255, 249), -- GooPalette.Text
 	muted = Color3.fromRGB(191, 235, 221), -- GooPalette.Muted
 	glass = Color3.fromRGB(216, 255, 241), -- GooPalette.Glass: the Skip button's fill
+	slime = Color3.fromRGB(255, 210, 63), -- GooPalette.Gold: the slime riding the bar
+	slimeHi = Color3.fromRGB(255, 244, 194), -- GooPalette.GoldHi: the top of the slime's jelly
+	slimeLo = Color3.fromRGB(224, 168, 18), -- GooPalette.GoldDeep: the bottom of the slime's jelly
+	white = Color3.fromRGB(255, 255, 255), -- GooPalette.White: the bar's shine, the slime's highlight
 	font = Enum.Font.FredokaOne, -- Theme.Font
 	fontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- Theme.FontBody
 
 	-- Text and controls, px, placed from the screen's centre.
 	titleSize = 64,
-	titleY = -60,
+	titleY = -70,
 	titleStroke = 3,
 	titleDrop = 6, -- the Ink shadow under the title
 	labelSize = 20,
-	statusY = 52,
+	statusY = 76,
 	barSize = UDim2.fromOffset(420, 18),
-	barY = 12,
+	barY = 36,
 	barRing = 0.65, -- transparency of the mint ring round the tube
 	skipSize = UDim2.fromOffset(140, 52),
-	skipY = 112,
+	skipY = 136,
 	skipGlass = 0.88, -- transparency of the Skip button's glass
 	stroke = 3, -- Ink outlines
 
@@ -53,6 +57,27 @@ return table.freeze({
 		table.freeze({ 0.73, 0.94, 28 }),
 	}),
 	bubbleTransparency = 0.93,
+
+	-- Motion, all of it off under Roblox's Reduced Motion. Periods in seconds.
+	sway = 0.12, -- each drip grows and shrinks by this share of its hang
+	swayPeriods = table.freeze({ 3.2, 2.6, 3.8, 3.0, 2.9, 3.4 }), -- one per drip
+	drops = table.freeze({ -- a drop that forms at a drip's end and falls off the screen, behind the text
+		table.freeze({ drip = 1, every = 4.5, delay = 0 }),
+		table.freeze({ drip = 6, every = 5.2, delay = 2.3 }),
+	}),
+	dropSize = 16, -- px
+	dropFall = 0.4, -- share of each cycle the drop spends falling (the rest it is still forming, unseen)
+	bubbleRise = 0.2, -- share of the screen height a bubble rises before it fades and starts again
+	bubblePeriod = 9, -- seconds for the first bubble's rise; each next one takes 1.3 s longer
+	shinePeriod = 1.6, -- seconds for the shine to cross the bar's fill
+	shineTransparency = 0.5, -- at the shine's brightest
+
+	-- The slime hopping along the tip of the bar (px). It stays clear of the title (LoadingScreen.riderTop).
+	riderSize = Vector2.new(48, 34),
+	riderHop = 12, -- px it leaps
+	riderPeriod = 0.55, -- seconds per hop
+	riderSquash = 0.12, -- wider and flatter by this share when it lands
+	riderLift = 2, -- px it sits above the bar
 
 	fade = 0.6, -- seconds
 	displayOrder = 1000,
