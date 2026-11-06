@@ -10,10 +10,14 @@
 	  preloaded    assets ContentProvider has answered for, of preloadTotal
 	  preloadDone  the preload pass has finished (or failed)
 
-	step() returns the bar fraction, the label and whether the screen may
+	step() returns the bar's target, the label and whether the screen may
 	lift: once everything is ready, or at MAX_WAIT whatever is still loading,
 	and never before MIN_SHOW (no one-frame flash). canSkip turns true at
-	SKIP_AFTER so a slow connection is never stuck behind the screen.
+	SKIP_AFTER so a slow connection is never stuck behind the screen. The
+	label is a tip that changes every TIP_EVERY seconds, then DONE.
+
+	glide() moves the drawn bar toward that target every frame, so it slides
+	instead of jumping, and keeps creeping a little while a stage waits.
 ]]
 
 local LoadingGate = {}
@@ -25,12 +29,20 @@ LoadingGate.SKIP_AFTER = 6 -- seconds before the skip button shows
 -- Share of the bar each stage fills, in order.
 LoadingGate.WEIGHTS = table.freeze({ gameLoaded = 0.2, worldReady = 0.3, preload = 0.5 })
 
-LoadingGate.LABELS = table.freeze({
-	place = "Loading the ranch...",
-	world = "Building the world...",
-	assets = "Loading textures...",
-	done = "Ready!",
+LoadingGate.GLIDE = 5 -- per second: how fast the drawn bar closes the gap to its target
+LoadingGate.GLIDE_DONE = 14 -- the same once everything is ready, so the bar fills before the fade
+LoadingGate.CREEP = 0.01 -- bar share per second the bar keeps moving while a stage waits
+LoadingGate.CREEP_LEAD = 0.08 -- how far the creep may run ahead of the real progress
+
+LoadingGate.TIP_EVERY = 4 -- seconds each tip shows
+LoadingGate.TIPS = table.freeze({
+	"Lock your base to stop thieves",
+	"Steal slimes from other bases",
+	"Rarer slimes earn more cash",
+	"Merge two slimes in the vat",
+	"Run the obby for a cash boost",
 })
+LoadingGate.DONE = "Ready!"
 
 export type Status = {
 	gameLoaded: boolean,
@@ -42,7 +54,14 @@ export type Status = {
 
 export type View = { progress: number, label: string, lift: boolean, canSkip: boolean }
 
-function LoadingGate.step(status: Status, elapsed: number): View
+-- The tip on screen `elapsed` seconds in, starting from tip number `first` (1-based, wraps).
+function LoadingGate.tip(elapsed: number, first: number?): string
+	local tips = LoadingGate.TIPS
+	local index = ((first or 1) - 1 + math.floor(math.max(elapsed, 0) / LoadingGate.TIP_EVERY)) % #tips
+	return tips[index + 1]
+end
+
+function LoadingGate.step(status: Status, elapsed: number, firstTip: number?): View
 	local w = LoadingGate.WEIGHTS
 	local progress = 0
 	if status.gameLoaded then
@@ -58,17 +77,26 @@ function LoadingGate.step(status: Status, elapsed: number): View
 	progress += w.preload * share
 
 	local ready = status.gameLoaded and status.worldReady and status.preloadDone
-	local label = if ready
-		then LoadingGate.LABELS.done
-		elseif not status.gameLoaded then LoadingGate.LABELS.place
-		elseif not status.worldReady then LoadingGate.LABELS.world
-		else LoadingGate.LABELS.assets
 	return {
 		progress = if ready then 1 else math.min(progress, 0.99),
-		label = label,
+		label = if ready then LoadingGate.DONE else LoadingGate.tip(elapsed, firstTip),
 		lift = elapsed >= LoadingGate.MIN_SHOW and (ready or elapsed >= LoadingGate.MAX_WAIT),
 		canSkip = elapsed >= LoadingGate.SKIP_AFTER,
 	}
+end
+
+-- The drawn bar `dt` seconds after it showed `shown`, heading for `target` (step's progress). It never moves
+-- back, never shows full before the target is 1, and creeps on while the target waits.
+function LoadingGate.glide(shown: number, target: number, dt: number): number
+	local done = target >= 1
+	local goal = if done then 1 else math.min(target, 0.99)
+	local rate = if done then LoadingGate.GLIDE_DONE else LoadingGate.GLIDE
+	local nextShown = shown + math.max(0, goal - shown) * (1 - math.exp(-rate * dt))
+	if not done then
+		local creep = math.min(shown + LoadingGate.CREEP * dt, target + LoadingGate.CREEP_LEAD, 0.99)
+		nextShown = math.max(nextShown, creep)
+	end
+	return math.clamp(math.max(shown, nextShown), 0, 1)
 end
 
 return table.freeze(LoadingGate)

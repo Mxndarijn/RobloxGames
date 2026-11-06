@@ -28,6 +28,10 @@ describe("loading screen look", function()
 			text = "Text",
 			muted = "Muted",
 			glass = "Glass",
+			slime = "Gold",
+			slimeHi = "GoldHi",
+			slimeLo = "GoldDeep",
+			white = "White",
 		}
 		for key, paletteKey in pairs do
 			expect(Look[key]).toBe(rgb((GooPalette :: any)[paletteKey]))
@@ -45,7 +49,42 @@ describe("loading screen", function()
 			expect(goo > 0).toBe(true)
 			expect(goo * LoadingScreen.dripBottom() < LoadingScreen.titleTop(height)).toBe(true)
 		end
-		expect(LoadingScreen.dripBottom() <= 1).toBe(true) -- the drops stay inside the goo layer
+		expect(LoadingScreen.dripBottom() <= 1).toBe(true) -- the drips stay inside the goo layer
+	end)
+
+	it("keeps the hopping slime clear of the title and the tip line clear of the bar", function()
+		expect(LoadingScreen.riderTop() > LoadingScreen.titleBottom()).toBe(true)
+		expect(Look.statusY - (Look.labelSize + 8) / 2 > Look.barY + Look.barSize.Y.Offset / 2).toBe(true)
+		for _, t in { 0, 0.1, 0.275, 0.4 } do
+			local lift = LoadingScreen.hopAt(t)
+			expect(lift >= 0 and lift <= Look.riderHop).toBe(true)
+		end
+	end)
+
+	it("moves the goo, drops, shine and slime, and rests them all under Reduced Motion", function()
+		local screen = LoadingScreen.build()
+		screen.layout(720)
+		local bg = screen.gui:FindFirstChild("Background")
+		local drip = bg:FindFirstChild("Goo"):FindFirstChild("Drip2")
+		local shine = bg:FindFirstChild("Bar"):FindFirstChild("Fill"):FindFirstChild("Shine")
+		local slime = bg:FindFirstChild("Bar"):FindFirstChild("Rider"):FindFirstChild("Slime")
+		local drop = bg:FindFirstChild("Drop1")
+		local d = Look.drops[1]
+		local falling = d.every * (1 - Look.dropFall / 2) - d.delay -- halfway through its fall
+
+		screen.animate(falling, true)
+		expect(drop.Visible).toBe(true)
+		expect(shine.Visible).toBe(true)
+		screen.animate(Look.swayPeriods[2] / 4, true)
+		expect(drip.Size.Y.Scale > Look.drips[2].hang + Look.drips[2].w).toBe(true)
+		screen.animate(Look.riderPeriod / 2, true)
+		expect(slime.Position.Y.Offset < 0).toBe(true)
+
+		screen.animate(falling, false)
+		expect(drop.Visible).toBe(false)
+		expect(shine.Visible).toBe(false)
+		expect(math.abs(drip.Size.Y.Scale - (Look.drips[2].hang + Look.drips[2].w)) < 1e-6).toBe(true)
+		expect(slime.Position.Y.Offset).toBe(0)
 	end)
 
 	it("draws the goo, the outlined title, the tube bar and a hidden Skip", function()
@@ -74,6 +113,8 @@ describe("loading screen", function()
 		screen.setProgress(0.35)
 		expect(fill.Visible).toBe(true)
 		expect(math.abs(fill.Size.X.Scale - 0.35) < 1e-6).toBe(true)
+		local rider = screen.gui:FindFirstChild("Background"):FindFirstChild("Bar"):FindFirstChild("Rider")
+		expect(math.abs(rider.Position.X.Scale - 0.35) < 1e-6).toBe(true) -- the slime rides the fill's tip
 		screen.setProgress(4)
 		expect(fill.Size.X.Scale).toBe(1)
 		screen.setStatus("Building the world...")
