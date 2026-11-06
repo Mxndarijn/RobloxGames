@@ -35,6 +35,38 @@ for _, t in c.Humanoid.Animator:GetPlayingAnimationTracks() do
 end
 """ % (pos[0], pos[1], pos[2], look[0], look[1], look[2], run_w, run_phase, 1 - run_w, run_phase * 0.3)
 
+
+# ---- smooth character motion: heading eases towards its target (no snaps), legs follow the real speed ----
+class Walker:
+    def __init__(self, tau=0.12):
+        self.w0 = 1.0 / tau  # critically damped spring: the turn speeds up, then settles; no first-frame jump
+        self.yaw, self.vel, self.last_t, self.dist, self.prev = None, 0.0, None, 0.0, None
+    def step(self, t, pos, target_yaw, idle_w=None):
+        if self.last_t is None or t < self.last_t:
+            self.yaw, self.vel, self.dist, self.prev = target_yaw, 0.0, 0.0, pos
+            dt = 0.0
+        else:
+            dt = t - self.last_t
+        self.last_t = t
+        n = 8  # sub-steps per frame
+        for _ in range(n if dt > 0 else 0):
+            h = dt / n
+            d = (target_yaw - self.yaw + 180) % 360 - 180
+            self.vel += (self.w0 * self.w0 * d - 2 * self.w0 * self.vel) * h
+            self.yaw += self.vel * h
+        moved = math.hypot(pos[0] - self.prev[0], pos[2] - self.prev[2])
+        self.prev = pos
+        self.dist += moved
+        speed = moved / dt if dt > 0 else 0
+        w = min(1.0, speed / 9.0) if idle_w is None else 1 - idle_w  # full run from 9 studs/s
+        phase = self.dist / 16.0 * 1.0  # run anim at speed 1 covers ~16 studs per second of track time
+        return puppet(pos, self.yaw, phase, w)
+
+def heading(a, b): return math.degrees(math.atan2(b[2] - a[2], b[0] - a[0]))
+def bez(p0, p1, p2, u): return [(1 - u) ** 2 * p0[i] + 2 * (1 - u) * u * p1[i] + u * u * p2[i] for i in range(3)]
+def ease_out(u): u = max(0, min(1, u)); return 1 - (1 - u) ** 2
+def ease_in(u): u = max(0, min(1, u)); return u * u
+
 def lerp(a, b, u): return [a[i] + (b[i] - a[i]) * u for i in range(3)]
 def smooth(u): u = max(0, min(1, u)); return u * u * (3 - 2 * u)
 
@@ -45,27 +77,27 @@ def slime_of(owner, tier): return [x for x in IDS if x["owner"] == owner and x["
 CELESTIAL = slime_of(-2001, 8)["id"]
 DOOR = [79.0, 4.0, 79.5]
 NEAR = [101.2, 4.0, 79.4]
+_W1 = Walker(tau=0.09)
+def accel_then_cruise(x, a=0.3):
+    """0..1 distance fraction: speeds up over the first `a` of the time, then steady; continuous speed"""
+    x = max(0.0, min(1.0, x))
+    f = x * x / (2 * a) if x < a else x - a / 2
+    return f / (1 - a / 2)
+MID, OUT = [91.0, 4.0, 85.5], [78.0, 4.0, 80.0]
 def s1_char(t):
-    if t < 1.25:
-        u = t / 1.25
-        return lerp(DOOR, NEAR, u), 0, t * 1.1, 1.0          # yaw 0 = +x
-    if t < 1.75:
-        return NEAR, 0 if t < 1.55 else 0 + (t - 1.55) / 0.2 * 180 * 0, 1.25 * 1.1, max(0, 1 - (t - 1.25) / 0.15)
+    """run in (slowing down), stop at the slime, grab, turn round on the spot, run out along a curve"""
+    if t < 1.35:
+        return lerp(DOOR, NEAR, ease_out(t / 1.35)), heading(DOOR, NEAR)
+    if t < 1.65:
+        return NEAR, heading(DOOR, NEAR)
     if t < 2.0:
-        u = smooth((t - 1.75) / 0.25)
-        return NEAR, 180 * u, 1.25 * 1.1, 0.0
-    u = min((t - 2.0) / 1.6, 1)
-    MID, OUT = [91.0, 4.0, 85.0], [78.0, 4.0, 80.0]
-    if u < 0.5:
-        p = lerp(NEAR, MID, u / 0.5); d = [MID[0] - NEAR[0], MID[2] - NEAR[2]]
-    else:
-        p = lerp(MID, OUT, (u - 0.5) / 0.5); d = [OUT[0] - MID[0], OUT[2] - MID[2]]
-    yaw = math.degrees(math.atan2(d[1], d[0]))
-    if t < 2.15: yaw = 180 + (yaw - 180) * (t - 2.0) / 0.15
-    return p, yaw, (t - 2.0) * 1.0, min(1, (t - 2.0) / 0.12)
+        return NEAR, heading(NEAR, bez(NEAR, MID, OUT, 0.08))  # turn first, standing
+    u = accel_then_cruise((t - 2.0) / 1.6)
+    p = bez(NEAR, MID, OUT, u)
+    return p, heading(p, bez(NEAR, MID, OUT, min(1.0, u + 0.06)))
 def s1_client(t, k):
-    p, yaw, ph, w = s1_char(t)
-    return puppet(p, yaw, ph, w)
+    p, yaw = s1_char(t)
+    return _W1.step(t, p, yaw)
 def s1_server(t, k):
     if k == int(1.45 * 30):
         return "workspace:SetAttribute('VidReq', '[[\"grab\",\"%s\"]]')" % CELESTIAL
@@ -87,41 +119,23 @@ P0, H = (_W["p"][0], _W["p"][2]), tuple(_W["h"])
 PERP = (-H[1], H[0]) if (-H[1] * 0 + H[0] * 1) > 0 else (H[1], -H[0])
 G = (P0[0] + H[0] * 3.0 + PERP[0] * 5.0, P0[1] + H[1] * 3.0 + PERP[1] * 5.0)   # where the thief stands to grab
 S0 = (G[0] + PERP[0] * 16, G[1] + PERP[1] * 16)
-S2_LUA = """
-local t = %(t)f
-local function smooth(u) u = math.clamp(u, 0, 1) return u * u * (3 - 2 * u) end
-local m = workspace:FindFirstChild("Slime_%(id)s", true)
-local c = game.Players.LocalPlayer.Character
-local hrp = c.HumanoidRootPart
-local S = Vector3.new(%(sx)f, 4, %(sz)f)
-local G = Vector3.new(%(gx)f, 4, %(gz)f)
-local sp = m and m:GetPivot().Position or G
-sp = Vector3.new(sp.X, 4, sp.Z)
-local pos, look, w, ph
-if t < 1.2 then
-	pos = S:Lerp(G, t / 1.2)
-	look = G + (G - S)
-	w, ph = 1, t * 1.1
-elseif t < 1.6 then
-	pos = G
-	look = sp
-	w, ph = math.max(0, 1 - (t - 1.2) / 0.15), 1.2 * 1.1
-else
-	local tt = t - 1.6
-	local dir = (S - G).Unit
-	pos = G + dir * (tt * 11)
-	local f = smooth(tt / 0.25)
-	look = pos + (sp - G).Unit:Lerp(dir, f)
-	w, ph = math.min(1, tt / 0.12), tt * 0.9
-end
-hrp.CFrame = CFrame.lookAt(pos, Vector3.new(look.X, pos.Y, look.Z))
-hrp.AssemblyLinearVelocity = Vector3.zero hrp.AssemblyAngularVelocity = Vector3.zero
-for _, tr in c.Humanoid.Animator:GetPlayingAnimationTracks() do
-	if tr.Name == "VidRun" then tr:AdjustWeight(math.max(w, 0.001), 0) tr.TimePosition = ph %% tr.Length tr:AdjustSpeed(0)
-	elseif tr.Name == "VidIdle" then tr:AdjustWeight(math.max(1 - w, 0.001), 0) tr.TimePosition = (t * 0.3) %% tr.Length tr:AdjustSpeed(0) end
-end
-"""
-def s2_client(t, k): return S2_LUA % {"t": t, "id": WILD, "sx": S0[0], "sz": S0[1], "gx": G[0], "gz": G[1]}
+_W2 = Walker(tau=0.09)
+def s2_char(t):
+    S, Gp = [S0[0], 4.0, S0[1]], [G[0], 4.0, G[1]]
+    slime = [P0[0] + H[0] * 2.0, 4.0, P0[1] + H[1] * 2.0]
+    if t < 1.2:
+        p = lerp(S, Gp, ease_out(t / 1.2))
+        return p, (heading(S, Gp) if t < 0.85 else heading(Gp, slime))  # turns towards the slime as it slows
+    if t < 1.55:
+        return Gp, heading(Gp, slime)
+    away = [Gp[0] + (S[0] - Gp[0]) * 1.6, 4.0, Gp[2] + (S[2] - Gp[2]) * 1.6]
+    if t < 1.8:
+        return Gp, heading(Gp, away)  # turn on the spot first
+    p = lerp(Gp, away, accel_then_cruise((t - 1.8) / 1.4) * 0.75)
+    return p, heading(Gp, away)
+def s2_client(t, k):
+    p, yaw = s2_char(t)
+    return _W2.step(t, p, yaw)
 def s2_server(t, k):
     if k == int(1.3 * 30):
         return "workspace:SetAttribute('VidReq', '[[\"grab\",\"%s\"]]')" % WILD

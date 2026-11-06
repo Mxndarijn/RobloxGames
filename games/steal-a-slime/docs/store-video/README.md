@@ -25,7 +25,7 @@ anyone else rebuilds them with `render.py` from re-captured frames.
 
 | Time | Shot | What happens in game | Caption |
 |---|---|---|---|
-| 0.0–2.9 | s2 catch | By the fountain slide the player grabs a wild Mythic off the lane (real `grabWild`) and runs at the camera. | CATCH / WILD SLIMES! |
+| 0.0–2.9 | s2 catch | On a busy lane (a wave of ~20 wild slimes), the player slows to a stop mid-path, grabs a wild Rare (real `grabWild`), turns and runs at the camera. | CATCH / WILD SLIMES! |
 | 2.9–6.5 | s1 steal | The player runs into a neighbour's jar base and grabs their Rainbow Celestial (a real steal through the server's `Carry.grab`), turns and runs out with it overhead. | STEAL / RARE SLIMES! |
 | 6.5–10.1 | s3 your base | Orbit inside the player's base: Divine, Celestial and Secret slimes with Gold, Diamond and Rainbow shines, each pad label showing its +$/s income. | BUILD / YOUR BASE! |
 | 10.1–13.7 | s4 merge | Three Mythics in the merge vat finish brewing; the camera pushes in on the vat and the pad beside it as the brewed Secret appears (real `VatCollect`). | MERGE 3 / = RARER! |
@@ -132,6 +132,10 @@ retake (release the carry, `prep_vat.py` for the merge).
   is a flat part 0.03 studs above terrain that `FloorTerrain` turns to Sand; from far away the depth test could not
   separate them and the sand won. Fixed in the game on `fix/terrain-overhead` (the hidden terrain under the floor now
   sits 2 studs lower) and re-shot the end shot on that build: the band stays green through the whole rise.
+- Draft 8 (Merijn: the player doesn't turn smoothly; more slimes on the path; don't catch at the end of the path).
+  The character's heading now follows a critically damped spring (`Walker` in `shots.py`): every turn eases in and
+  out over ~0.5 s, the run slows into stops and speeds up out of them, and the legs follow the real speed. A
+  `spawnWave` (admin, memory store) fills the lane first, and the catch is a slime in the middle of the lane.
 
 ## What I could not get or check
 
