@@ -57,6 +57,20 @@ describe("Strings catalog", function()
 	it("ships a fresh locale/Strings.csv (run lune run scripts/gen-locale)", function()
 		local shipped = if fs.isFile("locale/Strings.csv") then fs.readFile("locale/Strings.csv") else ""
 		shipped = string.gsub(shipped, "\r\n", "\n")
-		expect(shipped == Localize.csv(Strings.catalog)).toBe(true)
+		expect(shipped == Localize.csv(Strings.catalog, Strings.manual)).toBe(true)
+	end)
+
+	it("has every short manual translation for all 17 languages, with the source's parameters", function()
+		expect(table.concat(Localize.checkManual(Strings.catalog, Strings.manual), ", ")).toBe("")
+		local missing = {}
+		for key, byLocale in Strings.manual do
+			for _, locale in Strings.MANUAL_LOCALES do
+				if type(byLocale[locale]) ~= "string" or byLocale[locale] == "" then
+					table.insert(missing, `{key} [{locale}]`)
+				end
+			end
+		end
+		expect(#Strings.MANUAL_LOCALES).toBe(17)
+		expect(table.concat(missing, ", ")).toBe("")
 	end)
 end)

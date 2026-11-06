@@ -35,6 +35,7 @@ local Layout = require("../../src/ui/Layout")
 local Nav = require("../../src/ui/Nav")
 local PlayerSettings = require("../../src/shared/PlayerSettings")
 local Remotes = require("../../src/shared/Remotes")
+local RobloxTranslator = require("../../../../shared/luau/src/locale/RobloxTranslator")
 local Shops = require("../../src/shared/Shops")
 local SlimeDex = require("../../src/ui/SlimeDex")
 local Text = require("../../src/ui/Text")
@@ -239,13 +240,14 @@ local function fmt(r: Rect): string
 end
 LayoutAssert.fmt = fmt
 
--- Every target viewport (default VIEWPORTS).
+-- Every target viewport (default VIEWPORTS); `options` goes to Layout.screen (e.g. { longText = true }).
 function LayoutAssert.screens(
-	viewports: { { name: string, w: number, h: number } }?
+	viewports: { { name: string, w: number, h: number } }?,
+	options: Layout.ScreenOptions?
 ): { { label: string, screen: Layout.Screen } }
 	local out = {}
 	for _, vp in viewports or LayoutAssert.VIEWPORTS do
-		table.insert(out, { label = vp.name, screen = Layout.screen(vp.w, vp.h) })
+		table.insert(out, { label = vp.name, screen = Layout.screen(vp.w, vp.h, options) })
 	end
 	return out
 end
@@ -476,19 +478,23 @@ function LayoutAssert.tooltipCards(): { { title: string, body: string, time: str
 	return cards
 end
 
--- Nav tile labels (the icon is a picture): the label under the tile in the button's width.
+-- Nav tile labels (the icon is a picture): the label under the tile in the button's width. A long-text screen
+-- (screen.longText) draws the pseudo-language on two wrapped lines, measured at MIN_TEXT (Widgets.fitText).
+local pseudo = RobloxTranslator.pseudo(Text.catalog)
 function LayoutAssert.navTexts(screen: Layout.Screen): { TextDesc }
 	local out: { TextDesc } = {}
-	local N = Layout.NAV
+	local long = screen.longText
+	local labelH, labelSize = Layout.navLabel(screen.compact, long)
 	for i, entry in Nav.ENTRIES do
 		local b = screen.navButtons[i]
 		table.insert(out, {
 			name = `Nav {entry.key}`,
-			text = entry.label,
-			size = if screen.compact then N.clabelSize else N.labelSize,
+			text = if long then pseudo.t(entry.text) else entry.label,
+			size = if long then Layout.MIN_TEXT else labelSize,
 			bold = true,
 			w = b.w,
-			h = if screen.compact then N.clabel else N.label,
+			h = labelH,
+			wrapped = long,
 		})
 	end
 	return out
@@ -1396,7 +1402,7 @@ function LayoutAssert.notSquashed(check: Checker)
 			)
 		)
 	end
-	local cellW, cellH = Layout.navCellSize(screen.compact)
+	local cellW, cellH = Layout.navCellSize(screen.compact, screen.longText)
 	for i, b in screen.navButtons do
 		local name = `Nav.{Nav.ENTRIES[i].key}`
 		check.aspect(name, b, cellW, cellH)

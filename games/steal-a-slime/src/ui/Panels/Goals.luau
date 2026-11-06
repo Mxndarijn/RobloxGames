@@ -47,6 +47,11 @@ local ROW = table.freeze({
 	listGap = 8,
 })
 
+-- Long-text mode (Text.longText): the title and the detail line always get this many lines at their design size
+-- (the card is narrower on a phone than any estimate can know), the detail line takes the whole text column and
+-- the "Next:" text goes on its own line under it; the row grows to fit them.
+local LONG = table.freeze({ lines = 2 })
+
 local TOP = table.freeze({
 	h = 26,
 	gap = 6, -- top line to list
@@ -112,14 +117,14 @@ local function rowParts(frame: Frame, titleName: string, iconId: string, ctx: an
 	}, ItemIcons.of(ctx))
 	local textX = ROW.pad + GoalsPanel.ICON + ROW.gap
 	local textW = -(textX + ROW.gap + slot.w + ROW.pad)
-	local title = Widgets.label({
+	local title = Widgets.fitText(Widgets.label({
 		Name = titleName,
 		Font = Theme.Font,
 		TextSize = ROW.name,
 		Size = UDim2.new(1, textW, 0, ROW.nameH),
 		Position = UDim2.fromOffset(textX, ROW.nameY),
 		Parent = frame,
-	})
+	}))
 	local reward = Widgets.status({
 		Name = "Reward",
 		TextSize = ROW.reward,
@@ -129,7 +134,8 @@ local function rowParts(frame: Frame, titleName: string, iconId: string, ctx: an
 		Size = UDim2.fromOffset(slot.w, slot.h),
 		Parent = frame,
 	})
-	local _, setBar = Widgets.bar(frame, Theme.Good, UDim2.new(1, textW, 0, ROW.bar), UDim2.fromOffset(textX, ROW.barY))
+	local bar, setBar =
+		Widgets.bar(frame, Theme.Good, UDim2.new(1, textW, 0, ROW.bar), UDim2.fromOffset(textX, ROW.barY))
 	local detail = Widgets.label({
 		Name = "Detail",
 		TextSize = ROW.meta,
@@ -149,29 +155,62 @@ local function rowParts(frame: Frame, titleName: string, iconId: string, ctx: an
 		Size = UDim2.fromOffset(0, ROW.metaH),
 		Parent = frame,
 	})
+	local long = Text.longText()
+	if long then
+		title.TextWrapped = true
+		detail.TextWrapped = true
+		nextStep.AnchorPoint = Vector2.zero
+		nextStep.TextXAlignment = Enum.TextXAlignment.Left
+	end
 	return {
 		instance = frame,
 		icon = icon,
 		textX = textX,
 		textW = textW,
+		long = long,
 		title = title,
 		reward = reward,
+		bar = bar,
 		setBar = setBar,
 		detail = detail,
 		nextStep = nextStep,
 	}
 end
 
--- Name, bar, meta line (`nextText` right-aligned beside it) and the faded look of a finished row.
+-- Name, bar, meta line (`nextText` right-aligned beside it) and the faded look of a finished row. The bar and the
+-- meta line sit under the name however many lines it takes, and the row grows with them.
 local function paintRow(row: any, name: string, done: boolean, fraction: number, meta: string, nextText: string?)
 	row.title.Text = name
 	row.title.TextColor3 = if done then Theme.Muted else Theme.Text
 	row.setBar(fraction)
 	row.detail.Text = meta
 	row.nextStep.Text = nextText or ""
+	if row.long then
+		local titleH = math.ceil(LONG.lines * Layout.LINE_HEIGHT * ROW.name)
+		local metaH = math.ceil(LONG.lines * Layout.LINE_HEIGHT * ROW.meta)
+		local down = titleH - ROW.nameH
+		local nextH = if nextText then ROW.metaH else 0
+		row.title.Size = UDim2.new(1, row.textW, 0, titleH)
+		row.bar.Position = UDim2.fromOffset(row.textX, ROW.barY + down)
+		row.detail.Position = UDim2.fromOffset(row.textX, ROW.metaY + down)
+		row.detail.Size = UDim2.new(1, row.textW, 0, metaH)
+		row.nextStep.Position = UDim2.fromOffset(row.textX, ROW.metaY + down + metaH)
+		row.nextStep.Size = UDim2.new(1, row.textW, 0, nextH)
+		row.instance.Size = UDim2.new(1, 0, 0, ROW.h + down + (metaH - ROW.metaH) + nextH)
+		row.instance.BackgroundTransparency = if done then ROW.fade else 0
+		return
+	end
 	local nextW = if nextText then math.ceil(Layout.lineWidth(nextText, ROW.meta)) + 2 else 0
+	local detailW = row.textW - (nextW + (if nextW > 0 then 6 else 0))
+	local titleH, metaH = ROW.nameH, ROW.metaH
+	local down = titleH - ROW.nameH
+	row.title.Size = UDim2.new(1, row.textW, 0, titleH)
+	row.bar.Position = UDim2.fromOffset(row.textX, ROW.barY + down)
+	row.nextStep.Position = UDim2.new(1, -(ROW.pad + Layout.ROW_SLOT.w + ROW.gap), 0, ROW.metaY + down)
 	row.nextStep.Size = UDim2.fromOffset(nextW, ROW.metaH)
-	row.detail.Size = UDim2.new(1, row.textW - (nextW + (if nextW > 0 then 6 else 0)), 0, ROW.metaH)
+	row.detail.Position = UDim2.fromOffset(row.textX, ROW.metaY + down)
+	row.detail.Size = UDim2.new(1, detailW, 0, metaH)
+	row.instance.Size = UDim2.new(1, 0, 0, ROW.h + down + metaH - ROW.metaH)
 	row.instance.BackgroundTransparency = if done then ROW.fade else 0
 end
 

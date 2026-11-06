@@ -1,7 +1,8 @@
 --!strict
 -- PR gate layout (tools/pr-gate/layout.sh): every rule at the six gate
 -- viewports (390x844, 844x390, 768x1024, 1024x768, 1366x768, 1920x1080), each raw and
--- minus the 58 px top bar (the ScreenGui's real size, IgnoreGuiInset off):
+-- minus the 58 px top bar (the ScreenGui's real size, IgnoreGuiInset off), in English and in long-text mode
+-- (Text.longText: two-line nav labels, the pseudo-language):
 -- LayoutAssert.standard, navReachable (on screen, nothing drawn
 -- over a nav button), noNegativeSizes and notSquashed (aspect ratio). The
 -- fixtures at the bottom prove each class of bug PR #60 fixed still fails.
@@ -27,6 +28,12 @@ for _, vp in LayoutAssert.GATE_VIEWPORTS do
 	table.insert(VIEWPORTS, vp)
 	table.insert(VIEWPORTS, { name = `{vp.w}x{vp.h - TOPBAR}`, w = vp.w, h = vp.h - TOPBAR })
 end
+
+-- English, and a long-text language (Layout.screen's longText option).
+local MODES: { { name: string, longText: boolean } } = {
+	{ name = "English", longText = false },
+	{ name = "long text", longText = true },
+}
 
 local function unexpected(label: string, report: string): (string, number)
 	local out, known = {}, 0
@@ -63,12 +70,24 @@ local function navIndex(key: string): number
 end
 
 describe("PR gate: six viewports (raw and under the top bar), every layout rule", function()
-	for _, entry in LayoutAssert.screens(VIEWPORTS) do
-		it(`{entry.label}: on screen, unoccluded, not squashed, text fits`, function()
-			local rest = unexpected(entry.label, gate(entry.label, entry.screen))
-			expect(rest).toBe("")
-		end)
+	for _, mode in MODES do
+		for _, entry in LayoutAssert.screens(VIEWPORTS, { longText = mode.longText }) do
+			local label = `{entry.label} {mode.name}`
+			it(`{label}: on screen, unoccluded, not squashed, text fits`, function()
+				local rest = unexpected(label, gate(label, entry.screen))
+				expect(rest).toBe("")
+			end)
+		end
 	end
+	it("long text: nav labels get two lines, so the nav is taller; English keeps its size", function()
+		for _, vp in VIEWPORTS do
+			local english, long = Layout.screen(vp.w, vp.h), Layout.screen(vp.w, vp.h, { longText = true })
+			expect(english.longText).toBe(false)
+			expect(long.longText).toBe(true)
+			expect(long.navButtons[1].h > english.navButtons[1].h).toBe(true)
+			expect(english.navButtons[1].h).toBe(select(2, Layout.navCellSize(english.compact)))
+		end
+	end)
 end)
 
 -- Touch devices: Roblox's jump button sits bottom-right, so the status cluster steps left of it. The gate
@@ -87,12 +106,15 @@ describe("PR gate: touch layouts keep the status icons off the jump button", fun
 			expect(check.report()).toBe("")
 		end)
 	end
-	for _, vp in VIEWPORTS do
-		it(`{vp.name} touch: every layout rule holds`, function()
-			local label = `{vp.name} touch`
-			local rest = unexpected(label, gate(label, Layout.screen(vp.w, vp.h, { touch = true })))
-			expect(rest).toBe("")
-		end)
+	for _, mode in MODES do
+		for _, vp in VIEWPORTS do
+			local label = `{vp.name} touch {mode.name}`
+			it(`{label}: every layout rule holds`, function()
+				local screen = Layout.screen(vp.w, vp.h, { touch = true, longText = mode.longText })
+				local rest = unexpected(label, gate(label, screen))
+				expect(rest).toBe("")
+			end)
+		end
 	end
 	it("without touch the layout is untouched (the status icons keep the bottom-right corner)", function()
 		for _, vp in VIEWPORTS do

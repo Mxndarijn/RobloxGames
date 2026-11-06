@@ -92,9 +92,13 @@ A hidden, muted Studio on the memory store, pseudo-language forced, every menu o
 
 Font check (Fredoka One, Nunito Bold, Nunito Heavy, Builder Sans Heavy): ![fonts](translations/fonts-check.jpg)
 
-### Layout decisions (need Merijn's pick)
+### Layout decision
 
-Labels whose pseudo text did not fit even at 14 px (labels per screen size; the pseudo-language is about 60% longer
+**Decided (Merijn, 2026-11-07): "A + C".** A: two-line labels in the spots below, 14 px stays the minimum (no
+12 px). C: short hand-written translations, for the 17 languages, for the one-word labels that still don't fit.
+How it is built and the before/after are in "Long text (A + C)" below.
+
+Before: labels whose pseudo text did not fit even at 14 px (labels per screen size; the pseudo-language is about 60% longer
 than English with its brackets, real German or Spanish 30-60%):
 
 | Where | Phones / tablet | 1366x768 | 1920x1080 | Real example |
@@ -113,8 +117,53 @@ Options:
 - **C.** Shorter manual translations for the dozen UI words that overflow (nav names, "Stage"), locked in Creator Hub
   so automatic translation keeps them.
 
-Recommended: A for the nav and lists, C for the few single words. Until then the text is cut with "…" or shrinks
-to 14 px; nothing overlaps.
+### Long text (A + C)
+
+- `Text.longText()` is true in every language but English. In English nothing changes; in long-text mode the spots
+  above get room for two lines at their own text size (never under 14 px, `Widgets.fitText`), and whatever sits
+  under them moves down:
+  - Nav tiles: two-line labels (16 px, 14 px on phones); the nav rows grow and a short screen gets more columns
+    (`Layout.screen(w, h, { longText })`).
+  - Skins rows and Goals rows: two-line titles; the Goals detail line takes the whole text column with "Next:" on
+    its own line under it; the rows grow.
+  - Exclusive shop: card names get three lines, tags two, tabs wrap; WorldShop Buy buttons wrap.
+  - Merge result column 30 px wider (148 px; the arrow and the gaps beside it give the room), two-line title.
+  - Welcome daily tiles: two-line day and reward words; the card grows to fit.
+- C: `src/shared/Strings/Short.luau` holds short translations for 13 one-word labels (nav names, the Featured and
+  leaderboard tabs, "Stage", "Day", "Egg") in the 17 languages. `scripts/gen-locale` writes them into
+  `locale/Strings.csv` as locale columns (`ar`, `de`, ... `zh-hans`, `zh-hant`; a player's locale falls back to its
+  language, checked in Studio), so the place answers them and the cloud table gets them as manual entries that
+  automatic translation leaves alone. They were written by the AI: a native speaker should check them.
+
+Studio check after (2026-11-07, hidden and muted, memory store, pseudo-language, every menu at the six gate
+viewports, Roblox's `TextFits`): labels that don't fit at 14 px.
+
+| Viewport | Before | After | What is left |
+|---|---|---|---|
+| 390x844 | 43 | 10 | single pseudo words: 6 nav labels, 2 leaderboard tabs, "Day 1", one rarity |
+| 844x390 | 22 | 12 | the same words, 4 Exclusive card names |
+| 768x1024 | 21 | 11 | nav words, "Day 1", 4 Exclusive card names |
+| 1024x768 | 21 | 11 | the same |
+| 1366x768 | 7 | 0 | |
+| 1920x1080 | 4 | 0 | |
+
+What is left is one-word labels (a word can't wrap, and the pseudo-language makes "Settings" 75% longer); in real
+languages the short translations (C) cover the nav names, the tabs and "Day". The Exclusive card names left (the
+bundles in Studio; a base and two potions in `tests/ui/ExclusiveShop.spec`'s `LONG_KNOWN`) need a fourth line only
+in the pseudo-language; four lines would make every long-text card about 40 px taller.
+
+| Before (pseudo) | After (pseudo) |
+|---|---|
+| ![HUD, landscape phone](translations/pseudo-844x390-hud.jpg) | ![HUD, landscape phone](translations/after-pseudo-844x390-hud.jpg) |
+| ![Goals](translations/pseudo-1366x768-goals.jpg) | ![Goals, phone](translations/after-pseudo-390x844-goals.jpg) |
+| ![Exclusive shop](translations/pseudo-1366x768-exclusive-shop.jpg) | ![Exclusive shop, phone](translations/after-pseudo-390x844-exclusive-shop.jpg) |
+| | ![Skins, phone](translations/after-pseudo-390x844-skins.jpg) |
+
+German with the shipped short translations (nav: "Ziele", "Top", "Optionen"; the rest is English until Roblox
+translates the table): ![German HUD](translations/after-de-844x390-hud.jpg)
+
+Not covered: the English compact nav label is 13 px (`Layout.NAV.clabelSize`), under the 14 px floor; it is
+unchanged here (English), and long-text mode uses 14 px.
 
 ## Creator Hub steps (Merijn)
 

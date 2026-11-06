@@ -185,7 +185,7 @@ end
 -- box otherwise, and never goes under Layout.MIN_TEXT (tests/ui/Translations.spec measures it there). English is
 -- laid out to fit, so in English nothing changes (and no instance is added).
 function Widgets.fitText<T>(inst: T): T
-	if string.sub(string.lower(Text.locale()), 1, 2) == "en" then
+	if not Text.longText() then
 		return inst
 	end
 	local label = inst :: any

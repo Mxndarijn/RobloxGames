@@ -113,6 +113,25 @@ describe("Localize.csv", function()
 	end)
 end)
 
+describe("Localize manual translations", function()
+	it("adds one column per locale and leaves other cells empty", function()
+		local csv = Localize.csv(catalog, { ["common.close"] = { de = "Zu", es = "Cerrar" } })
+		local lines = string.split(csv, "\n")
+		expect(lines[1]).toBe("Key,Source,Context,Example,de,es")
+		expect(lines[2]).toBe("common.close,Close,,,Zu,Cerrar")
+		expect(lines[3]).toBe("item.coil,Speed Coil,,,,")
+	end)
+
+	it("refuses unknown keys and lost or added parameters", function()
+		local bad = Localize.checkManual(catalog, {
+			["no.such"] = { de = "x" },
+			["steal.done"] = { de = "Gestohlen!", es = "¡Robaste a {slime}!" },
+		})
+		expect(#bad).toBe(2)
+		expect(pcall(Localize.csv, catalog, { ["no.such"] = { de = "x" } })).toBe(false)
+	end)
+end)
+
 describe("LocaleFonts", function()
 	it("maps locale ids to scripts", function()
 		expect(LocaleFonts.script("ru-ru")).toBe("cyrillic")

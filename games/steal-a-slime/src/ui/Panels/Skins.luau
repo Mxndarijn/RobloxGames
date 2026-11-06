@@ -60,6 +60,7 @@ local STYLE = table.freeze({
 	name = 16,
 	nameH = 20,
 	state = Layout.MIN_TEXT,
+	stateH = 18,
 	bar = 10,
 	selectStroke = 3,
 	-- pane
@@ -80,6 +81,10 @@ local STYLE = table.freeze({
 	wellRadius = 11,
 	priceW = 56, -- an Exclusive row's price, right-aligned ("R$599")
 })
+
+-- Long-text mode (Text.longText): a row's title or state line that one line does not hold wraps to this many
+-- lines at its design size, and the row grows to fit them.
+local LONG = table.freeze({ lines = 2 })
 
 -- The pane's slime cells: how many fit across `inner` px and how wide each is.
 function Skins.cells(inner: number): (number, number)
@@ -254,6 +259,30 @@ function Skins.new(parent: Instance, ctx: any)
 		})
 	end
 
+	-- A row's text column (right of its icon) while the list scrolls, so a wrap measured here never grows.
+	local function rowTextWidth(): number
+		return listWidth() - STYLE.rowPad * 3 - STYLE.icon - list.ScrollBarThickness
+	end
+	-- Long-text mode: a row line that wraps in the text column gets LONG.lines at `size`; otherwise `oneH`.
+	local long = Text.longText()
+	local function lineBox(text: string, size: number, oneH: number): number
+		if long and Layout.wrappedHeight(text, size, rowTextWidth(), true) > size * Layout.LINE_HEIGHT then
+			return math.max(oneH, math.ceil(LONG.lines * Layout.LINE_HEIGHT * size))
+		end
+		return oneH
+	end
+	-- How much taller than STYLE.rowH a row is for a title `titleH` and a state line `stateH` tall.
+	local function rowGrowth(titleH: number, stateH: number): number
+		return titleH - STYLE.nameH + stateH - STYLE.stateH
+	end
+	local function wrapInLong(...: TextLabel)
+		if long then
+			for _, label in { ... } do
+				label.TextWrapped = true
+			end
+		end
+	end
+
 	-- Skin rows.
 	local function makeRow(row: PlotSkinsView.Row): any
 		local frame = create("TextButton", {
@@ -316,6 +345,7 @@ function Skins.new(parent: Instance, ctx: any)
 			Parent = frame,
 		})
 		local price = priceLabel(frame, 10 + STYLE.nameH + 4)
+		wrapInLong(title, stateLabel)
 		frame.Activated:Connect(function()
 			selected = frame:GetAttribute("SkinId") :: string?
 			repaint()
@@ -367,6 +397,18 @@ function Skins.new(parent: Instance, ctx: any)
 		r.count.Text = row.count
 		r.price.Visible = row.exclusive and row.price ~= ""
 		r.price.Text = row.price
+		-- The state line, bar, count and price sit under the title, however many lines it takes.
+		local textX = STYLE.rowPad * 2 + STYLE.icon
+		local titleH = lineBox(row.title, STYLE.name, STYLE.nameH)
+		local stateH = if r.state.Visible then lineBox(r.state.Text, STYLE.state, STYLE.stateH) else STYLE.stateH
+		local lineY = 10 + titleH + 4
+		r.instance.Size = UDim2.new(1, 0, 0, STYLE.rowH + rowGrowth(titleH, stateH))
+		r.title.Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, titleH)
+		r.state.Position = UDim2.fromOffset(textX, lineY)
+		r.state.Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, stateH)
+		r.bar.Position = UDim2.fromOffset(textX, 10 + titleH + 8)
+		r.count.Position = UDim2.new(1, -STYLE.rowPad, 0, lineY)
+		r.price.Position = UDim2.new(1, -STYLE.rowPad, 0, lineY)
 	end
 
 	local rows = Widgets.keyedList(
@@ -380,17 +422,17 @@ function Skins.new(parent: Instance, ctx: any)
 		end
 	)
 
-	-- Building and Cloud rows: taller while they carry an unlock line.
+	-- Building and Cloud rows: taller while they carry an unlock line (or a title on two lines, long-text mode).
 	-- The unlock line's width while the list scrolls (its bar takes room), so a wrap measured here never grows.
 	local function itemTextWidth(): number
 		return listWidth() - STYLE.rowPad * 3 - STYLE.icon - itemLists.cloud.ScrollBarThickness
 	end
-	local function itemRowHeight(row: PetSeatsView.Row): number
+	local function itemRowHeight(row: PetSeatsView.Row, titleH: number, stateH: number): number
 		if row.state ~= "locked" or row.exclusive then
-			return STYLE.rowH
+			return STYLE.rowH + rowGrowth(titleH, if row.state ~= "locked" then stateH else STYLE.stateH)
 		end
 		local lineH = math.ceil(Layout.wrappedHeight(row.line, STYLE.seatLine, itemTextWidth()))
-		return math.max(STYLE.rowH, 8 + STYLE.nameH + 2 + lineH + STYLE.bar + 6 + 8)
+		return math.max(STYLE.rowH + rowGrowth(titleH, STYLE.stateH), 8 + titleH + 2 + lineH + STYLE.bar + 6 + 8)
 	end
 
 	local function makeItemRow(key: string, row: PetSeatsView.Row): any
@@ -420,14 +462,14 @@ function Skins.new(parent: Instance, ctx: any)
 		}, icons)
 		local textX = STYLE.rowPad * 2 + STYLE.icon
 		local lineY = 8 + STYLE.nameH + 2
-		local title = Widgets.label({
+		local title = Widgets.fitText(Widgets.label({
 			Name = "Title",
 			Font = Theme.Font,
 			TextSize = STYLE.name,
 			Position = UDim2.fromOffset(textX, 8),
 			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, STYLE.nameH),
 			Parent = frame,
-		})
+		}))
 		local stateLabel = Widgets.label({
 			Name = "State",
 			Font = Theme.Font,
@@ -475,6 +517,7 @@ function Skins.new(parent: Instance, ctx: any)
 			Size = UDim2.fromOffset(countW, 18),
 			Parent = frame,
 		})
+		wrapInLong(title, stateLabel)
 		frame.Activated:Connect(function()
 			picks[key] = frame:GetAttribute(item.idAttribute) :: string?
 			repaint()
@@ -499,7 +542,6 @@ function Skins.new(parent: Instance, ctx: any)
 		local locked = row.state == "locked"
 		local on = row.id == picks[key]
 		local textX = STYLE.rowPad * 2 + STYLE.icon
-		r.instance.Size = UDim2.new(1, 0, 0, itemRowHeight(row))
 		r.instance:SetAttribute(ITEM_TABS[key].idAttribute, row.id)
 		r.instance:SetAttribute("State", row.state)
 		r.instance:SetAttribute("Selected", on)
@@ -519,8 +561,17 @@ function Skins.new(parent: Instance, ctx: any)
 		r.tag.Visible = row.exclusive
 		r.price.Visible = row.exclusive and row.price ~= ""
 		r.price.Text = row.price
+		-- Everything under the title moves down with it.
+		local titleH = lineBox(row.title, STYLE.name, STYLE.nameH)
+		local stateH = if r.state.Visible then lineBox(r.state.Text, STYLE.state, STYLE.stateH) else STYLE.stateH
+		local y = 8 + titleH + 2
+		r.instance.Size = UDim2.new(1, 0, 0, itemRowHeight(row, titleH, stateH))
+		r.title.Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, titleH)
+		r.state.Position = UDim2.fromOffset(textX, y)
+		r.state.Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, stateH)
+		r.tag.Position = UDim2.fromOffset(textX, y)
+		r.price.Position = UDim2.new(1, -STYLE.rowPad, 0, y + 1)
 		local hasLine = locked and not row.exclusive
-		local y = 8 + STYLE.nameH + 2
 		local lineH = if hasLine then math.ceil(Layout.wrappedHeight(row.line, STYLE.seatLine, itemTextWidth())) else 0
 		r.line.Visible = hasLine
 		r.line.Text = row.line
@@ -607,6 +658,7 @@ function Skins.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, 18),
 			Parent = frame,
 		})
+		wrapInLong(title, stateLabel)
 		frame.Activated:Connect(function()
 			picks[Skins.PET_TAB] = frame:GetAttribute("PetId") :: string?
 			repaint()
@@ -638,6 +690,13 @@ function Skins.new(parent: Instance, ctx: any)
 		r.state.Text = PetSpeciesView.stateText(row)
 		r.state.TextColor3 = if row.state == "equipped" then Theme.Good else Theme.Muted
 		r.row = row
+		local textX = STYLE.rowPad * 2 + STYLE.icon
+		local titleH = lineBox(row.title, STYLE.name, STYLE.nameH)
+		local stateH = lineBox(r.state.Text, STYLE.state, STYLE.stateH)
+		r.instance.Size = UDim2.new(1, 0, 0, STYLE.rowH + rowGrowth(titleH, stateH))
+		r.title.Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, titleH)
+		r.state.Position = UDim2.fromOffset(textX, 10 + titleH + 4)
+		r.state.Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, stateH)
 	end
 
 	local petRows = Widgets.keyedList(
@@ -1095,7 +1154,8 @@ function Skins.new(parent: Instance, ctx: any)
 		end
 		table.sort(order, function(a, b)
 			local ya, yb = a.instance.Position.Y.Offset, b.instance.Position.Y.Offset
-			local da, db = math.abs(ya + STYLE.rowH / 2 - centre), math.abs(yb + STYLE.rowH / 2 - centre)
+			local ha, hb = a.instance.Size.Y.Offset, b.instance.Size.Y.Offset
+			local da, db = math.abs(ya + ha / 2 - centre), math.abs(yb + hb / 2 - centre)
 			if da ~= db then
 				return da < db
 			end

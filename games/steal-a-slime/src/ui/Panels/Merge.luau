@@ -51,7 +51,25 @@ local SIZE = table.freeze({
 	badgeInset = 10, -- px from the slot's top-right corner box to the badge's centre
 	arrowW = 30,
 	orb = 72,
+	orbInset = 10, -- the orb's left edge in the result card; the text column's right inset too
+	orbTextGap = 12, -- between the orb and the text column
+	titleY = 10,
+	titleH = 22,
+	chipY = 34, -- the rarity pill under the title
+	oddsY = 62,
+	oddsH = 34,
+	resultFoot = 6, -- under the odds text
 	resultMin = 170,
+	-- Long-text mode (Text.longText): the result's text column is 30 px wider, taken from the arrow, the gaps
+	-- beside it and the card's insets; the title wraps to two lines and the odds to three.
+	long = table.freeze({
+		arrowW = 20,
+		gap = 5,
+		orbInset = 5,
+		titleLines = 2,
+		oddsLines = 3,
+		rowGap = 2, -- between the title, the pill and the odds
+	}),
 	reasonH = 40,
 	timerH = 44,
 	barH = 14,
@@ -278,6 +296,7 @@ function Merge.new(parent: Instance, ctx: any)
 	local state: any = nil
 	local open = false
 	local bodyW = Layout.MENU_WIDTH - Layout.PANEL_CHROME.pad * 2
+	local longText = Text.longText()
 	local reveal: { title: string, sub: string, slime: any, tier: number, untilAt: number }? = nil
 	local pending: { at: number, known: { [string]: boolean } }? = nil
 	local view: View? = nil
@@ -452,9 +471,15 @@ function Merge.new(parent: Instance, ctx: any)
 		Size = UDim2.fromScale(1, 1),
 		Parent = orb,
 	})
-	local resultTitle = Widgets.fitText(
-		Widgets.label({ Name = "Title", Font = Theme.Font, TextSize = SIZE.textTitle, Parent = result })
-	)
+	local resultTitle = Widgets.fitText(Widgets.label({
+		Name = "Title",
+		Font = Theme.Font,
+		TextSize = SIZE.textTitle,
+		TextWrapped = if longText then true else nil,
+		TextTruncate = if longText then Enum.TextTruncate.None else nil,
+		TextYAlignment = if longText then Enum.TextYAlignment.Top else nil,
+		Parent = result,
+	}))
 	local resultChip = Widgets.chip({ Name = "RarityPill", Parent = result })
 	local resultOdds = Widgets.fitText(Widgets.label({
 		Name = "Odds",
@@ -565,8 +590,11 @@ function Merge.new(parent: Instance, ctx: any)
 		y += SIZE.chipH + SIZE.gap + 8
 
 		local slotsW = SLOTS * SIZE.slot + (SLOTS - 1) * SIZE.slotGap
-		local resultW = math.max(SIZE.resultMin, bodyW - slotsW - SIZE.arrowW - SIZE.gap * 2)
-		local stacked = slotsW + SIZE.arrowW + SIZE.resultMin + SIZE.gap * 2 > bodyW
+		local arrowW = if longText then SIZE.long.arrowW else SIZE.arrowW
+		local sideGap = if longText then SIZE.long.gap else SIZE.gap
+		local orbInset = if longText then SIZE.long.orbInset else SIZE.orbInset
+		local resultW = math.max(SIZE.resultMin, bodyW - slotsW - arrowW - sideGap * 2)
+		local stacked = slotsW + arrowW + SIZE.resultMin + sideGap * 2 > bodyW
 		local slotsX = if stacked then math.floor((bodyW - slotsW) / 2) else 0
 		local loadH = SIZE.slot + SIZE.nameH + SIZE.rarityH + 6
 		for i, ui in slotUis do
@@ -581,7 +609,19 @@ function Merge.new(parent: Instance, ctx: any)
 			ui.x.Position = corner
 			ui.lock.Position = corner
 		end
+		-- The text column: title, rarity pill, odds. Long text gives the title two lines and the odds three.
+		local titleY = SIZE.titleY
+		local titleH, chipY, oddsY, oddsH = SIZE.titleH, SIZE.chipY, SIZE.oddsY, SIZE.oddsH
+		if longText then
+			titleH = math.ceil(SIZE.long.titleLines * SIZE.textTitle * Layout.LINE_HEIGHT)
+			chipY = titleY + titleH + SIZE.long.rowGap
+			oddsY = chipY + SIZE.chipH + SIZE.long.rowGap
+			oddsH = math.ceil(SIZE.long.oddsLines * SIZE.textSmall * Layout.LINE_HEIGHT)
+		end
 		local resultH = SIZE.orb + 30
+		if longText then
+			resultH = math.max(resultH, oddsY + oddsH + SIZE.resultFoot)
+		end
 		if stacked then
 			arrow.Visible = false
 			result.Position = UDim2.fromOffset(0, loadH + SIZE.gap)
@@ -589,19 +629,22 @@ function Merge.new(parent: Instance, ctx: any)
 			loadH += SIZE.gap + resultH
 		else
 			arrow.Visible = true
-			arrow.Position = UDim2.fromOffset(slotsW + SIZE.gap, SIZE.slotTop)
-			arrow.Size = UDim2.fromOffset(SIZE.arrowW, SIZE.slot)
-			result.Position = UDim2.fromOffset(slotsW + SIZE.arrowW + SIZE.gap * 2, 0)
+			arrow.Position = UDim2.fromOffset(slotsW + sideGap, SIZE.slotTop)
+			arrow.Size = UDim2.fromOffset(arrowW, SIZE.slot)
+			result.Position = UDim2.fromOffset(slotsW + arrowW + sideGap * 2, 0)
 			result.Size = UDim2.fromOffset(resultW, math.max(resultH, SIZE.slot + 12))
+			if longText then
+				loadH = math.max(loadH, result.Size.Y.Offset)
+			end
 		end
-		local textX = SIZE.orb + 22
-		local textW = result.Size.X.Offset - textX - 10
-		orb.Position = UDim2.new(0, 10, 0.5, 0)
-		resultTitle.Position = UDim2.fromOffset(textX, 10)
-		resultTitle.Size = UDim2.fromOffset(textW, 22)
-		resultChip.Position = UDim2.fromOffset(textX, 34)
-		resultOdds.Position = UDim2.fromOffset(textX, 62)
-		resultOdds.Size = UDim2.fromOffset(textW, 34)
+		local textX = orbInset + SIZE.orb + SIZE.orbTextGap
+		local textW = result.Size.X.Offset - textX - orbInset
+		orb.Position = UDim2.new(0, orbInset, 0.5, 0)
+		resultTitle.Position = UDim2.fromOffset(textX, titleY)
+		resultTitle.Size = UDim2.fromOffset(textW, titleH)
+		resultChip.Position = UDim2.fromOffset(textX, chipY)
+		resultOdds.Position = UDim2.fromOffset(textX, oddsY)
+		resultOdds.Size = UDim2.fromOffset(textW, oddsH)
 		resultOdds.TextYAlignment = Enum.TextYAlignment.Top
 		load.Position = UDim2.fromOffset(0, y)
 		load.Size = UDim2.fromOffset(bodyW, loadH)

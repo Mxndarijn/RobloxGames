@@ -42,6 +42,7 @@ WorldShop.ROW_THIN = 48 -- maxed, owned or not yet unlocked: name over one line
 WorldShop.BADGE = 48
 WorldShop.BADGE_THIN = 32
 WorldShop.BUY_W = 170 -- fits "Need $987.6Qa more"; narrower than Layout.ROW_SLOT so a phone row keeps room for two lines of text
+WorldShop.BUY_PAD_LONG = 8 -- long text: each side of the Buy button's wrapped text, clear of the pill's round ends
 WorldShop.THIN_SLOT_H = 36 -- the status well of a thin row
 WorldShop.NAME_H = 22
 WorldShop.DESC_H = 34
@@ -386,6 +387,9 @@ function WorldShop.new(parent: Instance, ctx: any)
 				Position = slotCentre,
 				Size = UDim2.fromOffset(WorldShop.BUY_W, Layout.BUTTON),
 				TextSize = SIZE.buy,
+				-- Long text: a long price line ("Need $987.6Qa more") wraps to two lines in the button.
+				TextWrapped = if Text.longText() then true else nil,
+				TextTruncate = if Text.longText() then Enum.TextTruncate.None else nil,
 			},
 			Theme.Good,
 			function()
@@ -399,6 +403,13 @@ function WorldShop.new(parent: Instance, ctx: any)
 			ctx.Config.HOLD_CONFIRM_SECONDS
 		)
 		Widgets.fitText(buy.instance)
+		if Text.longText() then
+			create("UIPadding", {
+				PaddingLeft = UDim.new(0, WorldShop.BUY_PAD_LONG),
+				PaddingRight = UDim.new(0, WorldShop.BUY_PAD_LONG),
+				Parent = buy.instance,
+			})
+		end
 		buy.instance.Parent = frame
 		local status = Widgets.status({
 			Text = "",

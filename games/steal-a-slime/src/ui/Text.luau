@@ -228,6 +228,14 @@ function Text.fontLocale(): string
 	return (if loc then robloxLocaleId(loc) else nil) or "en-us"
 end
 
+-- Long-text layout: true in every language but English. English is laid out to fit on one line; in other
+-- languages the labels that run long (nav tiles, list titles, card names, the Goals detail line, the daily
+-- tiles) get room for two lines, never under Layout.MIN_TEXT (Merijn's pick "A + C", docs/translations.md).
+-- Never yields, so layouts can read it at build time.
+function Text.longText(): boolean
+	return string.sub(string.lower(Text.fontLocale()), 1, 2) ~= "en"
+end
+
 -- The FontFace that replaces the display font (Fredoka One) for this language, or nil to keep it.
 function Text.displayFont(): Font?
 	return LocaleFonts.pick(Text.fontLocale(), Text.FONTS :: any, nil :: Font?)

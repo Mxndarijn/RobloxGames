@@ -94,6 +94,13 @@ ExclusiveShop.STYLE = table.freeze({
 	rowGap = 6,
 	rowPad = 12, -- a player row's text inset
 	friendW = 70, -- the Friend chip on a row
+	-- Long-text mode (Text.longText): tab names wrap and shrink to fit the tab (never under Layout.MIN_TEXT); a
+	-- card's name gets three lines and its tag two (a rounded box instead of a pill), the card growing to match.
+	long = table.freeze({
+		nameLines = 3,
+		tagLines = 2,
+		tagRadius = 8,
+	}),
 })
 
 -- The Strings key of each tab's name (Config.EXCLUSIVE_SHOP.tabs); a tab missing here shows its key.
@@ -140,10 +147,27 @@ function ExclusiveShop.grid(inner: number): (number, number)
 	return columns, math.floor((inner - STYLE.cardGap * (columns - 1)) / columns)
 end
 
+-- Height of a card's name box: two lines, three in long-text mode.
+function ExclusiveShop.nameHeight(): number
+	if Text.longText() then
+		return math.ceil(STYLE.long.nameLines * STYLE.name * Layout.LINE_HEIGHT)
+	end
+	return STYLE.nameH
+end
+
+-- Height of a card's tag: one line, two in long-text mode.
+function ExclusiveShop.tagHeight(): number
+	if Text.longText() then
+		return math.max(STYLE.tagH, math.ceil(STYLE.long.tagLines * STYLE.tag * Layout.LINE_HEIGHT))
+	end
+	return STYLE.tagH
+end
+
 -- A card's icon size and height for a card `cardW` wide (pure; tests).
 function ExclusiveShop.card(cardW: number): (number, number)
 	local icon = math.min(cardW - STYLE.cardPad * 2, STYLE.iconMax)
-	return icon, STYLE.cardPad + icon + 4 + STYLE.nameH + 4 + STYLE.tagH + STYLE.cardPad + 2
+	return icon,
+		STYLE.cardPad + icon + 4 + ExclusiveShop.nameHeight() + 4 + ExclusiveShop.tagHeight() + STYLE.cardPad + 2
 end
 
 -- True when a body `bodyW` wide shows the pane as a bottom sheet.
@@ -260,6 +284,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 				Name = `Tab_{key}`,
 				Text = ExclusiveShop.tabName(key),
 				TextSize = STYLE.tabText,
+				TextWrapped = if Text.longText() then true else nil,
 				Size = UDim2.fromOffset(0, STYLE.tabH),
 				Visible = false,
 			},
@@ -272,6 +297,14 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 				repaint()
 			end
 		)
+		if Text.longText() then
+			Widgets.fitText(button.instance)
+			create("UIPadding", {
+				PaddingLeft = UDim.new(0, STYLE.tabTextPad),
+				PaddingRight = UDim.new(0, STYLE.tabTextPad),
+				Parent = button.instance,
+			})
+		end
 		button.instance.Parent = content
 		tabButtons[key] = button
 	end
@@ -379,6 +412,11 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local tagPad = tag:FindFirstChildOfClass("UIPadding") :: UIPadding
 		tagPad.PaddingLeft = UDim.new(0, STYLE.tagPad)
 		tagPad.PaddingRight = UDim.new(0, STYLE.tagPad)
+		if Text.longText() then
+			tag.TextWrapped = true
+			tag.TextTruncate = Enum.TextTruncate.None;
+			(tag:FindFirstChildOfClass("UICorner") :: UICorner).CornerRadius = UDim.new(0, STYLE.long.tagRadius)
+		end
 		frame.Activated:Connect(function()
 			local key = frame:GetAttribute("Key")
 			if type(key) == "string" then
@@ -418,11 +456,12 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local y = STYLE.cardPad + iconSize + 4
 		r.name.Text = card.title
 		r.name.Position = UDim2.fromOffset(4, y)
-		r.name.Size = UDim2.fromOffset(cardW - 8, STYLE.nameH)
-		y += STYLE.nameH + 4
+		local nameH = ExclusiveShop.nameHeight()
+		r.name.Size = UDim2.fromOffset(cardW - 8, nameH)
+		y += nameH + 4
 		r.tag.Text = card.tag
 		r.tag.Position = UDim2.new(0.5, 0, 0, y)
-		r.tag.Size = UDim2.fromOffset(cardW - 12, STYLE.tagH)
+		r.tag.Size = UDim2.fromOffset(cardW - 12, ExclusiveShop.tagHeight())
 		r.tag.TextColor3 = if card.state == "equipped"
 			then Theme.Good
 			elseif card.state == "owned" or card.state == "info" then Theme.Muted
