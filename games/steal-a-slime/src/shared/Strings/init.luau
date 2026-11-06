@@ -18,6 +18,7 @@ local Localize = if Lib then require(Lib.locale.Localize) else require("../../..
 
 local Common = if script then require(script.Common) else require("@self/Common")
 local Hud = if script then require(script.Hud) else require("@self/Hud")
+local Onboarding = if script then require(script.Onboarding) else require("@self/Onboarding")
 local Shop = if script then require(script.Shop) else require("@self/Shop")
 local Collection = if script then require(script.Collection) else require("@self/Collection")
 local Menus = if script then require(script.Menus) else require("@self/Menus")
@@ -30,6 +31,7 @@ local Strings = {}
 Strings.AREAS = table.freeze({
 	{ name = "Common", prefix = "common.", defs = Common },
 	{ name = "Hud", prefix = "hud.", defs = Hud },
+	{ name = "Onboarding", prefix = "onboarding.", defs = Onboarding },
 	{ name = "Shop", prefix = "shop.", defs = Shop },
 	{ name = "Collection", prefix = "collection.", defs = Collection },
 	{ name = "Menus", prefix = "menus.", defs = Menus },
