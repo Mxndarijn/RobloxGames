@@ -24,6 +24,7 @@ local Collection = if script then require(script.Collection) else require("@self
 local Menus = if script then require(script.Menus) else require("@self/Menus")
 local World = if script then require(script.World) else require("@self/World")
 local Data = if script then require(script.Data) else require("@self/Data")
+local Short = if script then require(script.Short) else require("@self/Short")
 local DataKey = if script then require(script.DataKey) else require("@self/DataKey")
 
 local Strings = {}
@@ -50,5 +51,9 @@ for _, area in Strings.AREAS do
 end
 
 Strings.catalog = Localize.catalog(groups)
+
+-- Hand-written translations for the one-word labels that stay too long (Strings/Short): key -> locale -> text.
+Strings.manual = Short.TRANSLATIONS
+Strings.MANUAL_LOCALES = Short.LOCALES
 
 return table.freeze(Strings)

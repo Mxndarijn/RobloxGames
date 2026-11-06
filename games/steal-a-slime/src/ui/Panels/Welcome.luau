@@ -59,6 +59,9 @@ Welcome.TILE = table.freeze({
 	amountSize = Layout.MIN_TEXT,
 	lastAmountSize = 15,
 })
+-- Long-text mode (Text.longText): a tile's day label and amount get this many lines each at their design size,
+-- and the track (and the daily row with it) grows to fit them.
+Welcome.LONG_TILE_LINES = 2
 -- A landscape phone (Layout.screen `short`): tighter rows and gaps, so the card fits without scrolling.
 Welcome.SHORT = table.freeze({ rowH = 70, nameY = 8, descY = 32, dailyH = 144, trackY = 60, gap = 6, actionGap = 8 })
 -- The Robux offers: a row of two under the list, or (short screens) one at the right of its row.
@@ -78,6 +81,14 @@ function Welcome.new(parent: Instance, ctx: any)
 	local offers = Welcome.OFFERS
 	local icons = ItemIcons.of(ctx)
 	local count = Daily.TRACK
+	-- The tile parts' heights and how much taller the track is for them (all 0 extra in English).
+	local long = Text.longText()
+	local function linesH(size: number, oneH: number): number
+		return if long then math.max(oneH, math.ceil(Welcome.LONG_TILE_LINES * Layout.LINE_HEIGHT * size)) else oneH
+	end
+	local labelH = linesH(tileSpec.labelSize, tileSpec.labelH)
+	local amountH = linesH(math.max(tileSpec.amountSize, tileSpec.lastAmountSize), tileSpec.amountH)
+	local trackGrowth = labelH - tileSpec.labelH + amountH - tileSpec.amountH
 
 	-- Everything but the main button; its canvas is set in update to the rows' bottom plus ACTION_GAP.
 	local content = Widgets.scroll({
@@ -123,7 +134,7 @@ function Welcome.new(parent: Instance, ctx: any)
 	cashRow.name.TextColor3 = Theme.Gold
 	cashRow.name.TextStrokeColor3 = Theme.Ink
 	cashRow.name.TextStrokeTransparency = 0
-	local dailyRow = makeRow("DailyRow", Welcome.DAILY.h, "Daily")
+	local dailyRow = makeRow("DailyRow", Welcome.DAILY.h + trackGrowth, "Daily")
 	local growthRow = makeRow("GrowthRow", row.h, "Goal_Pads")
 
 	-- Today's amount, right of the daily row's name.
@@ -146,7 +157,7 @@ function Welcome.new(parent: Instance, ctx: any)
 		Name = "Track",
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(inset, Welcome.DAILY.trackY),
-		Size = UDim2.new(1, -inset * 2, 0, Welcome.DAILY.trackH),
+		Size = UDim2.new(1, -inset * 2, 0, Welcome.DAILY.trackH + trackGrowth),
 		Parent = dailyRow.frame,
 	}, { Widgets.list(Enum.FillDirection.Horizontal, tileSpec.gap, Enum.HorizontalAlignment.Center) })
 	local weightSum = (count - 1) + tileSpec.lastWeight
@@ -173,17 +184,19 @@ function Welcome.new(parent: Instance, ctx: any)
 			TextColor3 = Theme.Muted,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextTruncate = Enum.TextTruncate.None,
-			Size = UDim2.new(1, 0, 0, tileSpec.labelH),
+			TextWrapped = long,
+			Size = UDim2.new(1, 0, 0, labelH),
 			Position = UDim2.fromOffset(0, tileSpec.labelY),
 			Parent = frame,
 		})
+		Widgets.fitText(label)
 		local iconSize = if last then tileSpec.lastIcon else tileSpec.icon
 		local icon = ItemIconView.new({
 			Name = `Day{slot}Icon`,
 			Id = "Cash",
 			Size = iconSize,
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, tileSpec.iconY + (tileSpec.icon - iconSize) / 2),
+			Position = UDim2.new(0.5, 0, 0, tileSpec.iconY + labelH - tileSpec.labelH + (tileSpec.icon - iconSize) / 2),
 			Parent = frame,
 		}, icons)
 		icon.setActive(true)
@@ -192,10 +205,11 @@ function Welcome.new(parent: Instance, ctx: any)
 			Font = Theme.Font,
 			TextSize = if last then tileSpec.lastAmountSize else tileSpec.amountSize,
 			TextScaled = true,
+			TextWrapped = long,
 			TextColor3 = Theme.Gold,
 			TextXAlignment = Enum.TextXAlignment.Center,
-			Size = UDim2.new(1, -4, 0, tileSpec.amountH),
-			Position = UDim2.new(0, 2, 1, -(tileSpec.amountH + tileSpec.amountInset)),
+			Size = UDim2.new(1, -4, 0, amountH),
+			Position = UDim2.new(0, 2, 1, -(amountH + tileSpec.amountInset)),
 			Parent = frame,
 		})
 		create("UITextSizeConstraint", {
@@ -311,14 +325,16 @@ function Welcome.new(parent: Instance, ctx: any)
 		rowH = row.h,
 		nameY = row.nameY,
 		descY = row.descY,
-		dailyH = Welcome.DAILY.h,
+		dailyH = Welcome.DAILY.h + trackGrowth,
 		trackY = Welcome.DAILY.trackY,
 		gap = row.gap,
 		actionGap = Welcome.ACTION_GAP,
 	}
+	local SHORT: Metrics = table.clone(Welcome.SHORT) :: any
+	SHORT.dailyH += trackGrowth
 	local metrics: Metrics = NORMAL
 	local function applyMetrics()
-		metrics = if short then Welcome.SHORT :: any else NORMAL
+		metrics = if short then SHORT else NORMAL
 		for _, r in { cashRow, dailyRow, growthRow } do
 			r.name.Position = UDim2.fromOffset(row.textX, metrics.nameY)
 			r.desc.Position = UDim2.fromOffset(row.textX, metrics.descY)

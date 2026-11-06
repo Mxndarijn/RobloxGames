@@ -835,6 +835,9 @@ for _, entry in allPanels do
 end
 inventory.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncTutorial)
 
+-- Long-text languages: every nav label wraps onto two lines (Layout.navLabel) and shrinks to fit (Widgets.fitText).
+local navLongText = Text.longText()
+local navLabelH, navLabelSize = Layout.navLabel(false, navLongText)
 for _, entry in panels do
 	local navEntry = entry.nav :: Nav.Entry
 	local button = Widgets.create("TextButton", {
@@ -842,7 +845,7 @@ for _, entry in panels do
 		Text = "",
 		AutoButtonColor = false,
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(Layout.NAV.cell, Layout.NAV.tile + Layout.NAV.labelGap + Layout.NAV.label),
+		Size = UDim2.fromOffset(Layout.NAV.cell, Layout.NAV.tile + Layout.NAV.labelGap + navLabelH),
 		Parent = nav,
 	}) :: TextButton
 	local tile = Widgets.create("Frame", {
@@ -866,11 +869,12 @@ for _, entry in panels do
 		Name = "Label",
 		Text = Text.t(navEntry.text),
 		Font = Theme.Font,
-		TextSize = Layout.NAV.labelSize,
+		TextSize = navLabelSize,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextStrokeTransparency = 0.2,
 		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.fromOffset(Layout.NAV.cell, Layout.NAV.label),
+		TextWrapped = navLongText,
+		Size = UDim2.fromOffset(Layout.NAV.cell, navLabelH),
 		Position = UDim2.fromOffset(0, Layout.NAV.tile + Layout.NAV.labelGap),
 		Parent = button,
 	}))
@@ -1259,7 +1263,7 @@ local function layoutNav(s: Layout.Screen)
 	nav.Size = UDim2.fromOffset(r.w, r.h)
 	local N = Layout.NAV
 	local tileSize = if s.compact then N.ctile else N.tile
-	local labelH = if s.compact then N.clabel else N.label
+	local labelH, labelSize = Layout.navLabel(s.compact, s.longText)
 	for i, entry in panels do
 		local btn = navButtons[entry.key]
 		local b = s.navButtons[i]
@@ -1272,7 +1276,11 @@ local function layoutNav(s: Layout.Screen)
 		btn.icon.instance.Size = UDim2.fromOffset(iconSize, iconSize)
 		btn.label.Position = UDim2.fromOffset(0, tileSize + N.labelGap)
 		btn.label.Size = UDim2.fromOffset(math.round(b.w), labelH)
-		btn.label.TextSize = if s.compact then N.clabelSize else N.labelSize
+		btn.label.TextSize = labelSize
+		local fit = btn.label:FindFirstChild("FitText") :: UITextSizeConstraint?
+		if fit then
+			fit.MaxTextSize = labelSize
+		end
 		if btn.jar then
 			btn.jar.relayout()
 		end
@@ -1325,7 +1333,7 @@ function applyLayout()
 		return
 	end
 	uiScale.Scale = Layout.uiScale(size.X, size.Y)
-	local s = Layout.screen(size.X, size.Y, { touch = touchControls.shown() })
+	local s = Layout.screen(size.X, size.Y, { touch = touchControls.shown(), longText = Text.longText() })
 	screen = s
 	hud.layout(s)
 	cashFly.layout(s)

@@ -551,87 +551,112 @@ describe("Exclusive shop panel", function()
 	for _, vp in LayoutAssert.LANDSCAPE_VIEWPORTS do
 		table.insert(viewports, vp)
 	end
-	for _, vp in viewports do
-		it(`{vp.name}: tabs, cards and the pane stay inside the body, texts fit, buttons are touch-sized`, function()
-			local screen = Layout.screen(vp.w, vp.h)
-			local check = LayoutAssert.fullWindow(vp.name, screen)
-			for _, tab in Config.EXCLUSIVE_SHOP.tabs do
-				local state = shopState({ offlineDouble = { cash = 1, available = true } })
-				local panel, r = openShop(vp.w, vp.h, state, ctx(sellingConfig()))
-				panel.setTab(tab)
-				local first = ExclusiveShopView.cards(tab, state, Config)[1]
-				panel.select(first.key)
-				local body = Layout.panelBody(r)
-				local tabs = Config.EXCLUSIVE_SHOP.tabs
-				local lastTab = UiHarness.find(panel.frame, `Tab_{tabs[#tabs]}`)
-				expect(lastTab.Position.X.Offset + lastTab.Size.X.Offset <= body.w).toBe(true)
-				check.touch(`{tab}.Tab`, Layout.rect(0, 0, lastTab.Size.X.Offset, lastTab.Size.Y.Offset))
-				for _, key in tabs do
-					local b = UiHarness.find(panel.frame, `Tab_{key}`)
-					expect(b.TextSize >= Layout.MIN_TEXT).toBe(true)
-					check.text({
-						name = `{tab}.Tab_{key}`,
-						text = b.Text,
-						size = b.TextSize,
-						bold = true,
-						w = b.Size.X.Offset - 16,
-						h = b.Size.Y.Offset,
-					})
-				end
-				local grid = UiHarness.find(panel.frame, "Grid")
-				local gridBox = LayoutAssert.box(grid) -- where the grid shows (its frame bleeds past it)
-				local pane = UiHarness.find(panel.frame, "Pane")
-				expect(gridBox.y >= lastTab.Size.Y.Offset).toBe(true)
-				expect(gridBox.x >= 0 and gridBox.x + gridBox.w <= body.w).toBe(true)
-				expect(pane.Position.X.Offset + pane.Size.X.Offset <= body.w + 1e-6).toBe(true)
-				expect(pane.Position.Y.Offset + pane.Size.Y.Offset <= body.h + 1e-6).toBe(true)
-				for _, card in grid:GetChildren() do
-					if card:IsA("GuiObject") then
-						expect(card.Position.X.Offset + card.Size.X.Offset <= gridBox.w).toBe(true)
-						local name = UiHarness.find(card, "CardName")
-						check.text({
-							name = `{tab}.{card.Name}.name`,
-							text = name.Text,
-							size = name.TextSize,
-							bold = true,
-							w = name.Size.X.Offset,
-							h = name.Size.Y.Offset,
-							wrapped = true,
-						})
-						local tag = UiHarness.find(card, "Tag")
-						check.text({
-							name = `{tab}.{card.Name}.tag`,
-							text = tag.Text,
-							size = tag.TextSize,
-							bold = true,
-							w = tag.Size.X.Offset - UiHarness.ui("Panels/ExclusiveShop").STYLE.tagPad * 2,
-							h = tag.Size.Y.Offset,
-						})
-					end
-				end
-				for _, child in pane:GetChildren() do
-					if child:IsA("GuiObject") and child.Visible then
-						local w = child.Size.X.Scale * pane.Size.X.Offset + child.Size.X.Offset
-						local x = child.Position.X.Scale * pane.Size.X.Offset + child.Position.X.Offset
-						local left = x - child.AnchorPoint.X * w
-						expect(left >= 0).toBe(true)
-						expect(left + w <= pane.Size.X.Offset + 1e-6).toBe(true)
-						if child:IsA("TextButton") then
-							check.touch(`{tab}.{child.Name}`, Layout.rect(0, 0, w, child.Size.Y.Offset))
-							check.text({
-								name = `{tab}.{child.Name}`,
-								text = child.Text,
-								size = child.TextSize,
-								bold = true,
-								w = w - 16,
-								h = child.Size.Y.Offset,
-							})
+	-- A label's text check: a Widgets.fitText label (long text) is measured at its MinTextSize.
+	local function textDesc(label: any, name: string, w: number, wrapped: boolean?): any
+		local fit = label:FindFirstChild("FitText")
+		return {
+			name = name,
+			text = label.Text,
+			size = if label.TextScaled and fit then fit.MinTextSize else label.TextSize,
+			bold = true,
+			w = w,
+			h = label.Size.Y.Offset,
+			wrapped = wrapped or label.TextWrapped,
+		}
+	end
+	-- The checks run after the describe bodies, so a long-text run sets the pseudo-language and puts English back.
+	local function inLocale(locale: string, fn: () -> ()): () -> ()
+		return function()
+			UiHarness.setLocale(locale)
+			local ok, err = pcall(fn)
+			UiHarness.setLocale("en-us")
+			if not ok then
+				error(err, 0)
+			end
+		end
+	end
+	-- Pseudo names that need four lines in a 78 px card even at Layout.MIN_TEXT: their real translations get a
+	-- short form instead (Merijn's "A + C", docs/translations.md). Matched against the problem lines.
+	local LONG_KNOWN = { "plotBase:pagoda.name ", "product:ServerLuckPotion.name ", "product:IncomeBoost15.name " }
+	local function unknownProblems(report: string): string
+		local out = {}
+		for _, line in string.split(report, "\n") do
+			local known = false
+			for _, k in LONG_KNOWN do
+				known = known or string.find(line, k, 1, true) ~= nil
+			end
+			if line ~= "" and not known then
+				table.insert(out, line)
+			end
+		end
+		return table.concat(out, "\n")
+	end
+	for _, run in { { locale = "en-us", suffix = "" }, { locale = "pseudo", suffix = " (long text)" } } do
+		for _, vp in viewports do
+			it(
+				`{vp.name}{run.suffix}: tabs, cards and the pane stay inside the body, texts fit, buttons are touch-sized`,
+				inLocale(run.locale, function()
+					local screen = Layout.screen(vp.w, vp.h)
+					local check = LayoutAssert.fullWindow(vp.name, screen)
+					for _, tab in Config.EXCLUSIVE_SHOP.tabs do
+						local state = shopState({ offlineDouble = { cash = 1, available = true } })
+						local panel, r = openShop(vp.w, vp.h, state, ctx(sellingConfig()))
+						panel.setTab(tab)
+						local first = ExclusiveShopView.cards(tab, state, Config)[1]
+						panel.select(first.key)
+						local body = Layout.panelBody(r)
+						local tabs = Config.EXCLUSIVE_SHOP.tabs
+						local lastTab = UiHarness.find(panel.frame, `Tab_{tabs[#tabs]}`)
+						expect(lastTab.Position.X.Offset + lastTab.Size.X.Offset <= body.w).toBe(true)
+						check.touch(`{tab}.Tab`, Layout.rect(0, 0, lastTab.Size.X.Offset, lastTab.Size.Y.Offset))
+						for _, key in tabs do
+							local b = UiHarness.find(panel.frame, `Tab_{key}`)
+							expect(b.TextSize >= Layout.MIN_TEXT).toBe(true)
+							check.text(textDesc(b, `{tab}.Tab_{key}`, b.Size.X.Offset - 16))
+						end
+						local grid = UiHarness.find(panel.frame, "Grid")
+						local gridBox = LayoutAssert.box(grid) -- where the grid shows (its frame bleeds past it)
+						local pane = UiHarness.find(panel.frame, "Pane")
+						expect(gridBox.y >= lastTab.Size.Y.Offset).toBe(true)
+						expect(gridBox.x >= 0 and gridBox.x + gridBox.w <= body.w).toBe(true)
+						expect(pane.Position.X.Offset + pane.Size.X.Offset <= body.w + 1e-6).toBe(true)
+						expect(pane.Position.Y.Offset + pane.Size.Y.Offset <= body.h + 1e-6).toBe(true)
+						for _, card in grid:GetChildren() do
+							if card:IsA("GuiObject") then
+								expect(card.Position.X.Offset + card.Size.X.Offset <= gridBox.w).toBe(true)
+								local name = UiHarness.find(card, "CardName")
+								check.text(textDesc(name, `{tab}.{card.Name}.name`, name.Size.X.Offset, true))
+								local tag = UiHarness.find(card, "Tag")
+								local tagPad = UiHarness.ui("Panels/ExclusiveShop").STYLE.tagPad
+								check.text(textDesc(tag, `{tab}.{card.Name}.tag`, tag.Size.X.Offset - tagPad * 2))
+							end
+						end
+						for _, child in pane:GetChildren() do
+							if child:IsA("GuiObject") and child.Visible then
+								local w = child.Size.X.Scale * pane.Size.X.Offset + child.Size.X.Offset
+								local x = child.Position.X.Scale * pane.Size.X.Offset + child.Position.X.Offset
+								local left = x - child.AnchorPoint.X * w
+								expect(left >= 0).toBe(true)
+								expect(left + w <= pane.Size.X.Offset + 1e-6).toBe(true)
+								if child:IsA("TextButton") then
+									check.touch(`{tab}.{child.Name}`, Layout.rect(0, 0, w, child.Size.Y.Offset))
+									check.text({
+										name = `{tab}.{child.Name}`,
+										text = child.Text,
+										size = child.TextSize,
+										bold = true,
+										w = w - 16,
+										h = child.Size.Y.Offset,
+									})
+								end
+							end
 						end
 					end
-				end
-			end
-			expect(check.report()).toBe("")
-		end)
+					local report = check.report()
+					expect(if run.locale == "pseudo" then unknownProblems(report) else report).toBe("")
+				end)
+			)
+		end
 	end
 end)
 

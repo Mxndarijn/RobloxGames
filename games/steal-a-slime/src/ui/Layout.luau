@@ -44,6 +44,7 @@ export type Screen = {
 	phone: boolean, -- a phone (portrait, or landscape under 500 px high): money | hotbar | events share the bottom row
 	tight: boolean, -- portrait phone too narrow for the full-size row: smaller money block, event slots and hotbar slots
 	short: boolean, -- landscape phone: more nav columns, cards between the clusters (Layout.screen)
+	longText: boolean, -- long-text language (Text.longText): nav labels get two lines
 	navColumns: number,
 	bottomInset: number,
 	money: MoneyHud, -- bottom-left: Money, Income/s, Rebirths (above the touch inset)
@@ -584,6 +585,12 @@ end
 -- (default 2) wide, filled left to right then down. No panel behind it. A nav "button" (navButtons) is a tile
 -- plus its label, so a tap on either opens the menu.
 
+local NAV_LABEL_SIZE = 16
+-- Two lines of `size` text: the long-text nav label row (LINE_HEIGHT per line, rounded up).
+local function twoLines(size: number): number
+	return math.ceil(Layout.LINE_HEIGHT * size) * 2
+end
+
 Layout.NAV = table.freeze({
 	left = Layout.MARGIN,
 	top = 56, -- highest the nav may go, under Roblox's own profile / voice chips (Layout.screen puts it lower)
@@ -597,8 +604,12 @@ Layout.NAV = table.freeze({
 	ctile = 58, -- 58 x 0.8 = 46 screen px >= MIN_TOUCH
 	label = 20, -- label row under the tile
 	clabel = 17,
-	labelSize = 16,
+	labelSize = NAV_LABEL_SIZE,
 	clabelSize = 13,
+	-- Long-text mode (Text.longText): the label row holds two lines at its text size (never under MIN_TEXT).
+	label2 = twoLines(NAV_LABEL_SIZE), -- 38: two lines at labelSize
+	clabel2 = twoLines(Layout.MIN_TEXT), -- 34: two lines at clabelSize2
+	clabelSize2 = Layout.MIN_TEXT,
 	labelGap = 2,
 	iconInset = 8, -- item icon inside the tile
 	count = #Nav.ENTRIES,
@@ -620,10 +631,19 @@ function Layout.navBadge(button: Rect, text: string): Rect
 	return Layout.rect(button.x + button.w - b.inset - w, button.y + b.inset, w, b.height)
 end
 
-function Layout.navCellSize(compact: boolean): (number, number)
+-- The label row under a nav tile: its height and text size (`long`: two lines, Text.longText).
+function Layout.navLabel(compact: boolean, long: boolean?): (number, number)
 	local n = Layout.NAV
-	return if compact then n.ccell else n.cell,
-		(if compact then n.ctile + n.labelGap + n.clabel else n.tile + n.labelGap + n.label)
+	if long then
+		return if compact then n.clabel2 else n.label2, if compact then n.clabelSize2 else n.labelSize
+	end
+	return if compact then n.clabel else n.label, if compact then n.clabelSize else n.labelSize
+end
+
+function Layout.navCellSize(compact: boolean, long: boolean?): (number, number)
+	local n = Layout.NAV
+	local labelH = Layout.navLabel(compact, long)
+	return if compact then n.ccell else n.cell, (if compact then n.ctile else n.tile) + n.labelGap + labelH
 end
 
 function Layout.navGap(compact: boolean): number
@@ -643,18 +663,18 @@ function Layout.navWidth(compact: boolean, columns: number?): number
 	return cols * w + (cols - 1) * Layout.navGap(compact)
 end
 
--- Nav height for `count` buttons (default all) in `columns` columns.
-function Layout.navHeight(compact: boolean, count: number?, columns: number?): number
+-- Nav height for `count` buttons (default all) in `columns` columns (`long`: two-line labels).
+function Layout.navHeight(compact: boolean, count: number?, columns: number?, long: boolean?): number
 	local rows = math.ceil((count or Layout.NAV.count) / (columns or Layout.NAV.columns))
-	local _, h = Layout.navCellSize(compact)
+	local _, h = Layout.navCellSize(compact, long)
 	return rows * h + math.max(rows - 1, 0) * Layout.navGap(compact)
 end
 
 -- Fewest columns (NAV.columns..count) whose nav fits in `height`; all columns (one row) when nothing fits.
-function Layout.navColumns(compact: boolean, height: number, count: number?): number
+function Layout.navColumns(compact: boolean, height: number, count: number?, long: boolean?): number
 	local n = count or Layout.NAV.count
 	for cols = Layout.NAV.columns, n do
-		if Layout.navHeight(compact, n, cols) <= height then
+		if Layout.navHeight(compact, n, cols, long) <= height then
 			return cols
 		end
 	end
@@ -662,20 +682,20 @@ function Layout.navColumns(compact: boolean, height: number, count: number?): nu
 end
 
 -- The nav: left edge, top at `top`.
-function Layout.navRect(compact: boolean, top: number, count: number?, columns: number?): Rect
+function Layout.navRect(compact: boolean, top: number, count: number?, columns: number?, long: boolean?): Rect
 	return Layout.rect(
 		Layout.NAV.left,
 		top,
 		Layout.navWidth(compact, columns),
-		Layout.navHeight(compact, count, columns)
+		Layout.navHeight(compact, count, columns, long)
 	)
 end
 
 -- Button boxes inside a nav rect (Nav.ENTRIES order), filled left to right, then down.
-function Layout.navButtons(compact: boolean, nav: Rect, count: number?, columns: number?): { Rect }
+function Layout.navButtons(compact: boolean, nav: Rect, count: number?, columns: number?, long: boolean?): { Rect }
 	local out = {}
 	local gap = Layout.navGap(compact)
-	local w, h = Layout.navCellSize(compact)
+	local w, h = Layout.navCellSize(compact, long)
 	local cols = columns or Layout.NAV.columns
 	for i = 1, count or Layout.NAV.count do
 		local col, row = (i - 1) % cols, (i - 1) // cols
@@ -924,7 +944,9 @@ local function centredIn(column: Rect, screenW: number, width: number): (number,
 	return x, w
 end
 
-export type ScreenOptions = { touch: boolean? } -- touch: Roblox's jump button is on screen (TouchControls)
+-- touch: Roblox's jump button is on screen (TouchControls); longText: a long-text language (Text.longText), the
+-- nav labels get two lines (default false).
+export type ScreenOptions = { touch: boolean?, longText: boolean? }
 
 -- The jump button rect for a ScreenGui of viewportW x viewportH (screen px).
 function Layout.jumpRect(viewportW: number, viewportH: number): Rect
@@ -947,6 +969,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local scale = Layout.uiScale(viewportW, viewportH)
 	local W, H = viewportW / scale, viewportH / scale
 	local compact = Layout.isCompact(viewportW, viewportH)
+	local long = options ~= nil and options.longText == true
 	local m, gap = Layout.MARGIN, Layout.GAP
 	-- Phones (portrait, or landscape under PHONE_SHORT_HEIGHT): the nav grid sits at the very top and the
 	-- money block, the hotbar and the events row share one bottom row (`rowBottom`). Portrait too narrow for
@@ -991,7 +1014,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 
 	-- 1. "Short" (landscape phone): the default two nav columns won't fit above the money cluster, so
 	-- the nav starts at the top margin, takes more columns, and the carry card goes between the clusters.
-	local short = compact and Layout.TOP + Layout.navHeight(compact) + gap > money.rect.y - gap
+	local short = compact and Layout.TOP + Layout.navHeight(compact, nil, nil, long) + gap > money.rect.y - gap
 	local top = if short or phone then Layout.TOP else Layout.NAV.top
 	-- Where the centred carry card would touch either cluster (portrait phones, tablets): it sits above
 	-- the clusters instead of beside them. Never on a landscape phone: lifted that far, the card would sit in
@@ -1018,13 +1041,13 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local carry0 = carryCard(fullRow, W, H, cardInset)
 	local navBottom = if short then money.rect.y - gap else math.min(carry0.y, hotbarBottom - hotbarH) - gap
 	navBottom = math.min(navBottom, money.rect.y - gap)
-	local columns = if short then Layout.navColumns(compact, navBottom - top) else Layout.NAV.columns
+	local columns = if short then Layout.navColumns(compact, navBottom - top, nil, long) else Layout.NAV.columns
 	-- The nav sits low on the left, its bottom on `navBottom`, so it stays clear of Roblox's chat window
 	-- (top-left). Landscape phones have no height to spare and keep it at the top margin.
 	local navTop = if short or landscapePhone
 		then top
-		else math.max(top, navBottom - Layout.navHeight(compact, nil, columns))
-	local nav = Layout.navRect(compact, navTop, nil, columns)
+		else math.max(top, navBottom - Layout.navHeight(compact, nil, columns, long))
+	local nav = Layout.navRect(compact, navTop, nil, columns, long)
 	local navRight = nav.x + nav.w + gap
 	-- Phones: an open menu card gets the nav's width too (init.client hides the nav tiles while a menu is open);
 	-- desktop: the card area is right of the nav so the player can switch menus.
@@ -1077,6 +1100,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		phone = phone,
 		tight = tight,
 		short = short,
+		longText = long,
 		navColumns = columns,
 		bottomInset = inset,
 		money = money,
@@ -1084,7 +1108,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		hotbar = hotbar,
 		banners = banners,
 		nav = nav,
-		navButtons = Layout.navButtons(compact, nav, nil, columns),
+		navButtons = Layout.navButtons(compact, nav, nil, columns, long),
 		column = column,
 		panel = panel,
 		menuX = menuX,

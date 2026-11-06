@@ -13,5 +13,5 @@ local PATH = "locale/Strings.csv"
 if not fs.isDir("locale") then
 	fs.writeDir("locale")
 end
-fs.writeFile(PATH, Localize.csv(Strings.catalog))
+fs.writeFile(PATH, Localize.csv(Strings.catalog, Strings.manual))
 print(`wrote {PATH} ({#Strings.catalog.entries} strings)`)

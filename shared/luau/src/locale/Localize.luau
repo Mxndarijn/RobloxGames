@@ -267,19 +267,66 @@ local function csvField(value: string): string
 	return value
 end
 
+export type Manual = { [string]: { [string]: string } } -- key -> locale column -> translated pattern
+
+-- Problems with hand-written translations: an unknown key, or a translation whose parameters differ from its
+-- source. Empty when all are good.
+function Localize.checkManual(catalog: Catalog, manual: Manual): { string }
+	local out = {}
+	for key, byLocale in manual do
+		local entry = catalog.byKey[key]
+		if entry == nil then
+			table.insert(out, `{key}: no such key`)
+		else
+			for locale, text in byLocale do
+				if Localize.safePattern(entry.source, text) ~= text then
+					table.insert(out, `{key} [{locale}]: parameters differ from "{entry.source}"`)
+				end
+			end
+		end
+	end
+	table.sort(out)
+	return out
+end
+
 -- The catalog as a LocalizationTable CSV in key order: Key, Source, Context, Example (the source filled with the
--- entry's example args). Roblox allows one entry per Source + Context, so an English text used under several
--- keys gets its key as Context; every other Context stays empty (Roblox uses it to match instance paths).
-function Localize.csv(catalog: Catalog): string
+-- entry's example args), then one column per locale of `manual` (hand-written translations; Roblox automatic
+-- translation leaves filled cells alone). Roblox allows one entry per Source + Context, so an English text used
+-- under several keys gets its key as Context; every other Context stays empty (Roblox uses it to match instance
+-- paths). Errors on a bad manual translation (Localize.checkManual).
+function Localize.csv(catalog: Catalog, manual: Manual?): string
+	local translations: Manual = manual or {}
+	local bad = Localize.checkManual(catalog, translations)
+	assert(#bad == 0, `Localize.csv: {table.concat(bad, "; ")}`)
+	local localeSet: { [string]: boolean } = {}
+	for _, byLocale in translations do
+		for locale in byLocale do
+			localeSet[locale] = true
+		end
+	end
+	local locales = {}
+	for locale in localeSet do
+		table.insert(locales, locale)
+	end
+	table.sort(locales)
 	local uses: { [string]: number } = {}
 	for _, entry in catalog.entries do
 		uses[entry.source] = (uses[entry.source] or 0) + 1
 	end
-	local lines = { "Key,Source,Context,Example" }
+	local header = { "Key", "Source", "Context", "Example" }
+	for _, locale in locales do
+		table.insert(header, csvField(locale))
+	end
+	local lines = { table.concat(header, ",") }
 	for _, entry in catalog.entries do
 		local example = if entry.example then Localize.format(entry.source, entry.example) else ""
 		local context = if uses[entry.source] > 1 then entry.key else ""
-		table.insert(lines, `{csvField(entry.key)},{csvField(entry.source)},{csvField(context)},{csvField(example)}`)
+		local row = { csvField(entry.key), csvField(entry.source), csvField(context), csvField(example) }
+		local own = translations[entry.key] or {}
+		for _, locale in locales do
+			table.insert(row, csvField(own[locale] or ""))
+		end
+		table.insert(lines, table.concat(row, ","))
 	end
 	return table.concat(lines, "\n") .. "\n"
 end
