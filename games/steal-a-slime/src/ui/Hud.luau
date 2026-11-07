@@ -203,7 +203,7 @@ function Hud.new(parent: Instance, ctx: any)
 	local statusSlots: { [string]: Slot } = {}
 	local shownSlots: { HudClusters.Slot } = {}
 	-- Slots that rarely run are built the first time they show (each slot costs about 16 instances).
-	local LAZY_SLOTS = table.freeze({ LockBreak = true } :: { [string]: boolean })
+	local LAZY_SLOTS = table.freeze({ LockBreak = true, Luck = true } :: { [string]: boolean })
 	local function buildSlot(id: string): Slot
 		local frame = create("TextButton", {
 			Name = id,
@@ -586,6 +586,7 @@ function Hud.new(parent: Instance, ctx: any)
 			rain = ctx.forcedRain and ctx.forcedRain(now) or RainTimer.resolve(rainAttrs, current.rain),
 			modifier = current.modifier,
 			modifierEnabled = ctx.Config.FEATURES.CycleModifier == true,
+			luckPotion = current.consumables,
 			friends = current.friends,
 			friendsEnabled = ctx.Config.FEATURES.FriendBonus == true,
 			blessed = current.blessed,

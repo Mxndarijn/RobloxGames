@@ -11,6 +11,11 @@ return {
 		source = "{luck} luck: rarer slimes show up more often.",
 		example = { luck = "x2" },
 	},
+	["hud.status.luck.name"] = "Luck Potion",
+	["hud.status.luck.effect"] = {
+		source = "{luck} luck for everyone on this server: rarer slimes come from the fountain.",
+		example = { luck = "x2.5" },
+	},
 	["hud.status.friend.name"] = "Friend boost",
 	["hud.status.friend.effect"] = {
 		source = "{percent} income while your friends play on this server.",
