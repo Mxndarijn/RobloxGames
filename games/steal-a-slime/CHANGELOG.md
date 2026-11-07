@@ -2,6 +2,23 @@
 
 Newest first. Each entry: the live version, the commit it was built from, what was checked, and what to roll back to.
 
+## Place version 9: obby without the Updraft section (2026-11-08)
+
+- **Experience:** universe 10774962286, place 105898249206841 (Forgeborn, still private).
+- **Built from:** `main` 13f5daaff6aa419413b06ba4a34a36689a5ee549, clean `rojo build default.project.json` (no
+  `ServerStorage.CloudTests`, no `DataStoreMode` attribute). File sha256 starts `dfd42ca3cc699f73`.
+- **In it:** the obby never picks the Updraft section (#749, Merijn: "Disable this section in the obby"); the world
+  shop list fits short phone screens (#746); the player list keeps each stat under its own column (#747).
+- **Published by:** a bot, on Merijn's OK ("publish and merge").
+- **Version number:** Saved upload returned 9; the Published upload of the same file returned 9.
+- **Checks before publishing (Saved v9, Memory store):** `lune run scripts/test-parallel` 5469 passed, PR CI green
+  (flags on / off), selene, stylua, typecheck, `check-place` clean; cloud `smoke.luau` PASS, `live.luau` ok,
+  `terrain_burial.luau` PASS (0/1018 buried).
+- **Checks after publishing (live v9):** `smoke.luau` PASS, `live.luau` complete, `terrain_burial.luau` PASS.
+- **Not checked:** no Studio playtest or visual/client gate on this build, no phone, audio not heard.
+- **Previous live:** version 6 (`main` 20cc1afa, file sha256 `7027fa5944909499`). Roll back by restoring v6 in
+  the Creator Dashboard version history.
+
 ## Place version 6: translations shipped, English still shown (2026-11-07)
 
 - **Experience:** universe 10774962286, place 105898249206841 (Forgeborn, still private).
