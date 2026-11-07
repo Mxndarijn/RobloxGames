@@ -56,14 +56,20 @@ function LeaderboardView.new(
 end
 
 function LeaderboardView.createStats(player: Player)
+	-- The folder goes on the player first and each stat arrives with its Priority already inside it, so the player
+	-- list sorts header and rows the same way (Leaderboard.priority).
 	local folder = Instance.new("Folder")
 	folder.Name = "leaderstats"
+	folder.Parent = player
 	for _, name in Leaderboard.STATS do
 		local stat = Instance.new("IntValue")
 		stat.Name = name
+		local priority = Instance.new("NumberValue")
+		priority.Name = "Priority"
+		priority.Value = Leaderboard.priority(name) :: number
+		priority.Parent = stat
 		stat.Parent = folder
 	end
-	folder.Parent = player
 end
 
 function LeaderboardView.updateStats(player: Player, session: World.Session)

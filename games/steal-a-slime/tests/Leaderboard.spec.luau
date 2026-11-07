@@ -21,6 +21,24 @@ describe("Leaderboard", function()
 		expect(Leaderboard.STATS).toEqual({ "Cash", "Rebirths", "Steals" })
 		expect(Leaderboard.stats(data)).toEqual({ Cash = 12, Rebirths = 3, Steals = 5 })
 	end)
+	it("leaderstats have unique priorities, highest first, so the player list keeps them in STATS order", function()
+		local last = math.huge
+		for _, name in Leaderboard.STATS do
+			local priority = Leaderboard.priority(name) :: number
+			expect(type(priority)).toBe("number")
+			expect(priority < last).toBe(true)
+			last = priority
+		end
+		expect(Leaderboard.priority("Coins")).toBe(nil)
+	end)
+	it("Steals is the steal count, not cash", function()
+		local data = PlayerData.new()
+		data.cash = 285e6
+		data.totalStolen = 0
+		local stats = Leaderboard.stats(data)
+		expect(stats.Steals).toBe(0)
+		expect(stats.Cash).toBe(285e6)
+	end)
 	it("a NaN totalEarned stores as 0", function()
 		local data = PlayerData.new()
 		data.totalEarned = 0 / 0

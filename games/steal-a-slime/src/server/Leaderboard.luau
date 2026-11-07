@@ -27,6 +27,16 @@ local Leaderboard = {}
 
 Leaderboard.STATS = table.freeze({ "Cash", "Rebirths", "Steals" })
 
+--[[
+	The `Priority` NumberValue under each leaderstat: the Roblox player list draws higher priority further left.
+	Without it the list sorts the stats by the order the client happened to receive them, and it can sort its
+	header and a player's row differently, so a player's cash shows under "Steals". Unique values, in STATS order.
+]]
+function Leaderboard.priority(name: string): number?
+	local index = table.find(Leaderboard.STATS, name)
+	return if index then #Leaderboard.STATS - index + 1 else nil
+end
+
 -- OrderedDataStore values must be integers that fit in 2^53.
 Leaderboard.MAX_VALUE = OrderedBoard.MAX_VALUE
 
