@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ad Image Picks</title>
+<style>
+  :root { --bg: #f4faf8; --card: #fff; --ink: #14302a; --muted: #4d6b64; --line: #d4e6e0; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0f1a18; --card: #16241f; --ink: #e3f2ed; --muted: #9bb8b0; --line: #26413a; } }
+  :root[data-theme="dark"] { --bg: #0f1a18; --card: #16241f; --ink: #e3f2ed; --muted: #9bb8b0; --line: #26413a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 20px; margin: 32px 0 12px; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 760px) { .grid, .grid3 { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; margin: 0; }
+  figure { margin: 0; } figcaption { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  figcaption b { color: var(--ink); }
+  img { width: 100%; border-radius: 10px; display: block; }
+  .note { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+  ul { padding-left: 20px; margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ad images: pick the ones you want</h1>
+  <p class="lead">Eight 1920×1080 ads for the Ads Manager test, all with the main "STEAL A SLIME!" caption like your thumbnail, each with a different scene and hero slime. Every picture is a real moment from the game (hidden Studio, test save). Pick any number; nothing is uploaded.</p>
+  <div class="grid">
+    <figure class="card"><img src="ad-thief.jpg" alt="STEAL A SLIME ad: A thief running off with a stolen Rainbow Celestial, the owner chasing"><figcaption>A thief running off with a stolen Rainbow Celestial, the owner chasing · square below</figcaption></figure>
+    <figure class="card"><img src="ad-divine.jpg" alt="STEAL A SLIME ad: The Divine Goo Oracle on its pad, the player reaching for it"><figcaption>The Divine Goo Oracle on its pad, the player reaching for it · square below</figcaption></figure>
+    <figure class="card"><img src="ad-night.jpg" alt="STEAL A SLIME ad: The Rainbow Divine Kirin glowing in a jar base at night (Starfall weather)"><figcaption>The Rainbow Divine Kirin glowing in a jar base at night (Starfall weather) · square below</figcaption></figure>
+    <figure class="card"><img src="ad-rainbow.jpg" alt="STEAL A SLIME ad: The same Rainbow Divine Kirin by day (+$9.73M/s)"><figcaption>The same Rainbow Divine Kirin by day (+$9.73M/s)</figcaption></figure>
+    <figure class="card"><img src="ad-boss.jpg" alt="STEAL A SLIME ad: The slime boss on the lane, the player jumping at it"><figcaption>The slime boss on the lane, the player jumping at it</figcaption></figure>
+    <figure class="card"><img src="ad-obby.jpg" alt="STEAL A SLIME ad: The Goo Gauntlet sky course, the player over the goo pit"><figcaption>The Goo Gauntlet sky course, the player over the goo pit</figcaption></figure>
+    <figure class="card"><img src="ad-crowd.jpg" alt="STEAL A SLIME ad: A busy lane of cute wild slimes, the player catching one"><figcaption>A busy lane of cute wild slimes, the player catching one</figcaption></figure>
+    <figure class="card"><img src="ad-egg.jpg" alt="STEAL A SLIME ad: A Mystery Egg ready to hatch on a pad"><figcaption>A Mystery Egg ready to hatch on a pad</figcaption></figure>
+  </div>
+
+  <h2>Square (1:1) crops of three</h2>
+  <div class="grid3">
+    <figure><img src="ad-thief-square.jpg" alt="Square crop: A thief running off with a stolen Rainbow Celestial, the owner chasing"><figcaption>A thief running off with a stolen Rainbow Celestial, the owner chasing</figcaption></figure>
+    <figure><img src="ad-divine-square.jpg" alt="Square crop: The Divine Goo Oracle on its pad, the player reaching for it"><figcaption>The Divine Goo Oracle on its pad, the player reaching for it</figcaption></figure>
+    <figure><img src="ad-night-square.jpg" alt="Square crop: The Rainbow Divine Kirin glowing in a jar base at night (Starfall weather)"><figcaption>The Rainbow Divine Kirin glowing in a jar base at night (Starfall weather)</figcaption></figure>
+  </div>
+
+  <h2>At phone-ad size (about 300 px wide)</h2>
+  <img src="phone-size.jpg" alt="All eight ads shrunk to about 300 pixels wide to check the captions still read">
+
+  <h2>Not made, and why</h2>
+  <div class="note"><ul>
+    <li><b>REBIRTH = x2</b>: not true; a rebirth tier adds a few percent income, not double.</li>
+    <li><b>SLIME RAIN</b>: in the game it shows as small sparkles; slimes don't fall from the sky, so the picture would mislead.</li>
+    <li><b>Starfall at night</b>: the falling stars are tiny specks in a very dark scene; not exciting at ad size.</li>
+    <li><b>Egg hatching</b>: the burst played before I could freeze it, so the egg ad shows the ready-to-hatch moment.</li>
+    <li><b>Snow weather</b> and a <b>merge-vat hybrid</b> close-up: not shot this round.</li>
+  </ul></div>
+
+  <h2>Good to know</h2>
+  <div class="note"><ul>
+    <li>The day Rainbow ad and the night ad show the same Kirin slime.</li>
+    <li>The chasing owner in the thief ad is a copy of the test avatar in a green shirt (a hidden Studio can't add a second real player); the steal itself is real.</li>
+    <li>The player is your own avatar.</li>
+    <li>Not checked in Ads Manager's own preview or crop tool.</li>
+  </ul></div>
+</main>
+</body>
+</html>
