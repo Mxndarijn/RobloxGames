@@ -533,6 +533,9 @@ describe("ObbyCourse rotation with the section registry", function()
 		end
 		local missing = {}
 		for _, idea in ObbySections.ALL do
+			if OBBY.DISABLED_SECTIONS[idea.id] then
+				continue
+			end
 			for i, v in idea.variants do
 				if ideasWith(v.tier) > 0 and not seen[`{idea.id}#{i}#{v.tier}`] then
 					table.insert(missing, `{idea.id} #{i} {v.name}`)

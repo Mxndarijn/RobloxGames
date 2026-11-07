@@ -148,6 +148,17 @@ describe("ObbyCourse layout", function()
 		end
 		expect(ObbyCourse.nameOf("NoSuchIdea")).toBe("NoSuchIdea")
 	end)
+
+	it("never picks a disabled section", function()
+		for id in OBBY.DISABLED_SECTIONS do
+			expect(ObbySections.byId[id] ~= nil).toBe(true)
+		end
+		for slot = 1, 500 do
+			for _, p in ObbyCourse.pick(slot) do
+				expect(OBBY.DISABLED_SECTIONS[p.id]).toBe(nil)
+			end
+		end
+	end)
 end)
 
 describe("ObbyCourse floors", function()
