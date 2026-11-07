@@ -8,18 +8,22 @@ import render as R
 from PIL import Image
 
 FONT = os.path.join(HERE, "..", "store-video", "fonts", "LilitaOne-Regular.ttf")
-Y, M, P = R.YELLOW, R.MINT, R.PINK
-# name: (caption lines, sparkles (x, y, size) in the 1920x1080 frame, square crop centre x[, caption centre y])
+Y, M = R.YELLOW, R.MINT
+# One caption on every ad, as on the game's main thumbnail (Merijn: "It should all be like Steal a Slime with
+# different backgrounds"); what changes is the scene and the hero slime.
+CAPTION = [[("STEAL", Y), ("A SLIME!", M)]]
+# name: (sparkles (x, y, size) in the 1920x1080 frame, square crop centre x, brightness lift)
 ADS = {
-    "boss": ([[("BEAT", P), ("THE BOSS!", M)]], [(860, 220, 40), (1320, 150, 26), (560, 320, 22)], 1020),
-    "thief": ([[("CATCH", P), ("THE THIEF!", M)]], [(1200, 140, 38), (720, 250, 26), (1420, 360, 20)], 1000),
-    "divine": ([[("FIND A", Y), ("DIVINE!", M)]], [(860, 150, 38), (300, 420, 26), (1240, 300, 22)], 780),
-    "rainbow": ([[("RAINBOW", Y), ("SLIMES!", M)]], [(1500, 230, 40), (560, 300, 26), (1180, 120, 22)], 1000),
-    "rich": ([[("GET", Y), ("RICH!", M)]], [(560, 420, 40), (1300, 470, 28), (700, 640, 22)], 860, 255),
-    "egg": ([[("HATCH", Y), ("EGGS!", M)]], [(1080, 330, 38), (700, 230, 24), (1260, 160, 20)], 880),
-    "claw": ([[("SLIME", Y), ("CLAW!", M)]], [(1300, 200, 36), (620, 260, 24), (1100, 120, 20)], 960),
+    "thief": ([(1200, 140, 38), (720, 250, 26), (1420, 360, 20)], 1000, 1.0),
+    "divine": ([(860, 150, 38), (300, 420, 26), (1240, 300, 22)], 780, 1.0),
+    "rainbow": ([(1500, 230, 40), (560, 300, 26), (1180, 120, 22)], 1000, 1.0),
+    "boss": ([(860, 220, 40), (1320, 150, 26), (560, 320, 22)], 1020, 1.0),
+    "night": ([(1250, 180, 40), (420, 250, 26), (980, 110, 22)], 820, 1.25),
+    "obby": ([(1700, 230, 38), (640, 330, 26), (1520, 130, 22)], 1000, 1.0),
+    "crowd": ([(700, 160, 36), (1420, 220, 26), (1060, 110, 20)], 960, 1.0),
+    "egg": ([(1080, 330, 38), (700, 230, 24), (1260, 160, 20)], 880, 1.0),
 }
-SQUARES = ["boss", "thief", "divine"]
+SQUARES = ["thief", "divine", "night"]
 
 def caption_layer(lines, width, frac, centre_y):
     probes = [R.caption_image(l, FONT, 150, 3) for l in lines]
@@ -33,8 +37,11 @@ def caption_layer(lines, width, frac, centre_y):
         y += step
     return out
 
-def base(still, stars):
+def base(still, stars, lift=1.0):
     frame = R.load_frame(still)
+    if lift != 1.0:
+        from PIL import ImageEnhance
+        frame = ImageEnhance.Brightness(frame.convert("RGB")).enhance(lift).convert("RGBA")
     for x, y, s in stars:
         st = R.sparkle(s)
         frame.alpha_composite(st, (x - st.width // 2, y - st.height // 2))
@@ -44,13 +51,12 @@ if __name__ == "__main__":
     src, dst = sys.argv[1], sys.argv[2]
     os.makedirs(dst, exist_ok=True)
     drips = R.drip_border()
-    for name, spec in ADS.items():
-        lines, stars, cx = spec[:3]
-        cy = spec[3] if len(spec) > 3 else 905
-        frame = base(os.path.join(src, name + ".jpg"), stars)
+    for name, (stars, cx, lift) in ADS.items():
+        lines = CAPTION
+        frame = base(os.path.join(src, name + ".jpg"), stars, lift)
         wide = frame.copy()
         wide.alpha_composite(drips)
-        for cap, pos in caption_layer(lines, R.W, 0.72 if cy > 600 else 0.55, cy):
+        for cap, pos in caption_layer(lines, R.W, 0.72, 905):
             wide.alpha_composite(cap, pos)
         wide.convert("RGB").save(os.path.join(dst, f"ad-{name}.jpg"), quality=92)
         if name in SQUARES:
