@@ -2,6 +2,34 @@
 
 Newest first. Each entry: the live version, the commit it was built from, what was checked, and what to roll back to.
 
+## Place version 6: translations shipped, English still shown (2026-11-07)
+
+- **Experience:** universe 10774962286, place 105898249206841 (Forgeborn, still private).
+- **Built from:** `main` 20cc1afaea814ec2b349f97b6080862fb0642d59, clean `rojo build default.project.json` (no
+  `ServerStorage.CloudTests`, no `DataStoreMode` attribute). File sha256 starts `7027fa5944909499`.
+- **In it:** every player-facing string goes through the Strings catalog and `LocalizationService.Strings` (#742);
+  two-line labels for long translated text and 13 short hand-written translations in 17 languages (#743, "A + C").
+- **Published by:** a bot, on Merijn's OK ("create a new version once all the translations are merged").
+- **Version number:** Saved upload returned 6; the Published upload of the same file returned 6, and the Assets API
+  flipped v6 to `published: true` (v5 was the newest published before).
+- **Checks before publishing (Saved v6, Memory store):** `lune run scripts/test-parallel` 5367 passed (includes
+  `Locale.spec`: `Strings.csv` not stale), `test-flags` on 5364 / off 5225 passed, selene, stylua, typecheck,
+  `check-place` clean; `tools/assets/check_assets.py --grant`: audio 88/88, packages 99/99, meshes 772/772, images
+  91/91, materials 3/3; cloud `smoke.luau` PASS (mesh slimes), `live.luau` ok, `terrain_burial.luau` ok (1018 grounded
+  parts).
+- **Localization check (Saved v6 and live v6, Luau Execution):** `LocalizationService.Strings` is a LocalizationTable
+  with all 1429 rows of `locale/Strings.csv`, every row has its English source, and an en-us translator returns the
+  English text. 13 rows also carry the short translations for 17 languages (by design, #743), so a player whose Roblox
+  language is one of those sees those 13 labels translated now; everything else stays English until the Creator Hub
+  steps in `docs/translations.md` are done.
+- **Checks after publishing (live v6):** `smoke.luau` PASS, `live.luau` ok, `terrain_burial.luau` ok, localization
+  check as above.
+- **Not checked:** no Studio visual/client gate on this build, no phone, no human play-test, audio not heard; the
+  client-side English fallback (`Text.t`) was not run on a real client here (covered by the Lune specs). Creator Hub
+  localization (CSV upload, languages, "Use Translated Content") untouched.
+- **Previous live:** version 5 (`main` 3b3259d8, file sha256 `0e657fb407e43f6d`). Roll back by restoring v5 in
+  Creator Hub (the place's Version History), or re-upload that build as Published.
+
 ## Place version 5: broke-player top-up and the snow colour fix (2026-11-07)
 
 - **Experience:** universe 10774962286, place 105898249206841 (Forgeborn, still private).
