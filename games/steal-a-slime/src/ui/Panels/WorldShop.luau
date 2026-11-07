@@ -241,6 +241,20 @@ function WorldShop.new(parent: Instance, ctx: any)
 		Parent = panel.body,
 	})
 	local list = Widgets.scrollList({ Name = "List", Size = UDim2.fromScale(1, 1), Parent = content }, 6)
+	-- The card body's height (design px) from the last layout; nil until the first one. A short phone screen cuts
+	-- the card below the content's height, and the list must end at the body then, or its last rows sit past the
+	-- card and (when the canvas only fills that over-tall list) it has nothing to scroll.
+	local bodyH: number? = nil
+
+	-- The list from `top` down to the content's bottom, or to the body's bottom when that comes first.
+	local function fitList()
+		local top = list.Position.Y.Offset
+		local h = content.Size.Y.Offset
+		if bodyH then
+			h = math.min(h, bodyH)
+		end
+		list.Size = UDim2.new(1, 0, 0, math.max(0, h - top))
+	end
 
 	-- Item Shop tabs: shared width, the one on show in Accent, a gold dot on the others with something to buy.
 	local tabBar = create("Frame", {
@@ -277,7 +291,6 @@ function WorldShop.new(parent: Instance, ctx: any)
 		tabBar.Visible = shown
 		local top = if shown then WorldShop.TAB_H + WorldShop.TOP_GAP else 0
 		list.Position = UDim2.fromOffset(0, top)
-		list.Size = UDim2.new(1, 0, 1, -top)
 		local k = #tabs
 		local index: { [string]: number } = {}
 		for i, t in tabs do
@@ -834,6 +847,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		entries.sync(v.entries)
 		content.Size =
 			UDim2.new(1, 0, 0, if tabBar.Visible then fullH else list.Position.Y.Offset + list.CanvasSize.Y.Offset)
+		fitList()
 		showRestock()
 		-- Forget the icons of rows that went away.
 		for i = #icons, 1, -1 do
@@ -883,6 +897,12 @@ function WorldShop.new(parent: Instance, ctx: any)
 		if not open and ctx.worldShop then
 			ctx.worldShop.onHidden()
 		end
+	end
+
+	-- init.client's layoutCards: the card box `r` (design px), sized from the content's height.
+	function self.layout(r: Layout.Rect)
+		bodyH = Layout.panelBody(r).h
+		fitList()
 	end
 
 	function self.tick()
