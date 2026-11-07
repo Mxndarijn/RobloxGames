@@ -33,3 +33,10 @@ Not shot this round: snow weather, a merge-vat hybrid close-up. The day and nigh
 
 The chasing owner in `ad-thief.jpg` is a client-side copy of the test avatar in a green shirt (a hidden Studio
 can't add a second real player); the steal itself is real (`Carry.grab`). The player is Merijn's own avatar.
+
+## NEW badge (`new-badge/`)
+
+The same eight ads with a red "NEW!" tag in the top left, to test next to the plain ones in Ads Manager. Three
+styles were shown (A red tag, B yellow burst, C pink "NEW!" in the caption); Merijn picked **A** ("A red tag").
+`make_new_badge.py new-badge` draws them on top of the finished ads. Take the badge off (or switch to an UPDATE tag)
+about 4–6 weeks after launch. **Not uploaded.**

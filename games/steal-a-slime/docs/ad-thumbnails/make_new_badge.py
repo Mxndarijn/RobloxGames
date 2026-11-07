@@ -1,5 +1,6 @@
 """NEW badge test: python make_new_badge.py <out-dir>
-Draws three NEW badge styles (A tag, B burst, C caption) on top of the finished ad images in this folder."""
+Draws the NEW badge on top of the finished ad images in this folder. Styles A tag, B burst, C caption;
+Merijn picked A ("A red tag"), so only A is written."""
 import math, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "store-video"))
@@ -9,7 +10,8 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 FONT = os.path.join(HERE, "..", "store-video", "fonts", "LilitaOne-Regular.ttf")
 RED = (232, 44, 60)
 WHITE = (255, 255, 255)
-ADS = ["night", "crowd", "egg"]
+ADS = ["thief", "divine", "night", "rainbow", "boss", "obby", "crowd", "egg"]
+PICK = "A"  # Merijn picked A (red tag), 2026-11-07
 
 
 def shadowed(img, blur=10, off=(6, 12), alpha=140):
@@ -87,6 +89,6 @@ if __name__ == "__main__":
     out = sys.argv[1]
     os.makedirs(out, exist_ok=True)
     for ad in ADS:
-        for style in "ABC":
+        for style in PICK:
             apply(ad, style).save(os.path.join(out, f"new-{style}-{ad}.jpg"), quality=92)
     print("done")
