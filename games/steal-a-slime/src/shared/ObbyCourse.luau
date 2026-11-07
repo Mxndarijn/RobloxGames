@@ -156,10 +156,13 @@ local function tierOf(idea: Kit.Idea, variant: number, tier: string): string
 	return idea.variants[variant].tier
 end
 
--- The ideas with something of `tier` (nil: anything at all), in registry order.
+-- The ideas with something of `tier` (nil: anything at all), in registry order, minus OBBY.DISABLED_SECTIONS.
 local function optionsFor(tier: string?): { Option }
 	local out = {}
 	for _, idea in ObbySections.ALL do
+		if OBBY.DISABLED_SECTIONS[idea.id] then
+			continue
+		end
 		local variants = {}
 		for i, v in idea.variants do
 			if tier == nil or v.tier == tier then

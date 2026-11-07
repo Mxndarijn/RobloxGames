@@ -60,7 +60,7 @@ return M
 Picking (ObbyCourse.pick): ORDER is 2 easy, 2 medium, 2 hard (6 sections; it was 3/3/2 until Merijn asked for a 25% shorter obby on 2026-11-02). For each slot it picks an idea not used in this
 course nor the one before (chain rule as today), then a variant of that idea with that tier (or the idea's
 generator if it covers the tier; a generator counts as one more variant). An idea with no variant of a tier is
-skipped for that slot. `Pick = { id, tier, variant, seed }`. `ObbyCourse.NAMES` is replaced by
+skipped for that slot, and so is every idea in `Config.OBBY.DISABLED_SECTIONS` (still built and tested, never picked; Updraft since Merijn, 2026-11-07). `Pick = { id, tier, variant, seed }`. `ObbyCourse.NAMES` is replaced by
 `ObbySections.byId[id].name`. `Config.OBBY.SECTIONS` and `LAYOUTS` go away.
 
 ## 3. Part fields (ObbyCourse.Part)

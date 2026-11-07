@@ -1810,6 +1810,8 @@ local Config = {
 		ORDER = table.freeze({ "easy", "easy", "medium", "medium", "hard", "hard" }), -- 6 sections (was 8: 25% shorter, Merijn 2026-11-02)
 		-- The sections themselves are the ideas in Shared.ObbySections (one module per idea, variants per tier); ORDER
 		-- says which tier each slot of a course takes (ObbyCourse.pick).
+		-- Ideas (ObbySections ids) that stay built and tested but are never picked for a course.
+		DISABLED_SECTIONS = table.freeze({ Updraft = true }),
 		MIN_RUN_SECONDS = 19, -- a finish faster than this doesn't count (the whole course at a speed-coil walk takes longer)
 		-- A runner's root this far under the lowest platform it could still land on (ObbyCourse.fallHeight) has fallen:
 		-- the client puts it back on the start pad that frame (ObbyFx). The server checks FALL_DEPTH + SERVER_FALL_SLACK
