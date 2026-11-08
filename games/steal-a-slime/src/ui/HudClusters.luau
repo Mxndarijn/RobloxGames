@@ -11,6 +11,7 @@
 	           rains, a dimmed countdown for the last RainTimer.SOON_SECONDS before the next one;
 	    Event  the live server modifier (State.modifier: dawn / dusk modifier, admin Luck event) with the
 	           time left;
+	    Luck   the server Luck Potion (State.consumables.luckUntil) with the time left;
 	    Friend the friend income bonus ("+10%", no timer);
 	    Blessed the co-op ritual's Blessed income bonus (State.blessed) with the time left;
 	    Mvp     the Boss Champion boost (State.mvpBoost) with the time left;
@@ -38,7 +39,7 @@ local Text = if script then require(script.Parent.Text) else require("./Text")
 
 export type Money = { cash: string, income: string, rebirths: string, rebirthCount: string, multiplier: string }
 export type Slot = {
-	id: string, -- "LockBreak" | "Rain" | "Event" | "Friend" | "Blessed" | "Mvp" | "Obby" | "Boost" | "Pet" | "Secret"
+	id: string, -- "LockBreak" | "Rain" | "Event" | "Luck" | "Friend" | "Blessed" | "Mvp" | "Obby" | "Boost" | "Pet" | "Secret"
 	icon: string, -- ItemIcons id
 	text: string, -- the timer, or "+10%"
 	kind: string, -- "active" | "soon" | "boost" | "pet" | "week" | "cooldown"
@@ -51,6 +52,7 @@ export type Inputs = {
 	rain: RainTimer.Rain?,
 	modifier: ModifierBadge.View?,
 	modifierEnabled: boolean,
+	luckPotion: LuckPotion?,
 	friends: FriendBadge.View?,
 	friendsEnabled: boolean,
 	blessed: Blessed?,
@@ -63,6 +65,8 @@ export type Inputs = {
 }
 -- State.exclusiveShop.lockBreak: the running lock break (contract/exclusive-shop.md §11), `untilTime` in server time.
 export type LockBreak = { plot: number, untilTime: number }
+-- State.consumables (Consumables.view): the server Luck Potion runs until `luckUntil` (0 = none), in server time.
+export type LuckPotion = { luckUntil: number, luckMult: number? }
 -- State.blessed: the ritual's Blessed income bonus, `endsAt` in server time. State.mvpBoost (the Boss MVP boost) has
 -- the same shape.
 export type Blessed = { bonus: number, endsAt: number }
@@ -79,13 +83,14 @@ local HudClusters = {}
 
 -- Slot ids in display order, left to right (Layout.STATUS_SLOTS).
 HudClusters.STATUS_IDS =
-	table.freeze({ "LockBreak", "Rain", "Event", "Friend", "Blessed", "Mvp", "Obby", "Boost", "Pet", "Secret" })
+	table.freeze({ "LockBreak", "Rain", "Event", "Luck", "Friend", "Blessed", "Mvp", "Obby", "Boost", "Pet", "Secret" })
 
 HudClusters.ICONS = table.freeze({
 	Cash = "Cash",
 	Income = "Income",
 	Rebirths = "Rebirth",
 	Rain = "Event_rain",
+	Luck = "Consumable_LuckPotion",
 	Friend = "Boost_Friend",
 	Blessed = "Boost_Blessed",
 	Mvp = "Boost_Mvp",
@@ -172,6 +177,28 @@ function HudClusters.event(view: ModifierBadge.View?, now: number, enabled: bool
 		name = ModifierBadge.label(view),
 		effect = Text.t("hud.status.event.effect", { luck = string.format("x%g", view.luck) }),
 		untimed = view.endsAt == nil,
+	}
+end
+
+-- The server Luck Potion slot (State.consumables) with its time left; nil with no potion running or a malformed view.
+function HudClusters.luck(view: LuckPotion?, now: number): Slot?
+	if type(view) ~= "table" or type(view.luckUntil) ~= "number" or view.luckUntil ~= view.luckUntil then
+		return nil
+	end
+	local remaining = Format.remainingSeconds(view.luckUntil, now)
+	if remaining <= 0 then
+		return nil
+	end
+	local mult = if type(view.luckMult) == "number" and view.luckMult == view.luckMult
+		then view.luckMult
+		else Config.LUCK_POTION_MULT
+	return {
+		id = "Luck",
+		icon = HudClusters.ICONS.Luck,
+		text = Format.formatDuration(remaining),
+		kind = "active",
+		name = Text.t("hud.status.luck.name"),
+		effect = Text.t("hud.status.luck.effect", { luck = string.format("x%g", mult) }),
 	}
 end
 
@@ -362,6 +389,10 @@ function HudClusters.status(input: Inputs, now: number, places: number): { Slot 
 	local event = HudClusters.event(input.modifier, now, input.modifierEnabled)
 	if event then
 		table.insert(out, event)
+	end
+	local luck = HudClusters.luck(input.luckPotion, now)
+	if luck then
+		table.insert(out, luck)
 	end
 	local friend = HudClusters.friend(input.friends, input.friendsEnabled)
 	if friend then

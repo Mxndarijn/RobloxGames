@@ -575,6 +575,8 @@ hud.status.friend.effect,{percent} income while your friends play on this server
 hud.status.friend.name,Friend boost,,,,,,,,,,,,,,,,,,,
 hud.status.lock_break.effect,You can walk through that base's locked door. It stays locked for everyone else.,,,,,,,,,,,,,,,,,,,
 hud.status.lock_break.name,Lock break,,,,,,,,,,,,,,,,,,,
+hud.status.luck.effect,{luck} luck for everyone on this server: rarer slimes come from the fountain.,,x2.5 luck for everyone on this server: rarer slimes come from the fountain.,,,,,,,,,,,,,,,,,
+hud.status.luck.name,Luck Potion,hud.status.luck.name,,,,,,,,,,,,,,,,,,
 hud.status.mvp.effect,{income} income and {speed} speed for bringing a boss home.,,+25% income and +10% speed for bringing a boss home.,,,,,,,,,,,,,,,,,
 hud.status.mvp.name,Boss Champion,hud.status.mvp.name,,,,,,,,,,,,,,,,,,
 hud.status.now,Now,hud.status.now,,,,,,,,,,,,,,,,,,
