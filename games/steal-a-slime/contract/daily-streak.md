@@ -19,7 +19,7 @@ A missed day starts the streak again at day 1. Skins you have earned stay yours.
   - A trail or seat the player already owns gives a Mystery Egg instead.
   - An egg when `FEATURES.MysteryEggs` is off, or the plot has no free pad, gives `DAILY_FALLBACK_CASH` × the rebirth
     multiplier instead.
-  - A consumable when `FEATURES.Consumables` is off, a Weather Totem when `FEATURES.Weather` is off, or a stack that
+  - A consumable when `FEATURES.Consumables` is off, or a stack that
     would go over `CONSUMABLE_HELD_MAX` gives that fallback cash too.
 - **The egg:** its kind is rolled with the fountain's weights, but only among the kinds the player's rebirths may grab
   (`EggKind.rebirths`). Then the slime inside is rolled as for a wild egg. It is added to the first free pad and starts
@@ -52,7 +52,7 @@ type DailyReward = {
 	day: number,       -- 1..DAILY_STREAK_CAP
 	kind: string,      -- "cash" | "egg" | "boost" | "consumable" | "trail" | "seat" (after the swaps above)
 	label: string,     -- "$1,000", "Mystery Egg", "2x income 15m", "2 Luck Potions", "Mint Fizz trail"
-	short: string,     -- the tile text: "$1K", "Egg", "2x", "Totem", "x2" (2 of the icon), "Golden" (a name's first word)
+	short: string,     -- the tile text: "$1K", "Egg", "2x", "Potion", "x2" (2 of the icon), "Golden" (a name's first word)
 	icon: string,      -- ItemIcons id: "Cash", "MysteryEgg", "Boost_Code", "Consumable_<id>", "Trail_<id>", "PetSeat_<id>"
 	amount: number?,   -- cash days: the cash it pays
 	skin: boolean,     -- a trail or seat (drawn as the big tile)

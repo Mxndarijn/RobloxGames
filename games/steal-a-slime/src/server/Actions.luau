@@ -98,7 +98,7 @@ export type Context = {
 	strictBypass: boolean?, -- set by handlePlotPad on its private copy of the context: the pad range check replaced the shop gate
 	-- ShopEvent to one player (CONTRACT.md §27.4); the adapter adds serverTime. nil = fire nothing.
 	shopEvent: ((userId: number, payload: { [string]: any }) -> ())?,
-	requestWeather: ((id: string) -> boolean)?, -- Weather Totem: makes `id` the next weather (nil = no Weather service)
+	requestWeather: ((id: string) -> boolean)?, -- admin Set weather: makes `id` the next weather (nil = no Weather service)
 	-- Drop tube (CONTRACT.md §5.3): moves the player's character to plot `plotIndex`'s splash pool; false = no
 	-- character or no plot. nil = no world: the drop is refused.
 	dropDown: ((userId: number, plotIndex: number) -> boolean)?,
@@ -434,9 +434,9 @@ local function buyConsumable(
 	id: string,
 	slimeId: string?,
 	now: number,
-	ctx: Context
+	_ctx: Context
 ): Result
-	local ok, reason = ConsumableShop.buy(world, session, id, slimeId, now, { requestWeather = ctx.requestWeather })
+	local ok, reason = ConsumableShop.buy(world, session, id, slimeId, now, {})
 	return result(ok, reason)
 end
 
@@ -449,8 +449,7 @@ local function useConsumable(
 	ctx: Context
 ): Result
 	local rng = ctx.rng or Rng.new(math.floor(now * 1000) + session.userId)
-	local ok, reason =
-		ConsumableShop.use(world, session, id, slimeId, now, { rng = rng, requestWeather = ctx.requestWeather })
+	local ok, reason = ConsumableShop.use(world, session, id, slimeId, now, { rng = rng })
 	return result(ok, reason)
 end
 

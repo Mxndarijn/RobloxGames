@@ -154,7 +154,6 @@ function DailyRewards.resolve(data: Data, day: number, features: Features): Rewa
 		local def = Consumables.def(entry.id)
 		local count = entry.count or 1
 		local off = not feature(features, "Consumables")
-			or (entry.id == Consumables.TOTEM and not feature(features, "Weather"))
 		if not def or off or Consumables.held(data, entry.id) + count > Config.CONSUMABLE_HELD_MAX then
 			return fallback(day, data)
 		end

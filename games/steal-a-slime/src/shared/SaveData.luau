@@ -743,14 +743,13 @@ end
 function SaveData.cleanCredits(raw: any): PlayerData.Credits
 	local max = Config.EXCLUSIVE_SHOP.creditMax
 	if type(raw) ~= "table" then
-		return { brew = 0, hatch = 0, rain = 0, boss = 0, totem = 0, snack = 0 }
+		return { brew = 0, hatch = 0, rain = 0, boss = 0, snack = 0 }
 	end
 	return {
 		brew = num(raw.brew, 0, 0, max),
 		hatch = num(raw.hatch, 0, 0, max),
 		rain = num(raw.rain, 0, 0, max),
 		boss = num(raw.boss, 0, 0, max),
-		totem = num(raw.totem, 0, 0, max),
 		snack = num(raw.snack, 0, 0, max),
 	}
 end
@@ -1048,6 +1047,14 @@ function SaveData.deserialize(stored: any): Data
 			end
 		end
 		data.consumables = { slot = num(raw.consumables.slot, 0, 0, 1e9), bought = bought, held = held }
+	end
+	-- The Weather Totem is retired (no version bump): held totems and paid totem credits become Luck Potions.
+	local rawHeld = if type(raw.consumables) == "table" then raw.consumables.held else nil
+	local oldTotems = math.floor(num(if type(rawHeld) == "table" then rawHeld.WeatherTotem else nil, 0, 0, 1e9))
+		+ math.floor(num(if type(raw.credits) == "table" then raw.credits.totem else nil, 0, 0, 1e9))
+	if oldTotems > 0 then
+		local held = data.consumables.held
+		held.LuckPotion = math.min(Config.CONSUMABLE_HELD_MAX, (held.LuckPotion or 0) + oldTotems)
 	end
 	return data
 end

@@ -256,7 +256,7 @@ describe("State.exclusiveShop", function()
 		local s = ServerFixtures.join(world, 1)
 		Purchases.grant(world, s, "Seat_ufo", T0, ON)
 		Purchases.applyPasses(s, { Income2x = true })
-		s.data.credits = { brew = 2, hatch = 0, rain = 1, boss = 0, totem = 0, snack = 0 }
+		s.data.credits = { brew = 2, hatch = 0, rain = 1, boss = 0, snack = 0 }
 		s.data.offlineDouble = { cash = 50, at = T0, used = false }
 		local view = Purchases.view(s, T0)
 		expect(view.owned).toEqual({ ufo = true })
@@ -264,7 +264,7 @@ describe("State.exclusiveShop", function()
 		expect(view.passes.Offline2x).toBe(false)
 		expect(view.passes.VIP).toBe(false)
 		expect(view.starterClaimed).toBe(false)
-		expect(view.credits).toEqual({ brew = 2, hatch = 0, rain = 1, boss = 0, totem = 0, snack = 0 })
+		expect(view.credits).toEqual({ brew = 2, hatch = 0, rain = 1, boss = 0, snack = 0 })
 		expect(view.offlineDouble).toEqual({ cash = 50, available = true })
 		expect(view.paidRandomAllowed).toBe(false)
 		expect(view.featured).toEqual(ExclusiveRotation.featured(ExclusiveRotation.week(T0)))
@@ -475,24 +475,13 @@ describe("Server boosts and small comforts", function()
 		expect(s.data.credits.boss).toBe(1)
 		expect(world.nextBossAt).toBe(T0 + 5000)
 	end)
-	it("the Weather Totem asks the weather service; without one it is a credit", function()
+	it("a late receipt for the retired Weather Totem closes and gives a Server Luck Potion", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
-		Purchases.grant(world, s, "WeatherTotem", T0, ON)
-		expect(s.data.credits.totem).toBe(1)
-		if Config.FEATURES.Weather == true then
-			local asked = nil
-			local weatherCtx = {
-				features = {},
-				requestWeather = function(id: string): boolean
-					asked = id
-					return true
-				end,
-			}
-			Purchases.grant(world, s, "WeatherTotem", T0, weatherCtx)
-			expect(asked ~= nil).toBe(true)
-			expect(s.data.credits.totem).toBe(1)
-		end
+		local ok = Purchases.grant(world, s, "WeatherTotem", T0, ON)
+		expect(ok).toBe(true)
+		expect(world.potionUntil > T0).toBe(true)
+		expect((s.data.credits :: any).totem).toBeNil()
 	end)
 	it("an income boost adds x2 into the capped code boost", function()
 		local world = ServerFixtures.world()

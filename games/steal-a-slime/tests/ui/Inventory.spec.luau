@@ -403,7 +403,7 @@ end)
 describe("Inventory consumable stacks (S3)", function()
 	local function stackState(extra: any?): any
 		local state: any = {
-			consumables = { held = { LuckPotion = 1, WeatherTotem = 3 } },
+			consumables = { held = { LuckPotion = 3 } },
 			pvp = { owned = {}, cooldowns = {} },
 		}
 		for k, v in extra or {} do
@@ -416,15 +416,14 @@ describe("Inventory consumable stacks (S3)", function()
 	it("shows the Speed Coil and each consumable with its stack count on the hotbar", function()
 		local inv = mount(stackState(), COIL)
 		local slots = visibleSlots(inv)
-		expect(#slots).toBe(4) -- Bat, Speed Coil, Luck Potion, Weather Totem
-		expect(UiHarness.find(slots[3], "Count").Text).toBe("1")
+		expect(#slots).toBe(3) -- Bat, Speed Coil, Luck Potion
+		expect(UiHarness.find(slots[3], "Count").Text).toBe("3")
 		expect(UiHarness.find(slots[3], "Count").Visible).toBe(true)
-		expect(UiHarness.find(slots[4], "Count").Text).toBe("3")
 		expect(UiHarness.find(slots[2], "Count").Visible).toBe(false) -- a Tool has no stack
 	end)
 
 	it("bag cells show the stack amount on the gold tag and no second count", function()
-		local inv = mount(stackState({ consumables = { held = { LuckPotion = 1, WeatherTotem = 120 } } }), COIL)
+		local inv = mount(stackState({ consumables = { held = { LuckPotion = 120 } } }), COIL)
 		inv.setPanelOpen(true)
 		local cells = {}
 		for _, cell in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
@@ -432,13 +431,12 @@ describe("Inventory consumable stacks (S3)", function()
 				cells[UiHarness.find(cell, "Name").Text] = cell
 			end
 		end
-		local potion, totem = cells["Luck Potion"], cells["Weather Totem"]
-		expect(potion ~= nil and totem ~= nil).toBe(true)
+		local potion = cells["Luck Potion"]
+		expect(potion ~= nil).toBe(true)
 		expect(UiHarness.find(potion, "Amount").Visible).toBe(true)
-		expect(UiHarness.find(potion, "Amount").Text).toBe("1")
 		expect(UiHarness.find(potion, "Count").Visible).toBe(false)
-		expect(UiHarness.find(totem, "Amount").Text).toBe("99+")
-		expect(UiHarness.find(totem, "Amount").Size.X.Offset).toBe(Inventory.PANEL.tagWide)
+		expect(UiHarness.find(potion, "Amount").Text).toBe("99+")
+		expect(UiHarness.find(potion, "Amount").Size.X.Offset).toBe(Inventory.PANEL.tagWide)
 		expect(UiHarness.find(cells["Speed Coil"], "Amount").Visible).toBe(false)
 		local tagged = 0
 		for _, cell in cells do
@@ -446,29 +444,29 @@ describe("Inventory consumable stacks (S3)", function()
 				tagged += 1
 			end
 		end
-		expect(tagged).toBe(2)
+		expect(tagged).toBe(1)
 	end)
 
 	it("a number key puts the consumable in hand, the same number again puts it away; nothing is sent", function()
 		local inv, tools, sent = mount(stackState(), COIL)
-		expect(inv.pressKey(4)).toBe(true)
-		expect(inv.heldConsumable()).toBe("WeatherTotem")
+		expect(inv.pressKey(3)).toBe(true)
+		expect(inv.heldConsumable()).toBe("LuckPotion")
 		expect(tools.calls[1]).toBe("unequipAll") -- one hand
-		expect(visibleSlots(inv)[4].BackgroundColor3).toBe(Inventory.COLORS.selected)
+		expect(visibleSlots(inv)[3].BackgroundColor3).toBe(Inventory.COLORS.selected)
 		expect(#sent).toBe(0)
-		expect(inv.pressKey(4)).toBe(true)
+		expect(inv.pressKey(3)).toBe(true)
 		expect(inv.heldConsumable()).toBeNil()
-		expect(visibleSlots(inv)[4].BackgroundColor3).toBe(Inventory.COLORS.slot)
+		expect(visibleSlots(inv)[3].BackgroundColor3).toBe(Inventory.COLORS.slot)
 		expect(#sent).toBe(0)
 	end)
 
 	it("a click with it in hand sends UseConsumable once per gap; nothing in hand sends nothing", function()
 		local inv, _, sent = mount(stackState(), COIL)
 		expect(inv.useHeld()).toBe(false)
-		inv.pressKey(4)
+		inv.pressKey(3)
 		expect(inv.useHeld()).toBe(true)
 		expect(sent[1][1]).toBe("UseConsumable")
-		expect(sent[1][2]).toBe("WeatherTotem")
+		expect(sent[1][2]).toBe("LuckPotion")
 		expect(sent[1][3]).toBeNil()
 		expect(inv.useHeld()).toBe(false) -- inside the gap: the server's rate limit is never hit by a double click
 		expect(#sent).toBe(1)
@@ -478,10 +476,11 @@ describe("Inventory consumable stacks (S3)", function()
 		local inv = mount(stackState(), COIL)
 		inv.pressKey(3)
 		expect(inv.heldConsumable()).toBe("LuckPotion")
-		inv.update(stackState({ consumables = { held = { WeatherTotem = 3 } } })) -- the potion was used up
+		inv.update(stackState({ consumables = { held = {} } })) -- the potion was used up
 		expect(inv.heldConsumable()).toBeNil()
+		inv.update(stackState())
 		inv.pressKey(3)
-		expect(inv.heldConsumable()).toBe("WeatherTotem")
+		expect(inv.heldConsumable()).toBe("LuckPotion")
 		inv.pressKey(1) -- the Bat
 		expect(inv.heldConsumable()).toBeNil()
 		inv.pressKey(3)

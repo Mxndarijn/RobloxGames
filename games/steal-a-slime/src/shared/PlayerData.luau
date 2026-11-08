@@ -41,8 +41,8 @@ export type Pvp = {
 }
 
 -- Exclusive Shop paid skips that arrived with nothing to skip (contract/exclusive-shop.md §2), 0..creditMax each.
--- Paid skips and server boosts kept for later (Request UseCredit). rain / boss / totem / snack: no version bump.
-export type Credits = { brew: number, hatch: number, rain: number, boss: number, totem: number, snack: number }
+-- Paid skips and server boosts kept for later (Request UseCredit). rain / boss / snack: no version bump.
+export type Credits = { brew: number, hatch: number, rain: number, boss: number, snack: number }
 
 -- The last welcome-back payout, so a "Double it" receipt pays the right amount once (contract/exclusive-shop.md §2).
 export type OfflineDouble = { cash: number, at: number, used: boolean }
@@ -167,7 +167,7 @@ function PlayerData.new(): Data
 		ownedSeats = {},
 		receipts = {},
 		starterBundle = false,
-		credits = { brew = 0, hatch = 0, rain = 0, boss = 0, totem = 0, snack = 0 },
+		credits = { brew = 0, hatch = 0, rain = 0, boss = 0, snack = 0 },
 		ownedStyles = {},
 		wornStyles = {},
 		ownedTrails = {},

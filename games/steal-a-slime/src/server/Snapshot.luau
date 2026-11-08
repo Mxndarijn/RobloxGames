@@ -126,7 +126,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		codes = Codes.view(data),
 		shop = Shop.view(data),
 		egg = MysteryEgg.view(session.egg),
-		consumables = Consumables.view(data, now, Config.FEATURES.Weather, world.potionUntil),
+		consumables = Consumables.view(data, now, world.potionUntil),
 		pvp = PvpService.view(session, now),
 		tutorialStep = TutorialProgress.current(data),
 		walkSpeed = Shop.walkSpeed(data, session.coilHeld),

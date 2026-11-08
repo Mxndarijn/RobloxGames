@@ -295,7 +295,7 @@ function TestHooks.setSubscription(
 end
 
 -- Overrides the PolicyService answer for this session: whether paid random items (the Luck Potion, Slime Rain,
--- the Weather Totem, Lucky Charm+) may be shown and sold.
+-- Lucky Charm+) may be shown and sold.
 function TestHooks.setPaidRandom(world: World, userId: number, allowed: boolean): (boolean, string?)
 	local session = sessionOf(world, userId)
 	session.paidRandomAllowed = allowed

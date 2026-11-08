@@ -45,7 +45,7 @@ Each entry: `{ id, tab, level, label }`; `level` is `"cheat"` (test save only, r
 | Items | `grantCosmetics` | cheat | none | every cosmetic product (`TestHooks.COSMETIC_KINDS`: seats, base skins and bases, lock styles, trails, hats, Bat skins) |
 | Items | `setPass` | cheat | text = an `EXCLUSIVE_SHOP.passes` key, amount 1 on / 0 off | `TestHooks.setPass` → `Purchases.applyPasses` (this session; a rejoin asks Roblox again) |
 | Items | `setSubscription` | cheat | text = an `EXCLUSIVE_SHOP.subscriptions` key, amount 1 / 0 | `TestHooks.setSubscription` → `Purchases.applySubscriptions` (today's Club credits) |
-| Items | `setPaidRandom` | cheat | amount 1 allowed / 0 restricted | `TestHooks.setPaidRandom`: the PolicyService answer for this session (hides the potion, Slime Rain, totem, Lucky Charm+) |
+| Items | `setPaidRandom` | cheat | amount 1 allowed / 0 restricted | `TestHooks.setPaidRandom`: the PolicyService answer for this session (hides the potion, Slime Rain, Lucky Charm+) |
 | Items | `unlockSkins` | cheat | none | `TestHooks.unlockSkins`: marks each plot skin's slimes found, so every skin unlocks |
 | Items | `unlockSeats` | cheat | none | `TestHooks.unlockSeats`: meets the free seats' goals (merges, Dex share) |
 | Items | `giveConsumable` | cheat | text = `CONSUMABLES` id, amount 1..`CONSUMABLE_HELD_MAX` | adds to `consumables.held`, up to the cap |

@@ -110,7 +110,6 @@ end
 -- do not, so the rows say it shorter (Strings keys).
 WorldShopLogic.CONSUMABLE_SHORT = table.freeze({
 	LuckPotion = "shop.consumable_short.luck_potion",
-	WeatherTotem = "shop.consumable_short.weather_totem",
 })
 
 -- Item names longer than this get the smaller size so they stay on one line beside the Buy button.

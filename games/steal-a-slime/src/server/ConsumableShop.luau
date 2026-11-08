@@ -5,7 +5,7 @@
 	`buy` is the `BuyConsumable` action: validates stock, cash and the held-stack cap through
 	Shared.Consumables, then charges, records the purchase and adds one to the held stack. Nothing is applied.
 	`use` is the `UseConsumable` action: validates the item and that the player holds one, applies the effect
-	(the potion / totem code below) and only then takes one off the stack, so a refused
+	(the potion code below) and only then takes one off the stack, so a refused
 	effect costs nothing. Pure: no Roblox APIs.
 ]]
 
@@ -19,7 +19,7 @@ type World = World.World
 type Session = World.Session
 
 export type Hooks = {
-	requestWeather: ((id: string) -> boolean)?, -- Weather service; nil = no totem
+	rng: any?,
 }
 
 local ConsumableShop = {}
@@ -31,11 +31,10 @@ function ConsumableShop.buy(
 	itemId: string,
 	_slimeId: string?, -- kept for the BuyConsumable arguments: the target is chosen when the item is used
 	now: number,
-	hooks: Hooks
+	_hooks: Hooks
 ): (boolean, string?)
 	local data = session.data
-	local weatherOk = hooks.requestWeather ~= nil and Config.FEATURES.Weather == true
-	local ok, value = Consumables.check(data, itemId, now, weatherOk)
+	local ok, value = Consumables.check(data, itemId, now)
 	if not ok then
 		return false, value :: string
 	end
@@ -54,7 +53,7 @@ function ConsumableShop.use(
 	itemId: string,
 	_slimeId: string?,
 	now: number,
-	hooks: Hooks
+	_hooks: Hooks
 ): (boolean, string?)
 	local data = session.data
 	if not Consumables.enabled() then
@@ -74,15 +73,6 @@ function ConsumableShop.use(
 		world.potionUntil = Consumables.extendPotion(world.potionUntil, now)
 		World.notify(world, nil, `{def.name}! Better rarity odds in the fountain.`, "good", nil)
 		World.markAllDirty(world)
-	elseif itemId == Consumables.TOTEM then
-		local _, weather = Consumables.stock(Consumables.slotAt(now))
-		if not (hooks.requestWeather and Config.FEATURES.Weather == true) then
-			return false, "no weather here"
-		end
-		if not hooks.requestWeather(weather) then
-			return false, "the weather can't change that way right now"
-		end
-		World.notify(world, nil, `Weather Totem: {weather} is next!`, "good", nil)
 	end
 	assert(Consumables.takeHeld(data, itemId), "stack vanished")
 	return true, nil

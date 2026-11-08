@@ -212,11 +212,6 @@ ExclusiveShopView.TEXTS = table.freeze({
 		icon = "Slap",
 		text = "shop.exclusive.summon_boss.text",
 	}),
-	WeatherTotem = table.freeze({
-		title = "shop.exclusive.weather_totem.title",
-		icon = "Consumable_WeatherTotem",
-		text = "shop.exclusive.weather_totem.text",
-	}),
 	IncomeBoost15 = table.freeze({
 		title = "shop.exclusive.income_boost15.title",
 		icon = "Boost_Code",
@@ -284,7 +279,6 @@ type Boost = { key: string, random: boolean, credit: string? }
 local BOOSTS: { Boost } = table.freeze({
 	table.freeze({ key = "ServerLuckPotion", random = true, credit = nil }),
 	table.freeze({ key = "SlimeRain", random = true, credit = "rain" }),
-	table.freeze({ key = "WeatherTotem", random = true, credit = "totem" }),
 	table.freeze({ key = "SummonBoss", random = false, credit = "boss" }),
 	table.freeze({ key = "IncomeBoost15", random = false, credit = nil }),
 	table.freeze({ key = "IncomeBoost60", random = false, credit = nil }),
@@ -831,7 +825,7 @@ function ExclusiveShopView.potionEffect(config: any): { string }
 	}
 end
 
--- The credit kind a Boosts card spends instead of buying ("rain", "boss", "totem"), when State holds one.
+-- The credit kind a Boosts card spends instead of buying ("rain", "boss"), when State holds one.
 function boostCredit(state: any, card: Card): string?
 	if card.kind ~= "product" then
 		return nil

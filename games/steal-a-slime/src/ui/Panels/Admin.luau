@@ -295,7 +295,6 @@ function Admin.rows(ctx: any): { [string]: { Row } }
 			{ "ServerLuckPotion", "Server Luck Potion" },
 			{ "SlimeRain", "Slime Rain now" },
 			{ "SummonBoss", "Summon the boss" },
-			{ "WeatherTotem", "Weather Totem" },
 			{ "IncomeBoost15", "x2 income, 15 min" },
 			{ "IncomeBoost60", "x2 income, 1 hour" },
 			{ "DoubleOffline", "Double offline cash" },

@@ -74,25 +74,15 @@ local function baseState(extra: { [string]: any }?): any
 			restockAt = 1190,
 			luckUntil = 0,
 			luckMult = 1,
-			totemWeather = "Rain",
 			items = {
-				{
-					id = "WeatherTotem",
-					name = "Weather Totem",
-					icon = "🗿",
-					text = "totem",
-					price = 3000,
-					left = 2,
-					max = 3,
-				},
 				{
 					id = "LuckPotion",
 					name = "Luck Potion",
 					icon = "🍀",
 					text = "luck",
-					price = 2000,
-					left = 0,
-					max = 4,
+					price = 3000,
+					left = 2,
+					max = 3,
 				},
 			},
 		},
@@ -145,7 +135,8 @@ describe("WorldShopLogic.rows", function()
 		local upgradeRows = ids(WorldShopLogic.rows("UpgradeShop", baseState(), ACTIONS, off, Config))
 		expect(table.find(upgradeRows, "Income")).toBeTruthy()
 		local all = ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config))
-		expect(table.find(all, "WeatherTotem")).toBeTruthy()
+		expect(table.find(all, "LuckPotion")).toBeTruthy()
+		expect(table.find(all, "WeatherTotem")).toBeNil()
 		expect(#WorldShopLogic.rows("Nope", baseState(), ACTIONS, features(), Config)).toBe(0)
 	end)
 
@@ -224,13 +215,15 @@ describe("WorldShopLogic.rows", function()
 	it("consumables: sold out, stocked, and a row with no stock entry", function()
 		local state = baseState()
 		local rows = WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config)
+		local potion = find(rows, "LuckPotion")
+		expect(potion.status).toBe("buy")
+		expect(potion.enabled).toBe(true)
+		expect(potion.levelText).toBe("2/3 left")
+		state.consumables.items[1].left = 0
+		rows = WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config)
 		expect(find(rows, "LuckPotion").status).toBe("soldOut")
 		expect(find(rows, "LuckPotion").buttonText).toBe("Sold out")
 		expect(find(rows, "LuckPotion").enabled).toBe(false)
-		local totem = find(rows, "WeatherTotem")
-		expect(totem.status).toBe("buy")
-		expect(totem.enabled).toBe(true)
-		expect(totem.levelText).toBe("2/3 left")
 		state.consumables = nil
 		expect(find(WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config), "LuckPotion").status).toBe(
 			"soldOut"
@@ -341,16 +334,12 @@ describe("WorldShopLogic.view: Item Shop", function()
 
 	it("Items: gear, then potions with the restock timer; an owned Speed Coil moves to a thin Owned row", function()
 		local v = shopView("ItemShop", baseState())
-		expect(table.concat(entryKeys(v), ",")).toBe(
-			"label_gear,row_SpeedCoil,label_consumables,row_LuckPotion,row_WeatherTotem"
-		)
+		expect(table.concat(entryKeys(v), ",")).toBe("label_gear,row_SpeedCoil,label_consumables,row_LuckPotion")
 		expect(entry(v, "label_consumables").aside).toBe("restock")
 		local owned = baseState()
 		owned.shop.SpeedCoil.owned = true
 		local w = shopView("ItemShop", owned)
-		expect(table.concat(entryKeys(w), ",")).toBe(
-			"label_consumables,row_LuckPotion,row_WeatherTotem,label_owned,row_SpeedCoil_thin"
-		)
+		expect(table.concat(entryKeys(w), ",")).toBe("label_consumables,row_LuckPotion,label_owned,row_SpeedCoil_thin")
 		expect(entry(w, "row_SpeedCoil_thin").thin).toBe(true)
 	end)
 
@@ -506,8 +495,8 @@ describe("WorldShopLogic.slot", function()
 		expect(find(up, "Luck").level).toBe(1)
 		expect(find(up, "Luck").maxLevel).toBe(upgradeEntry("Luck").maxLevel)
 		local items = WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config)
-		expect(find(items, "WeatherTotem").stockText).toBe("2/3 left")
-		expect(find(items, "WeatherTotem").maxLevel).toBeNil()
+		expect(find(items, "LuckPotion").stockText).toBe("2/3 left")
+		expect(find(items, "LuckPotion").maxLevel).toBeNil()
 		expect(find(items, "SpeedCoil").maxLevel).toBeNil()
 		expect(find(items, "SpeedCoil").stockText).toBeNil()
 	end)
@@ -516,10 +505,10 @@ end)
 describe("WorldShopLogic.buyArgs", function()
 	it("is shopId, itemId", function()
 		local rows = WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config)
-		local totem = WorldShopLogic.buyArgs(find(rows, "WeatherTotem"))
-		expect(totem[1]).toBe("ItemShop")
-		expect(totem[2]).toBe("WeatherTotem")
-		expect(totem[3]).toBeNil()
+		local potion = WorldShopLogic.buyArgs(find(rows, "LuckPotion"))
+		expect(potion[1]).toBe("ItemShop")
+		expect(potion[2]).toBe("LuckPotion")
+		expect(potion[3]).toBeNil()
 		local coil = WorldShopLogic.buyArgs(find(rows, "SpeedCoil"))
 		expect(coil[1]).toBe("ItemShop")
 		expect(coil[2]).toBe("SpeedCoil")
@@ -527,7 +516,7 @@ describe("WorldShopLogic.buyArgs", function()
 		local up = WorldShopLogic.rows("UpgradeShop", baseState(), ACTIONS, features(), Config)
 		expect(WorldShopLogic.buyArgs(find(up, "Income"))[1]).toBe("UpgradeShop")
 		expect(Remotes.ACTIONS.ShopBuy).toBeTruthy()
-		expect(Shops.find("ItemShop", totem[2])).toBeTruthy() -- the server accepts the pair
+		expect(Shops.find("ItemShop", potion[2])).toBeTruthy() -- the server accepts the pair
 	end)
 end)
 
@@ -711,9 +700,9 @@ describe("WorldShopLogic.controller", function()
 		log.controller.onEvent({ kind = "Purchased", shopId = "UpgradeShop", itemId = "Income", price = 9, level = 3 })
 		expect(log.toasts[2].text).toBe("Slime snacks bought, Lv 3")
 		expect(log.toasts[2].itemId).toBe("Upgrade_Income")
-		log.controller.onEvent({ kind = "Purchased", shopId = "ItemShop", itemId = "WeatherTotem", price = 1 })
-		expect(log.toasts[3].text).toBe("Weather totem bought")
-		expect(log.toasts[3].itemId).toBe("Consumable_WeatherTotem")
+		log.controller.onEvent({ kind = "Purchased", shopId = "ItemShop", itemId = "LuckPotion", price = 1 })
+		expect(log.toasts[3].text).toBe("Luck potion bought")
+		expect(log.toasts[3].itemId).toBe("Consumable_LuckPotion")
 	end)
 
 	it("Denied events and failed results toast the mapped text, once per burst", function()
@@ -865,13 +854,13 @@ describe("Panels/WorldShop", function()
 		expect(buy.TextColor3).toBe(Theme.Ink)
 		expect(buy:GetAttribute("HoldConfirm") ~= nil).toBe(true)
 		expect(coil:FindFirstChild("Stock").Visible).toBe(false)
-		local totem = UiHarness.find(panel.frame, "WeatherTotem")
-		local stock = totem:FindFirstChild("Stock")
+		local potion = UiHarness.find(panel.frame, "LuckPotion")
+		local stock = potion:FindFirstChild("Stock")
 		expect(stock.Visible).toBe(true)
 		expect(stock.Text).toBe("2/3 left")
 		expect(stock.BackgroundColor3).toBe(Theme.Gold)
 		expect(stock.TextColor3).toBe(Theme.Ink)
-		expect(stock.ZIndex > totem:FindFirstChild("Icon").ZIndex).toBe(true)
+		expect(stock.ZIndex > potion:FindFirstChild("Icon").ZIndex).toBe(true)
 		local owned = baseState()
 		owned.shop.SpeedCoil.owned = true
 		panel.update(owned)

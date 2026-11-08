@@ -63,26 +63,24 @@ describe("Consumables schedule", function()
 	end)
 	it("makes the stock a pure function of the slot (all servers agree)", function()
 		local slot = Consumables.slotAt(T0)
-		local a, wa = Consumables.stock(slot)
-		local b, wb = Consumables.stock(slot)
-		expect(wa).toBe(wb)
+		local a = Consumables.stock(slot)
+		local b = Consumables.stock(slot)
 		for _, def in Config.CONSUMABLES do
 			expect(a[def.id]).toBe(b[def.id])
 			expect(a[def.id] >= def.minStock and a[def.id] <= def.maxStock).toBe(true)
 		end
-		expect(wa ~= "Clear" and require("../src/shared/Weather").data(wa) ~= nil).toBe(true)
 	end)
 	it("varies between slots", function()
 		local seen = {}
 		for slot = 1000, 1040 do
-			local stock, weather = Consumables.stock(slot)
-			seen[`{stock.LuckPotion}{stock.WeatherTotem}{weather}`] = true
+			local stock = Consumables.stock(slot)
+			seen[`{stock.LuckPotion}`] = true
 		end
 		local n = 0
 		for _ in seen do
 			n += 1
 		end
-		expect(n > 3).toBe(true)
+		expect(n >= 3).toBe(true)
 	end)
 end)
 
@@ -109,9 +107,7 @@ describe("Consumables purchase rules", function()
 		expect(other.data.consumables.bought.LuckPotion).toBe(1)
 		-- next slot: counts reset (the counts live per slot)
 		local later = (slot + 1) * STEP + 1
-		expect(Consumables.remaining(session.data, slot + 1, "LuckPotion", true)).toBe(
-			Consumables.stock(slot + 1).LuckPotion
-		)
+		expect(Consumables.remaining(session.data, slot + 1, "LuckPotion")).toBe(Consumables.stock(slot + 1).LuckPotion)
 		expect(later > now).toBe(true)
 	end)
 	it("checks cash and charges exactly the price", function()
@@ -172,45 +168,16 @@ describe("Consumables effects", function()
 		expect(world.potionUntil).toBe(0) -- bought, not used yet
 		expect(use(world, 1, now, "LuckPotion").ok).toBe(true)
 		expect(world.potionUntil >= now + Config.LUCK_POTION_SECONDS).toBe(true)
-		expect(Consumables.view(Fixtures.data(), now, true, world.potionUntil).luckUntil).toBe(world.potionUntil)
-		expect(Consumables.view(Fixtures.data(), world.potionUntil + 1, true, world.potionUntil).luckUntil).toBe(0)
+		expect(Consumables.view(Fixtures.data(), now, world.potionUntil).luckUntil).toBe(world.potionUntil)
+		expect(Consumables.view(Fixtures.data(), world.potionUntil + 1, world.potionUntil).luckUntil).toBe(0)
 		expect(Spawner.spawnOne(world, now) ~= nil).toBe(true)
 	end)
-	it("a weather totem requests the weather, or is skipped without a Weather service", function()
-		local slot = slotWith("WeatherTotem", 1)
+	it("the retired Weather Totem is not offered and can't be bought", function()
+		local slot = slotWith("LuckPotion", 1)
 		local now = slot * STEP + 1
 		local world = ServerFixtures.world(now)
 		local session = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2) }, 1e9, now)
-		local asked: string? = nil
-		local calling = ctx(function(id)
-			asked = id
-			return true
-		end)
-		expect(buy(world, 1, now, "WeatherTotem", nil, calling).ok).toBe(true)
-		local res = use(world, 1, now, "WeatherTotem", nil, calling)
-		expect(res.ok).toBe(true)
-		local _, weather = Consumables.stock(slot)
-		expect(asked).toBe(weather)
-		local paid = 1e9 - session.data.cash
-		expect(paid > 0).toBe(true)
-		-- refused request: the stack keeps its totem
-		session.data.consumables = { slot = 0, bought = {}, held = { WeatherTotem = 1 } }
-		session.data.cash = 1e9
-		local no = use(
-			world,
-			1,
-			now,
-			"WeatherTotem",
-			nil,
-			ctx(function()
-				return false
-			end)
-		)
-		expect(no.ok).toBe(false)
-		expect(session.data.consumables.held.WeatherTotem).toBe(1)
-		-- no Weather service: item is not offered and cannot be bought
-		local view = Consumables.view(session.data, now, false, 0)
-		for _, item in view.items do
+		for _, item in Consumables.view(session.data, now, 0).items do
 			expect(item.id ~= "WeatherTotem").toBe(true)
 		end
 		local none = buy(world, 1, now, "WeatherTotem", nil, ctx(nil))

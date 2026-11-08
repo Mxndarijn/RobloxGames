@@ -173,7 +173,6 @@ export type ConsumablesView = {
 	items: { ConsumableItemView },
 	luckUntil: number, -- active server luck potion ends (0 = none)
 	luckMult: number, -- the potion's rarity multiplier
-	totemWeather: string, -- the weather a Weather Totem calls this restock
 	held: { [string]: number }, -- item id -> stack held (every consumable with a stack, shown or not)
 }
 
@@ -340,7 +339,7 @@ export type ExclusiveShopView = {
 	owned: { [string]: boolean }, -- Exclusive seat ids this player owns
 	passes: { [string]: boolean }, -- Config.EXCLUSIVE_SHOP.passes keys: owned or not
 	starterClaimed: boolean,
-	credits: { brew: number, hatch: number, rain: number, boss: number, totem: number, snack: number }, -- saved for later (UseCredit)
+	credits: { brew: number, hatch: number, rain: number, boss: number, snack: number }, -- saved for later (UseCredit)
 	serverBoosts: { rain: boolean, boss: boolean }, -- a paid Slime Rain / boss summon could start right now on this server
 	streakKeepable: boolean, -- the daily streak broke and KeepStreak would carry it on
 	offlineDouble: { cash: number, available: boolean }?, -- the last welcome-back payout "Double it" can repeat

@@ -7,7 +7,7 @@
 	hold calls Request("ShopBuy", shopId, itemId). Cash and rebirths are not repeated here: the HUD shows them.
 
 	The Item Shop has tabs (Items / PvP / Fun, a gold dot on a tab with something to buy now); the Upgrade
-	Shop has none. Section labels group the rows ("Potions and totems" carries the restock countdown). A row
+	Shop has none. Section labels group the rows ("Potions" carries the restock countdown). A row
 	is the icon tile (a gold stock tag under it for restocking items and traps), the name, a two-line
 	description, level pips (a bar past PIP_MAX levels) for leveled upgrades, and on the right
 	WorldShopLogic.slot: the green hold-to-buy button, a sunken status well ("Owned" with the game's check,
