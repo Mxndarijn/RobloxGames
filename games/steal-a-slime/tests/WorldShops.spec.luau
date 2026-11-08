@@ -25,7 +25,7 @@ describe("Shops catalogue", function()
 			return out
 		end
 		local item = ids("ItemShop")
-		for _, id in { "SpeedCoil", "LuckPotion", "WeatherTotem" } do
+		for _, id in { "SpeedCoil", "LuckPotion" } do
 			expect(table.find(item, id) ~= nil).toBe(true)
 		end
 		for _, tool in Config.PVP_TOOLS do

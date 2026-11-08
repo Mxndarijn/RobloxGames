@@ -61,7 +61,6 @@ type Session = World.Session
 -- session data now (the session-locked Persistence save; yields), true = written; nil = can't (a gift becomes a credit).
 export type Context = {
 	features: { [string]: boolean }?,
-	requestWeather: ((id: string) -> boolean)?, -- the Weather service (Weather Totem); nil = no weather here
 	save: ((userId: number, data: any) -> boolean)?,
 }
 
@@ -109,7 +108,7 @@ local function addSeat(data: PlayerData.Data, seatId: string): boolean
 	return true
 end
 
-local function addCredit(data: PlayerData.Data, kind: "brew" | "hatch" | "rain" | "boss" | "totem" | "snack")
+local function addCredit(data: PlayerData.Data, kind: "brew" | "hatch" | "rain" | "boss" | "snack")
 	data.credits[kind] = math.min(data.credits[kind] + 1, SHOP.creditMax)
 end
 
@@ -454,8 +453,8 @@ function Purchases.equipBatSkin(session: Session, skinId: string): (boolean, str
 	return true, nil
 end
 
--- Server boosts (contract/exclusive-shop.md §14): Slime Rain now, the boss now, the Weather Totem. Each is refused
--- (and kept as a credit) while it can't happen: a rain or boss already on, the server's cooldown, no weather service.
+-- Server boosts (contract/exclusive-shop.md §14): Slime Rain now, the boss now. Each is refused
+-- (and kept as a credit) while it can't happen: a rain or boss already on, the server's cooldown.
 
 -- Why a paid Slime Rain can't start now on this server; nil = it can.
 function Purchases.rainRefusal(world: World, now: number): string?
@@ -511,21 +510,6 @@ local function summonBoss(world: World, session: Session, now: number): (boolean
 	world.summonedAt = now
 	world.nextBossAt = now + Config.BOSS.WARNING_SECONDS
 	World.notify(world, nil, `{session.name} summoned the boss! It arrives soon.`, "good", nil)
-	World.markAllDirty(world)
-	return true, nil
-end
-
-local function callWeather(world: World, session: Session, now: number, ctx: Context?): (boolean, string?)
-	local request = ctx and ctx.requestWeather
-	if not (request and Config.FEATURES.Weather == true) then
-		return false, "no weather here"
-	end
-	local _, weather = Consumables.stock(Consumables.slotAt(now))
-	local ok, called = pcall(request, weather)
-	if not (ok and called) then
-		return false, "the weather can't change that way right now"
-	end
-	World.notify(world, nil, `{session.name} used a Weather Totem: {weather} is next!`, "good", nil)
 	World.markAllDirty(world)
 	return true, nil
 end
@@ -653,15 +637,9 @@ function Purchases.grant(
 		world.potionUntil = Consumables.extendPotion(world.potionUntil, now)
 		World.notify(world, nil, `{session.name} gave the server a Luck Potion!`, "good", nil)
 		World.markAllDirty(world)
-	elseif kind == "slimeRain" or kind == "summonBoss" or kind == "weatherTotem" then
-		local credit: "rain" | "boss" | "totem" = if kind == "slimeRain"
-			then "rain"
-			elseif kind == "summonBoss" then "boss"
-			else "totem"
-		local ok = if kind == "slimeRain"
-			then startRain(world, session, now)
-			elseif kind == "summonBoss" then summonBoss(world, session, now)
-			else callWeather(world, session, now, ctx)
+	elseif kind == "slimeRain" or kind == "summonBoss" then
+		local credit: "rain" | "boss" = if kind == "slimeRain" then "rain" else "boss"
+		local ok = if kind == "slimeRain" then startRain(world, session, now) else summonBoss(world, session, now)
 		if not ok then
 			addCredit(data, credit)
 			World.notify(
@@ -769,7 +747,7 @@ function Purchases.useCredit(
 		end
 		data.lockBreakCredits -= 1
 		return true, nil
-	elseif kind == "rain" or kind == "boss" or kind == "totem" then
+	elseif kind == "rain" or kind == "boss" then
 		local credits = data.credits :: any
 		if credits[kind] < 1 then
 			return false, "no credit of that"
@@ -777,10 +755,8 @@ function Purchases.useCredit(
 		local ok, reason
 		if kind == "rain" then
 			ok, reason = startRain(world, session, now)
-		elseif kind == "boss" then
-			ok, reason = summonBoss(world, session, now)
 		else
-			ok, reason = callWeather(world, session, now, ctx)
+			ok, reason = summonBoss(world, session, now)
 		end
 		if not ok then
 			return false, reason

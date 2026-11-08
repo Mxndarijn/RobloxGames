@@ -268,16 +268,6 @@ RECIPES.Consumable_LuckPotion = function(p)
 	sparkle(p, 0.82, 0.2, 0.2)
 end
 
-RECIPES.Consumable_WeatherTotem = function(p)
-	p:shape(0.5, 0.82, 0.62, 0.16, rgb(120, 125, 140), { round = 0.3 })
-	p:shape(0.5, 0.5, 0.42, 0.7, rgb(150, 155, 170), { round = 0.2 })
-	p:shape(0.5, 0.26, 0.5, 0.18, rgb(170, 175, 190), { round = 0.3 })
-	p:circle(0.4, 0.46, 0.1, INK, { stroke = false, flat = true })
-	p:circle(0.6, 0.46, 0.1, INK, { stroke = false, flat = true })
-	p:shape(0.5, 0.66, 0.24, 0.07, INK, { round = 0.5, stroke = false, flat = true })
-	cloud(p, 0.5, 0.1, 0.34, WHITE)
-end
-
 local TIER_COLORS = {
 	rgb(120, 200, 120),
 	rgb(90, 160, 240),

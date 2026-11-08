@@ -200,24 +200,21 @@ describe("ExclusiveShopView cards", function()
 			)
 			local boosts = keysOf(ExclusiveShopView.cards("Boosts", shopState(), Config))
 			expect(table.concat(boosts, ",")).toBe(
-				"product:ServerLuckPotion,product:SlimeRain,product:WeatherTotem,product:SummonBoss,product:IncomeBoost15,"
+				"product:ServerLuckPotion,product:SlimeRain,product:SummonBoss,product:IncomeBoost15,"
 					.. "product:IncomeBoost60,info:FinishBrew,info:HatchNow,info:DoubleOffline,info:KeepStreak,info:GrowthSnack"
 			)
 		end
 	)
-	it(
-		"restricted paid random items hide every odds changer: the potion, Slime Rain, the totem and Lucky Charm+",
-		function()
-			local state = shopState({ paidRandomAllowed = false })
-			local boosts = keysOf(ExclusiveShopView.cards("Boosts", state, Config))
-			expect(table.concat(boosts, ",")).toBe(
-				"product:SummonBoss,product:IncomeBoost15,product:IncomeBoost60,info:FinishBrew,info:HatchNow,"
-					.. "info:DoubleOffline,info:KeepStreak,info:GrowthSnack"
-			)
-			local perks = keysOf(ExclusiveShopView.cards("Perks", state, Config))
-			expect(table.find(perks, "pass:LuckyCharmPlus")).toBeNil()
-		end
-	)
+	it("restricted paid random items hide every odds changer: the potion, Slime Rain and Lucky Charm+", function()
+		local state = shopState({ paidRandomAllowed = false })
+		local boosts = keysOf(ExclusiveShopView.cards("Boosts", state, Config))
+		expect(table.concat(boosts, ",")).toBe(
+			"product:SummonBoss,product:IncomeBoost15,product:IncomeBoost60,info:FinishBrew,info:HatchNow,"
+				.. "info:DoubleOffline,info:KeepStreak,info:GrowthSnack"
+		)
+		local perks = keysOf(ExclusiveShopView.cards("Perks", state, Config))
+		expect(table.find(perks, "pass:LuckyCharmPlus")).toBeNil()
+	end)
 	it("the paid Luck Potion is hidden where paid random items are restricted", function()
 		local boosts = keysOf(ExclusiveShopView.cards("Boosts", shopState({ paidRandomAllowed = false }), Config))
 		expect(table.find(boosts, "product:ServerLuckPotion")).toBeNil()
@@ -772,7 +769,6 @@ describe("quick-buy buttons", function()
 				restockAt = 1190,
 				luckUntil = 0,
 				luckMult = 1,
-				totemWeather = "Rain",
 				items = {
 					{
 						id = "LuckPotion",
@@ -1316,7 +1312,7 @@ describe("Exclusive shop perks and boosts (ExclusiveShopView)", function()
 	end)
 	it("a server boost kept as a credit is used instead of bought", function()
 		local config = sellingConfig()
-		local credits = { brew = 0, hatch = 0, rain = 1, boss = 0, totem = 0, snack = 0 }
+		local credits = { brew = 0, hatch = 0, rain = 1, boss = 0, snack = 0 }
 		local d = ExclusiveShopView.detail("product:SlimeRain", shopState({ credits = credits }), config) :: any
 		expect(d.action.kind).toBe("equip")
 		expect(d.action.text).toBe(Text.t(ExclusiveShopView.USE_CREDIT))
@@ -1343,7 +1339,7 @@ describe("Exclusive shop perks and boosts (ExclusiveShopView)", function()
 		expect((ExclusiveShopView.snackQuickBuy(state, "a", config) :: any).mode).toBe("buy")
 		expect(ExclusiveShopView.snackQuickBuy(state, "b", config)).toBeNil()
 		expect(ExclusiveShopView.snackQuickBuy(state, "c", config)).toBeNil()
-		state.exclusiveShop.credits = { brew = 0, hatch = 0, rain = 0, boss = 0, totem = 0, snack = 2 }
+		state.exclusiveShop.credits = { brew = 0, hatch = 0, rain = 0, boss = 0, snack = 2 }
 		expect((ExclusiveShopView.snackQuickBuy(state, "a", config, true) :: any).mode).toBe("credit")
 	end)
 	it("no Growth snack is offered on a server where slimes don't grow", function()

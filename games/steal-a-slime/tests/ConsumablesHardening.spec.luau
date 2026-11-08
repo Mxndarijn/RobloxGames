@@ -96,18 +96,17 @@ describe("Consumables restock boundaries", function()
 	end)
 	it("tolerates a zero or fractional clock", function()
 		if not on then
-			expect(Consumables.view(PlayerData.new(), 0, true, 0)).toBeNil()
+			expect(Consumables.view(PlayerData.new(), 0, 0)).toBeNil()
 			return
 		end
 		expect(Consumables.slotAt(0)).toBe(0)
-		expect(#Consumables.view(PlayerData.new(), 0, true, 0).items > 0).toBe(true)
+		expect(#Consumables.view(PlayerData.new(), 0, 0).items > 0).toBe(true)
 		expect(Consumables.restockAt(0.5)).toBe(STEP)
 	end)
 	it("stock is the same on every call and every item is in its configured range", function()
 		for slot = 0, 200 do
-			local stock, weather = Consumables.stock(slot)
+			local stock = Consumables.stock(slot)
 			local again = Consumables.stock(slot)
-			expect(weather ~= "Clear").toBe(true)
 			for _, def in Config.CONSUMABLES do
 				expect(stock[def.id] >= def.minStock and stock[def.id] <= def.maxStock).toBe(true)
 				expect(again[def.id]).toBe(stock[def.id])
@@ -131,7 +130,7 @@ describe("Consumables restock boundaries", function()
 		expect(ok).toBe(false)
 		expect(reason).toBe("sold out until the restock")
 		local boundary = (slot + 1) * STEP
-		for _, item in Consumables.view(session.data, boundary, true, 0).items do
+		for _, item in Consumables.view(session.data, boundary, 0).items do
 			expect(item.left).toBe(item.max)
 		end
 		session.data.cash = 1e9
@@ -150,7 +149,7 @@ describe("Consumables saves", function()
 		local d = PlayerData.new()
 		expect(d.consumables.slot).toBe(0)
 		expect(next(d.consumables.bought)).toBeNil()
-		for _, item in Consumables.view(d, T0, true, 0).items do
+		for _, item in Consumables.view(d, T0, 0).items do
 			expect(item.left).toBe(item.max)
 		end
 	end)
@@ -296,7 +295,7 @@ describe("Consumables effects at the edges", function()
 		if not on then
 			return
 		end
-		expect(Consumables.view(PlayerData.new(), T0, true, T0 - 1).luckUntil or 0).toBe(0)
+		expect(Consumables.view(PlayerData.new(), T0, T0 - 1).luckUntil or 0).toBe(0)
 		expect(Consumables.spawnLuck(1.5, false)).toBe(1.5)
 		expect(Consumables.extendPotion(T0 - 99999, T0)).toBe(T0 + Config.LUCK_POTION_SECONDS)
 		expect(Consumables.potionFull(T0 - 1, T0)).toBe(false)

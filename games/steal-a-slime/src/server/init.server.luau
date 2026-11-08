@@ -377,7 +377,7 @@ local purchases = PurchaseService.service({
 	end,
 	now = now,
 	wait = task.wait,
-	ctx = ctx, -- read when a grant runs: the Weather Totem's requestWeather is set further down
+	ctx = ctx, -- read when a grant runs
 	changed = function()
 		local t = now()
 		refreshView(t)
@@ -436,7 +436,7 @@ end
 if Config.FEATURES.Weather then
 	local weatherState = WeatherService.start(workspace, now)
 	world.weather = weatherState -- shines read the live weather
-	ctx.requestWeather = function(id: string): boolean -- Weather Totem
+	ctx.requestWeather = function(id: string): boolean -- admin Set weather
 		return WeatherService.request(weatherState, id)
 	end
 end

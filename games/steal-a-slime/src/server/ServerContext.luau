@@ -5,7 +5,7 @@
 	Builds the one `ctx` (Actions.Context, which carries PvpService.Context) the server entry hands to Actions,
 	the PvP lines, BatTool.swing and WorldView.updatePlayer: world queries measured fresh from the characters
 	(distances, positions, shop and plot-prompt access, home-zone tests, the Bat's pose), the PvP launch and the
-	ShopEvent sender. Hat Launcher friends (`areFriends`) and the Weather Totem (`requestWeather`) are added by
+	ShopEvent sender. Hat Launcher friends (`areFriends`) and the admin Set weather (`requestWeather`) are added by
 	the entry once those services exist.
 ]]
 

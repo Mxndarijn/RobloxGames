@@ -69,7 +69,6 @@ ItemIcons.IMAGES = {
 	Code_SLIMEBOOST = 96448805080296,
 	Code_WELCOME = 132772869844350,
 	Consumable_LuckPotion = 130655218939229,
-	Consumable_WeatherTotem = 128919354425403,
 	Daily = 136919499537484,
 	Dex_50 = 98335037376213,
 	Event_luck = 110897664124431,
@@ -446,7 +445,7 @@ local GOAL_GLYPHS: { [string]: { glyph: string, color: { number }, what: string 
 local GOAL_DEFAULT = { glyph = "🎯", color = { 230, 120, 80 }, what = "a bullseye with an arrow" }
 
 local BADGE_COLOR = { 255, 200, 60 }
-local CONSUMABLE_COLORS: { [string]: { number } } = { LuckPotion = { 70, 190, 90 }, WeatherTotem = { 150, 155, 170 } }
+local CONSUMABLE_COLORS: { [string]: { number } } = { LuckPotion = { 70, 190, 90 } }
 local PVP_COLORS: { [string]: { number } } =
 	{ Knockback = { 230, 120, 80 }, Trap = { 110, 200, 120 }, Blaster = { 90, 160, 240 }, Fun = { 255, 200, 60 } }
 local PVP_GLYPHS: { [string]: string } = { Knockback = "🥊", Trap = "🟢", Blaster = "🔫", Fun = "🎉" }

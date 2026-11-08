@@ -269,13 +269,13 @@ fields (never saved):
 
 ## 14. Server boosts and comforts
 
-Developer Products; a grant that can't apply now is kept as a credit (`data.credits.rain|boss|totem|snack`, 0..creditMax,
+Developer Products; a grant that can't apply now is kept as a credit (`data.credits.rain|boss|snack`, 0..creditMax,
 no version bump), spent with `UseCredit(kind, target?)` or the shop's "Use credit".
 - `SlimeRain` 179: `Spawner.forceRain` for the server; refused during rain or a boss and within
   `serverBoosts.rainCooldown` (20 min) of the last paid rain (`world.paidRainAt`). Paid probability modifier: hidden where restricted.
 - `SummonBoss` 199: `nextBossAt = now + BOSS.WARNING_SECONDS`; refused with a boss on, one already due, rain in the way
   (`BossEvent.rainBlocks`) or within `summonCooldown` (`world.summonedAt`).
-- `WeatherTotem` 59: the Item shop totem's weather is next (`ctx.requestWeather`); hidden where restricted.
+- `WeatherTotem` 59: **retired** (not shown). The product stays in Config only so a late receipt closes: it grants a Server Luck Potion. Old totem credits load as held Luck Potions (SaveData).
 - `IncomeBoost15` 49 / `IncomeBoost60` 129: x2 into the capped code boost (`Codes.addBoost`).
 - `KeepStreak` 25: while `State.exclusiveShop.streakKeepable` (streak >= 2, last claim before yesterday) sets
   `daily.lastDay` to yesterday so today's claim continues the streak. Sold on the Daily reward card.

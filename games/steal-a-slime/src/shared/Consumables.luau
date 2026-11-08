@@ -8,7 +8,7 @@
 	stock of an item; the counts live in `data.consumables` and reset when the slot changes.
 	A purchase adds to the held stack (`data.consumables.held`, saved, never reset by a restock); the item's
 	effect happens when one is used (`ConsumableShop.use`), which takes one off the stack.
-	The weather totem is only stocked where the Weather service can take a request.
+	A retired Weather Totem in an old save is turned into a Luck Potion when the save loads (SaveData).
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -20,8 +20,6 @@ local Types = if script then require(script.Parent.Types) else require("./Types"
 type Data = PlayerData.Data
 
 local Consumables = {}
-
-Consumables.TOTEM = "WeatherTotem"
 
 function Consumables.enabled(): boolean
 	return Config.FEATURES.Consumables == true
@@ -49,22 +47,11 @@ function Consumables.secondsLeft(now: number): number
 	return Consumables.restockAt(now) - now
 end
 
--- Weather ids a totem may call (everything but Clear).
-local function totemWeathers(): { string }
-	local out = {}
-	for _, id in Config.WEATHER_ORDER do
-		if id ~= "Clear" then
-			table.insert(out, id)
-		end
-	end
-	return out
-end
-
 --[[
-	Stock of `slot`: ({ [itemId] = quantity }, weather id the totem calls). Draws happen in
-	Config order whatever the quantities are, so editing one item never reshuffles the others.
+	Stock of `slot`: { [itemId] = quantity }. Draws happen in Config order whatever the quantities
+	are, so editing one item never reshuffles the others.
 ]]
-function Consumables.stock(slot: number): ({ [string]: number }, string)
+function Consumables.stock(slot: number): { [string]: number }
 	local rng = Rng.new(slot * 7919 + 31337)
 	rng:float() -- the first draws of a Park-Miller LCG are correlated with nearby seeds
 	rng:float()
@@ -72,8 +59,7 @@ function Consumables.stock(slot: number): ({ [string]: number }, string)
 	for _, def in Config.CONSUMABLES do
 		out[def.id] = rng:int(def.minStock, def.maxStock)
 	end
-	local weathers = totemWeathers()
-	return out, weathers[rng:int(1, #weathers)] or "Rain"
+	return out
 end
 
 -- Cash price for this player (x the rebirth multiplier).
@@ -85,11 +71,8 @@ function Consumables.price(data: Data, id: string): number?
 	return math.floor(def.price * Economy.rebirthMultiplier(data.rebirths))
 end
 
--- Quantity this player may still buy of `id` in `slot`; 0 when unknown, unsupported or sold out.
-function Consumables.remaining(data: Data, slot: number, id: string, weatherOk: boolean): number
-	if id == Consumables.TOTEM and not weatherOk then
-		return 0
-	end
+-- Quantity this player may still buy of `id` in `slot`; 0 when unknown or sold out.
+function Consumables.remaining(data: Data, slot: number, id: string): number
 	local stock = Consumables.stock(slot)
 	local total = stock[id]
 	if not total then
@@ -133,9 +116,9 @@ end
 
 --[[
 	Checks a purchase without changing anything: (true, price) or (false, reason).
-	Effects with their own preconditions (spray target, weather request) are checked by the server.
+	Effects with their own preconditions are checked by the server.
 ]]
-function Consumables.check(data: Data, id: any, now: number, weatherOk: boolean): (boolean, number | string)
+function Consumables.check(data: Data, id: any, now: number): (boolean, number | string)
 	if not Consumables.enabled() then
 		return false, "the shop is closed"
 	end
@@ -143,10 +126,7 @@ function Consumables.check(data: Data, id: any, now: number, weatherOk: boolean)
 	if not def then
 		return false, "unknown item"
 	end
-	if id == Consumables.TOTEM and not weatherOk then
-		return false, "no weather here"
-	end
-	if Consumables.remaining(data, Consumables.slotAt(now), def.id, weatherOk) <= 0 then
+	if Consumables.remaining(data, Consumables.slotAt(now), def.id) <= 0 then
 		return false, "sold out until the restock"
 	end
 	if Consumables.held(data, def.id) >= Config.CONSUMABLE_HELD_MAX then
@@ -179,28 +159,26 @@ end
 
 --[[
 	State.consumables for one player: the slot's items with their price and what is left to
-	buy, the restock time and the active luck potion. `weatherOk` = the Weather service takes requests.
+	buy, the restock time and the active luck potion.
 ]]
-function Consumables.view(data: Data, now: number, weatherOk: boolean, potionUntil: number): Types.ConsumablesView?
+function Consumables.view(data: Data, now: number, potionUntil: number): Types.ConsumablesView?
 	if not Consumables.enabled() then
 		return nil
 	end
 	local slot = Consumables.slotAt(now)
-	local stock, weather = Consumables.stock(slot)
+	local stock = Consumables.stock(slot)
 	local items: { Types.ConsumableItemView } = {}
 	for _, def in Config.CONSUMABLES do
-		if def.id ~= Consumables.TOTEM or weatherOk then
-			table.insert(items, {
-				id = def.id,
-				name = def.name,
-				icon = def.icon,
-				text = if def.id == Consumables.TOTEM then `Calls {weather} next.` else def.text,
-				price = Consumables.price(data, def.id) :: number,
-				left = Consumables.remaining(data, slot, def.id, weatherOk),
-				max = stock[def.id] or 0,
-				held = Consumables.held(data, def.id),
-			})
-		end
+		table.insert(items, {
+			id = def.id,
+			name = def.name,
+			icon = def.icon,
+			text = def.text,
+			price = Consumables.price(data, def.id) :: number,
+			left = Consumables.remaining(data, slot, def.id),
+			max = stock[def.id] or 0,
+			held = Consumables.held(data, def.id),
+		})
 	end
 	local held: { [string]: number } = {}
 	for _, def in Config.CONSUMABLES do
@@ -215,7 +193,6 @@ function Consumables.view(data: Data, now: number, weatherOk: boolean, potionUnt
 		items = items,
 		luckUntil = if potionUntil > now then potionUntil else 0,
 		luckMult = Config.LUCK_POTION_MULT,
-		totemWeather = weather,
 		held = held,
 	}
 end

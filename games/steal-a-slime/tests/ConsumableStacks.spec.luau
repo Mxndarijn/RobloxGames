@@ -206,41 +206,32 @@ describe("UseConsumable", function()
 		expect(session.data.consumables.held.LuckPotion).toBe(1)
 	end)
 
-	it("the weather totem asks for the weather and only then spends the stack", function()
-		local slot = slotWith("WeatherTotem", 1)
+	it("held Weather Totems and totem credits from an old save load as Luck Potions", function()
+		local stored = SaveData.serialize(PlayerData.new(), T0)
+		stored.consumables = { slot = 0, bought = {}, held = { LuckPotion = 2, WeatherTotem = 3 } }
+		stored.credits = { brew = 1, hatch = 0, rain = 0, boss = 0, totem = 2, snack = 0 }
+		local data = SaveData.deserialize(stored)
+		expect(data.consumables.held.LuckPotion).toBe(7)
+		expect(data.consumables.held.WeatherTotem).toBeNil()
+		expect((data.credits :: any).totem).toBeNil()
+		expect(data.credits.brew).toBe(1)
+		stored.consumables.held = { LuckPotion = Config.CONSUMABLE_HELD_MAX - 1, WeatherTotem = 5 }
+		expect(SaveData.deserialize(stored).consumables.held.LuckPotion).toBe(Config.CONSUMABLE_HELD_MAX)
+	end)
+
+	it("a retired Weather Totem can't be used or bought", function()
+		local slot = slotWith("LuckPotion", 1)
 		local now = slot * STEP + 1
 		local world = ServerFixtures.world(now)
 		local session = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2) }, 1e9, now)
 		session.data.consumables.held.WeatherTotem = 1
-		local asked: string? = nil
 		tick += 1
-		local refused = Actions.handle(
-			world,
-			1,
-			"UseConsumable",
-			{ "WeatherTotem" },
-			now + tick * 2,
-			ctx(function()
-				return false
-			end)
-		)
-		expect(refused.ok).toBe(false)
-		expect(session.data.consumables.held.WeatherTotem).toBe(1)
+		local used = Actions.handle(world, 1, "UseConsumable", { "WeatherTotem" }, now + tick * 2, ctx(nil))
+		expect(used.ok).toBe(false)
 		tick += 1
-		local done = Actions.handle(
-			world,
-			1,
-			"UseConsumable",
-			{ "WeatherTotem" },
-			now + tick * 2,
-			ctx(function(id)
-				asked = id
-				return true
-			end)
-		)
-		expect(done.ok).toBe(true)
-		expect(asked).toBe((select(2, Consumables.stock(slot))))
-		expect(session.data.consumables.held.WeatherTotem).toBeNil()
+		local bought = Actions.handle(world, 1, "BuyConsumable", { "WeatherTotem" }, now + tick * 2, ctx(nil))
+		expect(bought.ok).toBe(false)
+		expect(session.data.cash).toBe(1e9)
 	end)
 end)
 

@@ -463,7 +463,7 @@ local DAILY_REWARDS: { DailyDay } = {
 	table.freeze({ kind = "trail", id = "mint_fizz" }), -- 7
 	dailyCash(2500),
 	dailyBoost(15),
-	dailyItem("WeatherTotem"), -- 10
+	dailyItem("LuckPotion"), -- 10
 	DAILY_EGG,
 	dailyCash(4000),
 	dailyItem("LuckPotion"),
@@ -476,7 +476,7 @@ local DAILY_REWARDS: { DailyDay } = {
 	dailyCash(7500), -- 20
 	table.freeze({ kind = "seat", id = "golden_cloud" }), -- 21
 	dailyCash(8500),
-	dailyItem("WeatherTotem"),
+	dailyItem("LuckPotion"),
 	dailyBoost(25),
 	DAILY_EGG, -- 25
 	dailyCash(11000),
@@ -921,7 +921,8 @@ end
 -- Server boosts (§14): the whole server gets them; each waits for a free moment and is kept as a credit until then.
 EXCLUSIVE_PRODUCTS.SlimeRain = product(179, { kind = "slimeRain" }) -- a Slime Rain now (a paid probability modifier)
 EXCLUSIVE_PRODUCTS.SummonBoss = product(199, { kind = "summonBoss" }) -- the boss arrives after its usual warning
-EXCLUSIVE_PRODUCTS.WeatherTotem = product(59, { kind = "weatherTotem" }) -- the Item shop totem's weather is next
+-- WeatherTotem (59) is retired and no longer shown: kept so a late receipt still closes, it gives a Server Luck Potion.
+EXCLUSIVE_PRODUCTS.WeatherTotem = product(59, { kind = "serverPotion" })
 -- Personal boosts and small comforts (§14).
 EXCLUSIVE_PRODUCTS.IncomeBoost15 = product(49, { kind = "boost", mult = 2, seconds = 900 }) -- into the capped code boost
 EXCLUSIVE_PRODUCTS.IncomeBoost60 = product(129, { kind = "boost", mult = 2, seconds = 3600 })
@@ -1572,7 +1573,7 @@ local Config = {
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
 		SlidePCD = true, -- the slide as a real collision mesh: MeshSwap makes fountain_split_slide PreciseConvexDecomposition (needs FountainSplit) and, once it is placed, FountainColliders drops the SlideColliders Post / Brace boxes it replaces; the floor slabs (the walk surface), rails and Skirt stay (docs/COLLISION.md); false = decor slide and every box
 		FountainTiers = true, -- v19: the central fountain's look upgrades with the server's best rank (FountainTiers glow) and every slime family drops from it on every server, with no rank needed to catch one; false = one Meadow fountain, Classic drops only (needs frame review)
-		Consumables = true, -- restocking Shop section: luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
+		Consumables = true, -- restocking Shop section: luck potion on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = true, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
 		PvP = true, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
@@ -2302,15 +2303,6 @@ local Config = {
 			price = 2000,
 			minStock = 1,
 			maxStock = 4,
-		}),
-		table.freeze({
-			id = "WeatherTotem",
-			name = "Weather Totem",
-			icon = "🗿",
-			text = "Calls the weather shown here next.",
-			price = 5000,
-			minStock = 0,
-			maxStock = 2,
 		}),
 	}),
 	LUCK_POTION_MULT = 2.5, -- x the fountain's tier >= 3 rarity weights while a potion is active

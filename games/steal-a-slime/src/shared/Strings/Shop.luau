@@ -14,7 +14,7 @@ return {
 	["shop.tab.pvp"] = "PvP",
 	["shop.tab.fun"] = "Fun",
 	["shop.label.gear"] = "Gear",
-	["shop.label.consumables"] = "Potions and totems",
+	["shop.label.consumables"] = "Potions",
 	["shop.label.owned"] = "Owned",
 	["shop.label.ladders"] = "Tap a number to see that tier",
 	["shop.label.fun"] = "Fun items",
@@ -54,7 +54,6 @@ return {
 	-- Item rows
 	["shop.speed_coil.speed"] = { source = "Hold it: speed {base} → {coil}", example = { base = "16", coil = "22" } },
 	["shop.consumable_short.luck_potion"] = "Better fountain rarity odds",
-	["shop.consumable_short.weather_totem"] = "Calls the next weather",
 	-- Upgrades: "+10%" (the amount, a number) and the effect phrase
 	["shop.upgrade.effect.income"] = "income",
 	["shop.upgrade.effect.carry_speed"] = "carry slowdown",

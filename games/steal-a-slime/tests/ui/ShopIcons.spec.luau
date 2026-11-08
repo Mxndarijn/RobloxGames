@@ -10,7 +10,6 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local EXPECTED = {
 	"SpeedCoil",
 	"Consumable_LuckPotion",
-	"Consumable_WeatherTotem",
 	"Pvp_KnockGlove1",
 	"Pvp_KnockGlove2",
 	"Pvp_KnockGlove3",

@@ -286,7 +286,7 @@ describe("hotbar at the gate sizes (raw and under the 58 px top bar)", function(
 end)
 
 describe("InventoryCore consumables (S3 stacks)", function()
-	local HELD = { LuckPotion = 2, WeatherTotem = 5 }
+	local HELD = { LuckPotion = 2, WeatherTotem = 5 } -- a retired id in the stack is never listed
 
 	it("lists each consumable with a stack after the Tools and PvP items, count = the stack", function()
 		local def = Config.PVP_TOOLS[1]
@@ -294,9 +294,7 @@ describe("InventoryCore consumables (S3 stacks)", function()
 			pvp = { owned = { [def.id] = true }, cooldowns = {} },
 			held = HELD,
 		}))
-		expect(table.concat(ids(entries), ",")).toBe(
-			`tool:Bat,pvp:{def.id},consumable:LuckPotion,consumable:WeatherTotem`
-		)
+		expect(table.concat(ids(entries), ",")).toBe(`tool:Bat,pvp:{def.id},consumable:LuckPotion`)
 		local potion = entries[3]
 		expect(potion.kind).toBe("consumable")
 		expect(potion.count).toBe(2)
@@ -309,13 +307,14 @@ describe("InventoryCore consumables (S3 stacks)", function()
 	end)
 
 	it("the consumable in hand is the selected one; selecting toggles it", function()
-		local held = InventoryCore.entries(input({ held = HELD, heldConsumable = "WeatherTotem" }))
-		expect(held[2].equipped).toBe(false)
-		expect(held[3].equipped).toBe(true)
-		local equip: any = InventoryCore.select(held[2])
+		local idle = InventoryCore.entries(input({ held = HELD }))
+		expect(idle[2].equipped).toBe(false)
+		local equip: any = InventoryCore.select(idle[2])
 		expect(equip.kind).toBe("Consumable")
 		expect(equip.equip).toBe(true)
-		expect((InventoryCore.select(held[3]) :: any).equip).toBe(false)
+		local held = InventoryCore.entries(input({ held = HELD, heldConsumable = "LuckPotion" }))
+		expect(held[2].equipped).toBe(true)
+		expect((InventoryCore.select(held[2]) :: any).equip).toBe(false)
 	end)
 
 	it("using needs the item in hand and sends the item id", function()
@@ -324,7 +323,8 @@ describe("InventoryCore consumables (S3 stacks)", function()
 		expect(req[1]).toBe("UseConsumable")
 		expect(#req).toBe(2)
 		expect(req[2]).toBe("LuckPotion")
-		expect(InventoryCore.useRequest(entries[3])).toBeNil() -- not in hand
+		local idle = InventoryCore.entries(input({ held = HELD }))
+		expect(InventoryCore.useRequest(idle[2])).toBeNil() -- not in hand
 		expect(InventoryCore.useRequest(entries[1])).toBeNil() -- not a consumable
 		expect(Remotes.ACTIONS[InventoryCore.USE_ACTION] ~= nil).toBe(true)
 	end)
